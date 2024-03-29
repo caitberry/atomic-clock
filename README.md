@@ -1,2 +1,5 @@
 # atomic-clock
-finalized atomic clock repo
+This repository houses code for analysis of atomic clock data with gaps using a spectral analysis approach.
+
+## Functions.R
+
