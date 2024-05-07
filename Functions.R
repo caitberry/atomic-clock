@@ -34,46 +34,6 @@ get_tapers <- function(t.n, W, K){
   eig_vecs <- eigdec$vectors #get only the vectors
   print("tapers computed")
   
-  # if(K ==1){
-  #   if (mean(Re(eig_vecs))<0){
-  #     eig_vecs <- -eig_vecs
-  #   }
-  # }
-  # 
-  # if(K == 2  || K == 3){
-  #   
-  #   if (mean(Re(eig_vecs[,1]))<0){
-  #     eig_vecs[,1] <- -eig_vecs[,1]
-  #   }
-  #   if (Re(eig_vecs[2,2] - eig_vecs[1,2])<0){
-  #     eig_vecs[,2] <- -eig_vecs[,2]
-  #   }
-  #   
-  #   if(K == 3){
-  #     if (mean(Re(eig_vecs[,3]))<0){
-  #       eig_vecs[,3] <- -eig_vecs[,3]
-  #     }
-  #   }
-  # }
-  # if(K >=4){
-  #   #some sign maintenance
-  #   for(i in seq(1,K,by = 2)){
-  #     if (mean(Re(eig_vecs[,i]))<0){
-  #       eig_vecs[,i] <- -eig_vecs[,i]
-  #     }
-  #   }
-  #   
-  #   for(i in seq(2,K-1,by = 2)){
-  #     if (Re(eig_vecs[2,i] - eig_vecs[1,i])<0){
-  #       eig_vecs[,i] <- -eig_vecs[,i]
-  #     }
-  #   }
-  # }
-  # 
-  # print("sign maintenance done")
-  
-  #"tapers" = eig_vecs, "e.values" = eigdec$values,
-  
   return(list("tapers" = eig_vecs, "e.values" = eigdec$values))
 } 
 
@@ -263,6 +223,78 @@ tau.shift <- function(f,t){
 }
 
 ## Uncertainty: Spectral-based Method ################################################
+
+## Spectral Estimate and Uncertainty ################################################
+#inputs:  (->) x.t = vector of data (possibly with NA values)
+#         (->) numTapers = number of tapers
+#output:  (<-) spectral estimate with covariance matrix
+
+spectralEstWithUnc=function(x.t,numTapers){
+  N <- length(x.t)
+  t.vec <- 1:N
+  t.vec[which(is.na(x.t))] <- NA
+  
+  V.mat <- get_tapers(t.vec, W = 7/N, K = numTapers)
+  MTSE_full <- MT_spectralEstimate(x.t, V.mat$tapers) #new function, calculates just spectrum
+  N <- length(t.vec)
+  N.fourier <- floor(N/2) + 1
+  freq <- seq(0,0.5, length.out = N.fourier)
+  
+  delta.f <- freq[2] #interval spacing between frequencies, needed for spectral avar calculation
+  
+  ### calculate the covariance matrix 
+  Cov.mat_chave <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
+  
+  for(i in 1:N.fourier){
+    j = 1
+    while(j <= i){
+      Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-im*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%(V.mat$tapers*exp(-im*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") 
+      j = j+1
+    }
+  }
+  
+  Cov.mat_chave[upper.tri(Cov.mat_chave)] <- t(Cov.mat_chave)[upper.tri(Cov.mat_chave)]
+  
+  return(list(freq=freq,
+              spec.hat=MTSE_full$spectrum,Cov.mat=Cov.mat_chave))
+  
+}
+
+## G_tau(f) transfer function #########################################################
+#inputs:  (->) 
+#         (->) 
+#output:  (<-)  
+
+transfer.func <- function(f,tau){
+  4*sin(pi*f*tau)^4/(tau*sin(pi*f))^2
+}
+
+## AVAR Calculation (Spectral) #########################################################
+# (eq'n at bottom of p. 70 of reappraisal) 
+#inputs:  (->) spectral_est = spectral estimate (as a vector)
+#         (->) taus = taus (as a vector) where you want the AVAR calculated
+#output:  (<-) spectral AVAR estimate with variance estimate (if covariance of the spectrum is provided)
+
+AVAR_trfunc <- function(spectral_est, taus,Cov.mat_chave=NA){
+  f <- seq(0,0.5,length.out = length(spectral_est))
+  
+  cov.mat=avar=numeric(length(taus))
+  
+  for(i in 1:length(taus)){
+    G.vec <- transfer.func(f,tau = taus[i]) 
+    G.vec[1] <- 0 
+    
+    avar[i]=f[2]*sum(G.vec*spectral_est)
+    
+    if(!is.na(Cov.mat_chave)){
+      #calculate variance for the AVAR estimate at the given tau
+      cov.mat[i] <- t(G.vec)%*%(Cov.mat_chave)%*%G.vec*(f[2])^2
+    }
+    
+  }
+  return(list(avar=avar,avarVar=cov.mat))
+}
+
 
 ## Uncertainty: Overlapping AVAR #####################################################
 
