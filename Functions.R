@@ -9,7 +9,8 @@ require(modules)
 # libraries ###########################################################################
 import("tidyverse", #data wrangling
        "RSpectra", #eigenvalue solving
-       "fields") #dist.mat
+       "fields", #dist.mat
+       "dplyr") #bind_rows
 
 export("get_tapers", "MT_spectralEstimate")
 # Functions ###########################################################################
@@ -214,7 +215,7 @@ lomb_scargle <- function(x.t,f){
 
 #tau function (local function needed for lomb_scargle())
 
-#inputs:  (->) f = 
+#inputs:  (->) f = frequencies at which we calculate the lomb-scargle periodogram
 #         (->) t = 
 #output:  (<-) 
 
@@ -261,9 +262,9 @@ spectralEstWithUnc=function(x.t,numTapers){
 }
 
 ## G_tau(f) transfer function #########################################################
-#inputs:  (->) 
-#         (->) 
-#output:  (<-)  
+#inputs:  (->) f = frequencies at which we calculate the transfer function
+#         (->) tau = single tau value to calculate transfer function for
+#output:  (<-) vector giving value of transfer function for tau and all frequencies
 
 transfer.func <- function(f,tau){
   4*sin(pi*f*tau)^4/(tau*sin(pi*f))^2
@@ -273,6 +274,7 @@ transfer.func <- function(f,tau){
 # (eq'n at bottom of p. 70 of reappraisal) 
 #inputs:  (->) spectral_est = spectral estimate (as a vector)
 #         (->) taus = taus (as a vector) where you want the AVAR calculated
+#         (->) Cov.mat_chave = covariance matrix estimate. Provide to get uncertainty estimate for avar
 #output:  (<-) spectral AVAR estimate with variance estimate (if covariance of the spectrum is provided)
 
 AVAR_trfunc <- function(spectral_est, taus,Cov.mat_chave=NA){
@@ -297,4 +299,42 @@ AVAR_trfunc <- function(spectral_est, taus,Cov.mat_chave=NA){
 
 
 ## Uncertainty: Overlapping AVAR #####################################################
+#inputs: (->) CI.level = desired confidence level for interval 
+#        (->) noise_type = assumed noise type for the data. Right now only works for "white noise"
+#        (->) avar_type = either 'simple' or 'chisquared', corresponding to intervals described on pages 37/38 of THOFSA
+#        (->) avars = allan variance estimates
+#        (->) taus = taus (as a vector) where you want the AVAR calculated
+#        (->) N = length of the data (with no gaps)
+#output: (<-) CI.limits = a tibble with 3 columns, one for tau, one for the lower bound 
+#                         and one for the upper bound of the CI
+#               
+#               
+
+avar_CI <- function(CI.level,noise_type = "white noise", avar_type, avars, taus,N){
+  
+  a <- (1-CI.level)/2
+  s.2=avars
+  
+  edf <- rep(NA, times = length(taus))
+  i=1
+  
+  if(noise_type == "white noise"){
+    for(m in taus){
+      edf[i] <- ((3*(N-1)/(2*m)) - (2*(N-2)/N))*(4*m^2)/(4*m^2 + 5)
+      i=i+1
+    }
+  }
+  
+  if(avar_type == "simple"){
+    CI.limits <- bind_rows("lower" = s.2 - s.2/N, "upper" = s.2 +  s.2/N)
+  }else if(avar_type == "chisquared"){
+    CI.limits <- bind_rows("lower" = s.2*edf/qchisq(1-a,edf),"upper" = s.2*edf/qchisq(a, edf) )
+  }else{
+    warning("Invalid avar_type, should be 'simple' or 'chisquared'")
+  }
+  
+  CI.limits = bind_cols(data.frame(tau=taus),CI.limits)
+  
+  return(CI.limits)
+}
 
