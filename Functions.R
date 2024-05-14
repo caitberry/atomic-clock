@@ -12,7 +12,8 @@ import("tidyverse", #data wrangling
        "fields", #dist.mat
        "dplyr") #bind_rows
 
-export("get_tapers", "MT_spectralEstimate")
+# export("get_tapers", "MT_spectralEstimate") #only use if we don't want to export every function
+
 # Functions ###########################################################################
 
 ## Calculating Missing Data Tapers ####################################################
