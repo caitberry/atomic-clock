@@ -45,11 +45,12 @@ get_tapers <- function(t.n, W, K){
 
 #inputs:  (->) X.t = time series of length N with any missing values 
 #                   and length L without, 
+#         (->) freqs (suggested value of seq(0,0.5, length.out = floor(N/2) + 1))
 #         (->) V.mat = L X K dimension taper matrix
 #outputs: (<-) freqs = fourier frequencies
 #         (<-) spectrum = spectral estimate
 
-MT_spectralEstimate <- function(X.t, V.mat){
+MT_spectralEstimate <- function(X.t, freqs, V.mat){
   im <- complex(real = 0, imaginary = 1)
   X.t <- X.t - mean(X.t, na.rm = TRUE) #demean
   N.long <- length(X.t)
@@ -60,8 +61,7 @@ MT_spectralEstimate <- function(X.t, V.mat){
   
   ##use tapers to generate spectral estimate
   N <- length(na.omit(t.n))
-  S.x.hat <- rep(NA, times = floor(N/2) + 1)
-  freqs <- seq(0,0.5, length.out = floor(N/2) + 1)
+  S.x.hat <- rep(NA, times = length(freqs))
   K <- dim(V.mat)[2]
   
   for(j in 1:length(freqs)){
@@ -229,39 +229,46 @@ tau.shift <- function(f,t){
 
 ## Spectral Estimate and Uncertainty ################################################
 #inputs:  (->) x.t = vector of data (possibly with NA values)
+#         (->) t.vec
+#         (->) N.fourier
 #         (->) numTapers = number of tapers
+#         (->) calcCov = True if you want to calculate the covariance matrix
+#         (->) myW = Analysis half-bandwidth
 #output:  (<-) spectral estimate with covariance matrix
 
-spectralEstWithUnc=function(x.t,numTapers){
-  N <- length(x.t)
-  t.vec <- 1:N
-  t.vec[which(is.na(x.t))] <- NA
-  
-  V.mat <- get_tapers(t.vec, W = 7/N, K = numTapers)
-  MTSE_full <- MT_spectralEstimate(x.t, V.mat$tapers) #new function, calculates just spectrum
+spectralEstWithUnc=function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
   N <- length(t.vec)
-  N.fourier <- floor(N/2) + 1
   freq <- seq(0,0.5, length.out = N.fourier)
   
   delta.f <- freq[2] #interval spacing between frequencies, needed for spectral avar calculation
   
+  ##calculate tapers for this data spacing
+  V.mat <- get_tapers(t.vec, W = myW, K = numTapers) #W was 4/N
+  
+  MTSE_full <- MT_spectralEstimate(x.t, freq, V.mat$tapers) 
+  
   ### calculate the covariance matrix 
   Cov.mat_chave <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
   
-  for(i in 1:N.fourier){
-    j = 1
-    while(j <= i){
-      Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-im*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%(V.mat$tapers*exp(-im*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") 
-      j = j+1
+  if(calcCov==T){
+    for(i in 1:N.fourier){
+      if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
+      j = 1
+      while(j <= i){
+        Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-im*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%(V.mat$tapers*exp(-im*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") 
+        j = j+1
+      }
     }
+    
+    Cov.mat_chave[upper.tri(Cov.mat_chave)] <- t(Cov.mat_chave)[upper.tri(Cov.mat_chave)]
   }
-  
-  Cov.mat_chave[upper.tri(Cov.mat_chave)] <- t(Cov.mat_chave)[upper.tri(Cov.mat_chave)]
   
   return(list(freq=freq,
               spec.hat=MTSE_full$spectrum,Cov.mat=Cov.mat_chave))
   
 }
+
+  
 
 ## G_tau(f) transfer function #########################################################
 #inputs:  (->) f = frequencies at which we calculate the transfer function
