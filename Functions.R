@@ -289,6 +289,7 @@ transfer.func <- function(f,tau){
 # (eq'n at bottom of p. 70 of reappraisal) 
 #inputs:  (->) spectral_est = spectral estimate (as a vector)
 #         (->) taus = taus (as a vector) where you want the AVAR calculated
+#         (->) calcUnc = Boolean where T = you want the uncertainty estimate and F = you do not want the uncertainty
 #         (->) Cov.mat_chave = covariance matrix estimate. Provide to get uncertainty estimate for avar
 #output:  (<-) spectral AVAR estimate with variance estimate (if covariance of the spectrum is provided)
 
