@@ -10,6 +10,9 @@ library(reshape2)
 library(openxlsx)
 library(fields)
 
+library(tidyverse) #data wrangling
+library(RSpectra) #eigenvalue solving
+
 mtse=modules::use("Functions.R")
 
 ###############################################################################################
@@ -28,13 +31,28 @@ dat=dat2024_04_24_ErYb_AlSr%>%mutate(missing=is.na(FracDiff),
 dat=filter(dat, missing==F)
 t.vec <- dat$seconds
 x.t=dat$FracDiff
+N=length(x.t)
 
-test=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = 100,numTapers = 10,calcCov = F,myW = 12)
+test=spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,#100,
+                        numTapers = 10,calcCov = F,
+                        myW = 4/N*3)
+test$V.mat$e.values
+V.mat <- get_tapers(t.vec, W = 4/N*3, K = 9) 
+V.mat$e.values
 
 
 
+### data analysis steps
+# 1. read in data
+# 2. concatenate small gaps
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+# 4. Look at data, spectral estimate, and tapers
+# 5. calculate avar estimate with spectrum for a series of tau values
 
-
+# 6. calculate avar estimate using old method for same tau series
+# 7. plot both with uncertainties
 
 # 
 # 
