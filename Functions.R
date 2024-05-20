@@ -7,15 +7,21 @@
 require(modules)
 
 # libraries ###########################################################################
+
 import("tidyverse", #data wrangling
        "RSpectra", #eigenvalue solving
        "fields", #dist.mat
-       "dplyr") #bind_rows
+       "dplyr", #bind_rows
+       "stats", #na.omit, na.exlclude
+       "arfima") #tacvfARFIMA
 
-
-# export("get_tapers", "MT_spectralEstimate") #only use if we don't want to export every function
+export("get_tapers", "MT_spectralEstimate", "MT_spectralEstimate_fft",
+       "avar_fn", "overlapping_avar_fn", "tavar_ARFIMA",
+       "lomb_scargle", "spectralEstWithUnc", "transfer.func",
+       "AVAR_trfunc", "avar_CI") #functions to export
 
 # Functions ###########################################################################
+
 
 ## Calculating Missing Data Tapers ####################################################
 #inputs: (->) t.n = time points of length N (possibly with NA values), 
@@ -26,14 +32,14 @@ import("tidyverse", #data wrangling
 #               K = number of tapers
 
 get_tapers <- function(t.n, W, K){
-  dist.mat <- rdist(na.omit(t.n))
+  dist.mat <- fields::rdist(stats::na.omit(t.n))
   
   #create the A' matrix (Chave 2019 equation (22))
   A.prime <- (1/(pi*dist.mat))*sin(2*pi*W*dist.mat)
   A.prime[row(A.prime) == col(A.prime)] <- W*2
   print("A matrix computed")
   
-  eigdec <- eigs(A.prime, k = K, which = "LM")
+  eigdec <- RSpectra::eigs(A.prime, k = K, which = "LM")
   eig_vecs <- eigdec$vectors #get only the vectors
   print("tapers computed")
   
@@ -57,17 +63,17 @@ MT_spectralEstimate <- function(X.t, freqs, V.mat){
   t.n <- 1:N.long
   missing.indices <- which(is.na(X.t))
   t.n[which(is.na(X.t))] <- NA
-  t.n_m <- rdist(na.omit(t.n))[1,]
+  t.n_m <- fields::rdist(stats::na.omit(t.n))[1,]
   
   ##use tapers to generate spectral estimate
-  N <- length(na.omit(t.n))
+  N <- length(stats::na.omit(t.n))
   S.x.hat <- rep(NA, times = length(freqs))
   K <- dim(V.mat)[2]
   
   for(j in 1:length(freqs)){
     k.vec <- rep(NA,times = K)
     for(k in 1:K){
-      inner.sum <- sum(V.mat[,k]*na.exclude(X.t)*exp(-im*2*pi*freqs[j]*t.n_m))
+      inner.sum <- sum(V.mat[,k]*stats::na.exclude(X.t)*exp(-im*2*pi*freqs[j]*t.n_m))
       k.vec[k] <- abs(inner.sum)^2
     }
     S.x.hat[j] <- mean(k.vec)
@@ -89,7 +95,7 @@ MT_spectralEstimate <- function(X.t, freqs, V.mat){
 MT_spectralEstimate_fft <- function(X.t, V.mat){
   
   ##use tapers to generate spectral estimate
-  N <- length(na.exclude(X.t))
+  N <- length(stats::na.exclude(X.t))
   N.fourier <- floor(N/2) + 1
   S.x.hat <- rep(NA, times = N.fourier)
   freqs <- seq(0,0.5, length.out = N.fourier)
@@ -97,7 +103,7 @@ MT_spectralEstimate_fft <- function(X.t, V.mat){
   S.k.mat <- matrix(NA,nrow = K, ncol = N.fourier)
   
   for(k in 1:K){
-    spec.vec <- fft(taperMatrix[,k]*na.exclude(X.t))[1:N.fourier]
+    spec.vec <- stats::fft(V.mat[,k]*stats::na.exclude(X.t))[1:N.fourier]
     S.k.mat[k,] <- abs(spec.vec)^2
   }
   
@@ -160,7 +166,7 @@ overlapping_avar_fn <- function(y,m){
 #output:  (<-) vector of length N.tau-1 with  
 
 tavar_ARFIMA <- function(N.tau,d, sig.2.a){
-  rho.vec <- tacvfARFIMA(phi = 0, theta = 0, dfrac = d, maxlag = 2*N.tau)
+  rho.vec <- arfima::tacvfARFIMA(phi = 0, theta = 0, dfrac = d, maxlag = 2*N.tau)
   corr.vec <- rho.vec/max(rho.vec) #normalize
   taus <- 2:N.tau
   
@@ -196,14 +202,14 @@ lomb_scargle <- function(x.t,f){
   L <- length(f)
   t.vec <- 1:N
   t.vec[which(is.na(x.t))] <- NA
-  x.missing <- na.exclude(x.t)
-  t.missing <- na.exclude(t.vec)
+  x.missing <- stats::na.exclude(x.t)
+  t.missing <- stats::na.exclude(t.vec)
   
   lsperio <- rep(NA, times = L)
   
   for(i in 1:L){
     x.centered <- x.missing - mean(x.missing)
-    x.var <- var(x.missing)
+    x.var <- stats::var(x.missing)
     tau.value <- tau.shift(f[i], t.missing)
     c.vec <- cos(2*pi*(f[i]*(t.missing - tau.value)))
     s.vec <- sin(2*pi*(f[i]*(t.missing - tau.value)))
@@ -236,7 +242,7 @@ tau.shift <- function(f,t){
 #         (->) myW = Analysis half-bandwidth
 #output:  (<-) spectral estimate with covariance matrix
 
-spectralEstWithUnc=function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
+spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
   N <- length(t.vec)
   freq <- seq(0,0.5, length.out = N.fourier)
   
@@ -255,7 +261,7 @@ spectralEstWithUnc=function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
       if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
       j = 1
       while(j <= i){
-        Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-im*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%(V.mat$tapers*exp(-im*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") 
+        Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-1i*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%(V.mat$tapers*exp(-1i*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") 
         j = j+1
       }
     }
@@ -286,7 +292,7 @@ transfer.func <- function(f,tau){
 #         (->) Cov.mat_chave = covariance matrix estimate. Provide to get uncertainty estimate for avar
 #output:  (<-) spectral AVAR estimate with variance estimate (if covariance of the spectrum is provided)
 
-AVAR_trfunc <- function(spectral_est, taus,Cov.mat_chave=NA){
+AVAR_trfunc <- function(spectral_est, taus,calcUnc = F, Cov.mat_chave=NA){
   f <- seq(0,0.5,length.out = length(spectral_est))
   
   cov.mat=avar=numeric(length(taus))
@@ -297,7 +303,7 @@ AVAR_trfunc <- function(spectral_est, taus,Cov.mat_chave=NA){
     
     avar[i]=f[2]*sum(G.vec*spectral_est)
     
-    if(!is.na(Cov.mat_chave)){
+    if(calcUnc){
       #calculate variance for the AVAR estimate at the given tau
       cov.mat[i] <- t(G.vec)%*%(Cov.mat_chave)%*%G.vec*(f[2])^2
     }
@@ -335,15 +341,14 @@ avar_CI <- function(CI.level,noise_type = "white noise", avar_type, avars, taus,
   }
   
   if(avar_type == "simple"){
-    CI.limits <- bind_rows("lower" = s.2 - s.2/N, "upper" = s.2 +  s.2/N)
+    CI.limits <- dplyr::bind_rows("lower" = s.2 - s.2/N, "upper" = s.2 +  s.2/N)
   }else if(avar_type == "chisquared"){
-    CI.limits <- bind_rows("lower" = s.2*edf/qchisq(1-a,edf),"upper" = s.2*edf/qchisq(a, edf) )
+    CI.limits <- dplyr::bind_rows("lower" = s.2*edf/stats::qchisq(1-a,edf),"upper" = s.2*edf/stats::qchisq(a, edf) )
   }else{
     warning("Invalid avar_type, should be 'simple' or 'chisquared'")
   }
   
-  CI.limits = bind_cols(data.frame(tau=taus),CI.limits)
+  CI.limits = dplyr::bind_cols(data.frame(tau=taus),CI.limits)
   
   return(CI.limits)
 }
-
