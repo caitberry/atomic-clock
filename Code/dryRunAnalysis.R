@@ -129,7 +129,15 @@ ggplot(allTaperDat,aes(t,value,col=Taper))+
 
 # 5. calculate avar estimate with spectrum for a series of tau values
 
+
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+  
+specAVARest=mtse$AVAR_trfunc(spectral_est = test$spec.hat,taus = taus,calcUnc = F)
+
 # 6. calculate avar estimate using old method for same tau series
+
+oldAVARest=mtse$
 
 # 7. plot both with uncertainties
 
