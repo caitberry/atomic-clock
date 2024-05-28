@@ -9,6 +9,7 @@
 
 mtse <- modules::use("Functions.R")
 
+
 # Math ##################################################
 # for a given frequency f, tau, and spectral estimate S.hat we can get an allan variance
 # estimate sigma.hat(tau) using:
