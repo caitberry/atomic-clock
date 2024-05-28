@@ -16,7 +16,7 @@ import("tidyverse", #data wrangling
        "arfima") #tacvfARFIMA
 
 export("get_tapers", "MT_spectralEstimate", "MT_spectralEstimate_fft",
-       "avar_fn", "overlapping_avar_fn", "tavar_ARFIMA",
+       "avar_fn_vec", "overlapping_avar_fn_vec", "tavar_ARFIMA",
        "lomb_scargle", "spectralEstWithUnc", "transfer.func",
        "AVAR_trfunc", "avar_CI") #functions to export
 
@@ -45,6 +45,7 @@ get_tapers <- function(t.n, W, K){
   
   return(list("tapers" = eig_vecs, "e.values" = eigdec$values))
 } 
+
 
 
 ## Calculating Missing Data MTSE #####################################################
@@ -83,6 +84,7 @@ MT_spectralEstimate <- function(X.t, freqs, V.mat){
 
 
 
+
 ## Calculating MTSE with FFT ##########################################################
 
 #inputs:  (->) X.t = time series of length N with any missing values 
@@ -112,6 +114,7 @@ MT_spectralEstimate_fft <- function(X.t, V.mat){
   return(list("spectrum" = S.x.hat, "freqs" = freqs))
 }
 
+
 ## AVAR Calculation (Regular) #########################################################
 
 #inputs:  (->) y = time series of length n without any missing values
@@ -135,6 +138,7 @@ avar_fn <- function(y,tau){
 }
 
 
+
 ## AVAR Calculation (Regular, Vectorized) #########################################################
 
 #inputs:  (->) y = time series of length n without any missing values
@@ -143,6 +147,7 @@ avar_fn <- function(y,tau){
 
 
 avar_fn_vec <- Vectorize(FUN = avar_fn, vectorize.args = "tau")
+
 
 
 
@@ -170,6 +175,18 @@ overlapping_avar_fn <- function(y,m){
   return(out)
 }
 
+
+## OAVAR Calculation (Overlapping, Vectorized) ####################################################
+
+#inputs:  (->) y = time series of length n without any missing values
+#         (->) m = vector of averaging times        
+#output:  (<-) Overlapping AVAR estimate for given m's
+
+overlapping_avar_fn_vec <- Vectorize(FUN = overlapping_avar_fn, vectorize.args = "m")
+
+
+
+
 ## True AVAR line for ARFIMA(0,d,0) ###################################################
 
 #inputs:  (->) N.tau = max tau value you would like calculated
@@ -196,6 +213,7 @@ tavar_ARFIMA <- function(N.tau,d, sig.2.a){
   denom <- (taus*gamma(1-d))^2
   return(numerator/denom)
 }
+
 
 
 ## Calculating the Lomb Scargle Periodogram ###########################################
@@ -243,7 +261,60 @@ tau.shift <- function(f,t){
   (1/(4*pi*f))*atan(sum(sin(4*pi*f*t))/sum(cos(4*pi*f*t)))
 }
 
+
 ## Uncertainty: Spectral-based Method ################################################
+
+## Spectrum Covariance Function ######################################################
+# Cov(S.hat(f_i), S.hat(f_j))
+#inputs: (->) X.t = Nx1 vector of data, possibly with gaps
+#        (->) W = analysis half bandwidth, 
+#        (->) K = number of tapers
+#output: (<-) NxN matrix where the ijth entry is Cov(S.hat(f_i), S.hat(f_j))
+
+spec_cov.mat <- function(X.t, W, K){
+  freqs = seq(0, 0.5, length.out = )
+  
+}
+
+## G_tau(f) transfer function ########################################################
+#inputs:  (->) f = frequencies at which we calculate the transfer function
+#         (->) tau = single tau value to calculate transfer function for
+#output:  (<-) vector giving value of transfer function for tau and all frequencies
+
+transfer.func <- function(f,tau){
+  4*sin(pi*f*tau)^4/(tau*sin(pi*f))^2
+}
+
+## Spectral-Based AVAR Calculation ##################################################
+# (eq'n at bottom of p. 70 of reappraisal) 
+#inputs:  (->) spectral_est = spectral estimate (as a vector)
+#         (->) taus = taus (as a vector) where you want the AVAR calculated
+#         (->) calcUnc = Boolean where T = you want the uncertainty estimate and F = you do not want the uncertainty
+#         (->) Cov.mat_chave = covariance matrix estimate. Provide to get uncertainty estimate for avar
+#output:  (<-) spectral AVAR estimate with variance estimate (if covariance of the spectrum is provided)
+
+AVAR_spec <- function(spectral_est, taus, calcUnc = F, Cov.mat =NA){
+  f <- seq(0,0.5,length.out = length(spectral_est))
+  
+  cov.mat=avar=numeric(length(taus))
+  
+  for(i in 1:length(taus)){
+    G.vec <- transfer.func(f,tau = taus[i]) 
+    G.vec[1] <- 0 
+    
+    avar[i]=f[2]*sum(G.vec*spectral_est)
+    
+    if(calcUnc){
+      #calculate variance for the AVAR estimate at the given tau
+      cov.mat[i] <- t(G.vec)%*%(Cov.mat)%*%G.vec*(f[2])^2
+    }
+    
+  }
+  return(list(avar=avar,avarVar=cov.mat))
+}
+
+
+
 
 ## Spectral Estimate and Uncertainty ################################################
 #inputs:  (->) x.t = vector of data (possibly with NA values)
@@ -286,44 +357,8 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
   
 }
 
-  
 
-## G_tau(f) transfer function #########################################################
-#inputs:  (->) f = frequencies at which we calculate the transfer function
-#         (->) tau = single tau value to calculate transfer function for
-#output:  (<-) vector giving value of transfer function for tau and all frequencies
 
-transfer.func <- function(f,tau){
-  4*sin(pi*f*tau)^4/(tau*sin(pi*f))^2
-}
-
-## AVAR Calculation (Spectral) #########################################################
-# (eq'n at bottom of p. 70 of reappraisal) 
-#inputs:  (->) spectral_est = spectral estimate (as a vector)
-#         (->) taus = taus (as a vector) where you want the AVAR calculated
-#         (->) calcUnc = Boolean where T = you want the uncertainty estimate and F = you do not want the uncertainty
-#         (->) Cov.mat_chave = covariance matrix estimate. Provide to get uncertainty estimate for avar
-#output:  (<-) spectral AVAR estimate with variance estimate (if covariance of the spectrum is provided)
-
-AVAR_trfunc <- function(spectral_est, taus,calcUnc = F, Cov.mat_chave=NA){
-  f <- seq(0,0.5,length.out = length(spectral_est))
-  
-  cov.mat=avar=numeric(length(taus))
-  
-  for(i in 1:length(taus)){
-    G.vec <- transfer.func(f,tau = taus[i]) 
-    G.vec[1] <- 0 
-    
-    avar[i]=f[2]*sum(G.vec*spectral_est)
-    
-    if(calcUnc){
-      #calculate variance for the AVAR estimate at the given tau
-      cov.mat[i] <- t(G.vec)%*%(Cov.mat_chave)%*%G.vec*(f[2])^2
-    }
-    
-  }
-  return(list(avar=avar,avarVar=cov.mat))
-}
 
 
 ## Uncertainty: Overlapping AVAR #####################################################
