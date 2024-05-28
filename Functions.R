@@ -134,6 +134,18 @@ avar_fn <- function(y,tau){
   1/(2*(M-1)) * sum(diff(groupmeans)^2)
 }
 
+
+## AVAR Calculation (Regular, Vectorized) #########################################################
+
+#inputs:  (->) y = time series of length n without any missing values
+#         (->) tau = vector of averaging times        
+#output:  (<-) AVAR estimate for given tau
+
+
+avar_fn_vec <- Vectorize(FUN = avar_fn, vectorize.args = "tau")
+
+
+
 ## OAVAR Calculation (Overlapping) ####################################################
 
 #inputs:  (->) y = time series of length n without any missing values
