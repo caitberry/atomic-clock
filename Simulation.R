@@ -17,7 +17,7 @@ mtse <- modules::use("Functions.R")
 # sigma.hat(tau) = int_{0}^{1/2} G_tau(f)*S.hat(f)df ~ delta.f * G.vec %*% S.hat (or some equivalent quadrature)
 
 # where 
-# G.vec is G_tau evaluated at all fourier freuencies f_0, f_1, ..., f_N/2
+# G.vec is G_tau evaluated at all fourier frequencies f_0, f_1, ..., f_N/2
 # S.hat is the MTSE at the vector of fourier frequencies
 # delta.f is the 
 
@@ -27,7 +27,7 @@ mtse <- modules::use("Functions.R")
 
 # placement of gaps
 
-# set parameters of MTSE
+# set parameters of MTSE: W, K
 
 # tau values of interest
 
