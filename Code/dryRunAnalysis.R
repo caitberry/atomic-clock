@@ -54,23 +54,105 @@ dat=dat2024_04_24_ErYb_AlSr%>%mutate(missing=is.na(FracDiff),
 
 plot(dat$MJD,dat$FracDiff)
 
-dat=filter(dat, missing==F)
-t.vec <- dat$seconds
-x.t=dat$FracDiff#-mean(dat$FracDiff)
-N=length(x.t)
+# dat=filter(dat, missing==F)
+# t.vec <- dat$seconds
+# x.t=dat$FracDiff#-mean(dat$FracDiff)
+# N=length(x.t)
 
 # 2. concatenate small gaps
-# ????????
 
+####EDA on missing points
+
+sum(is.na(dat))
+df=dat$FracDiff
+missing.indices <- which(is.na(df))
+missing.indices[1:20]
+differenced <- diff(missing.indices)
+differenced[1:20]
+sum(differenced > 1)
+jumps <- which(differenced>1)
+differenced[1220:1230]
+
+missing.indices[1:10]
+differenced[1:10]
+
+new.df <- df
+new.df[is.na(df)] <- Inf
+runs <- rle(new.df)
+runs
+NA_period_length <- runs$lengths[runs$values == Inf]
+
+NA_period_length
+
+
+remove.indices <- c()
+start <- 0
+for(i in 1:length(NA_period_length)){
+  if(NA_period_length[i]< 100){
+    remove.indices <- append(remove.indices,missing.indices[(1 + start):sum(NA_period_length[1:i])])
+    start <- sum(NA_period_length[1:i])
+  }
+  if(NA_period_length[i]>100){
+    start <- sum(NA_period_length[1:i])
+  }
+  
+}
+
+#take out small gaps
+new.df <- df[-c(remove.indices)]
+
+#look at gaps now
+new.df2 <- new.df
+new.df2[is.na(new.df)] <- Inf
+runs2 <- rle(new.df2)
+runs2
+NA_period_length2 <- runs2$lengths[runs2$values == Inf]
+
+NA_period_length2
+
+
+### define the data
+
+
+x.t_all=new.df
+# ##############################testing
+# x.t_all=rnorm(1000)
+# x.t_all=((new.df-mean(new.df,na.rm = T))/sd(new.df,na.rm = T))[1:1000]
+x.t_all=new.df*10^16
+N_tot=length(x.t_all)
+t.vec_all <- 1:N_tot
+
+plot(t.vec_all,x.t_all)
+
+
+cleanedDF=data.frame(x.t=x.t_all,t.vec=t.vec_all)
+cleanedDF=cleanedDF%>%mutate(missing=is.na(x.t))
+cleanedDF=filter(cleanedDF,missing==F)
+
+x.t=cleanedDF$x.t
+t.vec <- cleanedDF$t.vec
+N=length(x.t)
+
+plot(t.vec,x.t)
+
+length(x.t)
+length(t.vec)
 # 3. get spectral estimate
 # 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
 # can start with 8/N or 12/N for W
 V.mat <- mtse$get_tapers(t.vec, W = 4/N*3, K = 10) 
 V.mat$e.values
 test=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,#100,
-                        numTapers = 10,calcCov = F,
+                        numTapers = 10,calcCov = T,
                         myW = 4/N*3)
-test$V.mat$e.values
+test$V.mat$e.values ####NEED TO ADD THIS ABILITY TO THE FUNCTION
+dim(test$Cov.mat)
+
+# save test
+today=format(Sys.Date(),format="%b%d")
+resName=paste("2024-04-24-ErYb-AlSr",today,"firstTry",sep="_")
+
+saveRDS(test,file = paste("/home/aak3/NIST/atomic-clock/Results/resultsFor",resName,".Rds",sep=""))
 
 # 4. Look at data, spectral estimate, and tapers
 library(RColorBrewer)
@@ -133,15 +215,42 @@ ggplot(allTaperDat,aes(t,value,col=Taper))+
 taus <- 2^(0:9)
 taus <- taus[taus<floor(N/3)]
   
-specAVARest=mtse$AVAR_trfunc(spectral_est = test$spec.hat,taus = taus,calcUnc = F)
+specAVARest=mtse$AVAR_spec(spectral_est = test$spec.hat,taus = taus,calcUnc = T,Cov.mat = test$Cov.mat)
 
 # 6. calculate avar estimate using old method for same tau series
 
-oldAVARest=mtse$
+plot(x.t)
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
 
 # 7. plot both with uncertainties
 
 
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)))
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+# facet_wrap(~Ratio)
 
 # 
 # 

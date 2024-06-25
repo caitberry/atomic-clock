@@ -18,7 +18,7 @@ import("tidyverse", #data wrangling
 export("get_tapers", "MT_spectralEstimate", "MT_spectralEstimate_fft",
        "avar_fn_vec", "overlapping_avar_fn_vec", "tavar_ARFIMA",
        "lomb_scargle", "spectralEstWithUnc", "transfer.func",
-       "AVAR_trfunc", "avar_CI") #functions to export
+       "AVAR_spec","avar_CI") #functions to export
 
 # Functions ###########################################################################
 
@@ -411,7 +411,8 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
       if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
       j = 1
       while(j <= i){
-        Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-1i*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%(V.mat$tapers*exp(-1i*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") 
+        Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-1i*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%
+                                     (V.mat$tapers*exp(-1i*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") ### NEED TO FIX THIS FOR NOT WHITE NOISE DATA!
         j = j+1
       }
     }
