@@ -8,5 +8,9 @@ plot(dat2024_04_24_ErYb_AlSr$MJD,dat2024_04_24_ErYb_AlSr$FracDiff)
 ggplot(dat2024_04_24_ErYb_AlSr,aes(MJD,FracDiff))+
   geom_point()
 
+
+library("openxlsx")
+## note: MDT should be set to current user's time zone or ignored
 dat = dat2024_04_24_ErYb_AlSr %>% mutate(missing=is.na(FracDiff),
                                      date=convertToDateTime(MJD, origin = "1858-11-17",tz="MDT"))
+                                  
