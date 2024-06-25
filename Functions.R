@@ -276,10 +276,7 @@ tau.shift <- function(f,t){
 #        (->) isWhite = boolean which is set to true if assuming white noise and false if not
 #output: (<-) N.fourier x N.fourier matrix where the ijth entry is Cov(S.hat(f_i), S.hat(f_j))
 
-X.t <- rnorm(10)
-calcTapers <- get_tapers(1:10, W = 1, K = 3)
-taperMat <- calcTapers$tapers
-#spec_cov.mat <- function(X.t, taperMat, isWhite = TRUE){
+spec_cov.mat <- function(X.t, taperMat, isWhite = TRUE){
   N <- length(stats::na.omit(X.t)) #length of data without gaps
   N.fourier <- floor(N/2) + 1 #Number of fourier frequency modes (nyquist sampling rate)
   K <- dim(taperMat)[2] 
@@ -310,9 +307,10 @@ taperMat <- calcTapers$tapers
         j = j+1
       }
     }
-    
   C.mat[upper.tri(C.mat)] <- t(C.mat)[upper.tri(C.mat)]
-#}
+  
+  return(list(C.mat = C.mat))
+}
 
 
 
