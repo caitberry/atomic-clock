@@ -264,17 +264,56 @@ tau.shift <- function(f,t){
 
 ## Uncertainty: Spectral-based Method ################################################
 
-## Spectrum Covariance Function ######################################################
-# Cov(S.hat(f_i), S.hat(f_j))
-#inputs: (->) X.t = Nx1 vector of data, possibly with gaps
-#        (->) W = analysis half bandwidth, 
-#        (->) K = number of tapers
-#output: (<-) NxN matrix where the ijth entry is Cov(S.hat(f_i), S.hat(f_j))
 
-spec_cov.mat <- function(X.t, W, K){
-  freqs = seq(0, 0.5, length.out = )
+## Spectrum Covariance Matrix Function ######################################################
+# Calculates Cov(S.hat(f_i), S.hat(f_j))
+#For data of length N, possibly with gaps
+#length N.omitted without gaps
+#N.fourier is the number of fourier frequencies
+#inputs: (->) X.t = Nx1 vector of data, possibly with gaps
+#        (->) taperMat = N.omitted x K matrix of data tapers calculated from get_tapers() function, 
+#                       where K is the number of tapers 
+#        (->) isWhite = boolean which is set to true if assuming white noise and false if not
+#output: (<-) N.fourier x N.fourier matrix where the ijth entry is Cov(S.hat(f_i), S.hat(f_j))
+
+X.t <- rnorm(10)
+calcTapers <- get_tapers(1:10, W = 1, K = 3)
+taperMat <- calcTapers$tapers
+#spec_cov.mat <- function(X.t, taperMat, isWhite = TRUE){
+  N <- length(stats::na.omit(X.t)) #length of data without gaps
+  N.fourier <- floor(N/2) + 1 #Number of fourier frequency modes (nyquist sampling rate)
+  K <- dim(taperMat)[2] 
   
-}
+  freq <- seq(0, 0.5, length.out = N.fourier)
+  
+  t.vec <- 1:length(X.t)
+  t.vec[which(is.na(X.t))] <- NA
+  t.vec <- stats::na.omit(t.vec)
+  
+  C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
+  
+  if(isWhite){
+  R_mat <- diag(1, nrow = N) #to start
+  }
+  if(!isWhite){
+  R_mat # <- XXX put code in to calculate the sample ACF
+  }
+  
+  for(i in 1:N.fourier){
+      if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
+      j = 1
+      while(j <= i){
+        V_star_mat <- Conj(t(taperMat*exp(-1i*2*pi*freq[i]*t.vec)))
+        V_mat <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+        C.mat[i,j] <- (1/K)*norm(V_star_mat%*%R_mat%*%V_mat, type = "2") 
+        j = j+1
+      }
+    }
+    
+  C.mat[upper.tri(C.mat)] <- t(C.mat)[upper.tri(C.mat)]
+#}
+
+
 
 ## G_tau(f) transfer function ########################################################
 #inputs:  (->) f = frequencies at which we calculate the transfer function
@@ -284,6 +323,7 @@ spec_cov.mat <- function(X.t, W, K){
 transfer.func <- function(f,tau){
   4*sin(pi*f*tau)^4/(tau*sin(pi*f))^2
 }
+
 
 ## Spectral-Based AVAR Calculation ##################################################
 # (eq'n at bottom of p. 70 of reappraisal) 
@@ -313,9 +353,36 @@ AVAR_spec <- function(spectral_est, taus, calcUnc = F, Cov.mat =NA){
   return(list(avar=avar,avarVar=cov.mat))
 }
 
+## Spec-based AVAR Variance Calculation #############################################
+#inputs:  (->) taus = vector of tau values at which you'd like the uncertainty calculated
+#         (->) C.mat = Covariance matrix object from function spec_cov.mat(), an N.fourier x N.fourier sized matrix
+#                       where N.fourier is the number of fourier frequencies
+#output:  (<-) avar_var = vector of Var(sigma^2(taus)) values to be used to calculate the bars   
 
-
-
+AVAR_spec_var <- function(taus, C.mat){
+  variance_vec <- rep(NA, times = length(taus))
+  freqs <- seq(0,0.5, length.out = dim(C.mat)[1])
+  
+  for(i in 1:length(taus)){
+  G.vec <- transfer.func(taus[i], freqs)
+  variance_vec[i] <- t(G.vec)%*%(C.mat)%*%G.vec*(freqs[2])^2
+  }
+}
+  
+  ## Spec-based AVAR Uncertainty Calculation #############################################
+  #inputs:  (->) taus = vector of tau values at which you'd like the uncertainty calculated
+  #         (->) avar_var = vector of Var(sigma^2(taus)) values to be used to calculate the bars 
+  #output:  (<-) avar_bounds = length(taus) x 2 sized matrix with lower and upper uncertainty bounds 
+  #                             on the spectral based AVAR estimate   
+  
+  AVAR_spec_unc <- function(taus, avar_var){
+    
+    #amanda?
+    
+  }
+  
+  
+  
 ## Spectral Estimate and Uncertainty ################################################
 #inputs:  (->) x.t = vector of data (possibly with NA values)
 #         (->) t.vec
