@@ -33,7 +33,7 @@ mtse=modules::use("Functions.R")
 ###############################################################################################
 
 # 1. read in data
-dat2024_04_24_ErYb_AlSr <- read.csv("Data/2024-04-24-ErYb-AlSr.csv",header = F,sep="",na.strings = "NaN")
+dat2024_04_24_ErYb_AlSr <- read.csv("Data/clockRatioTimeseries_first2024dryRun/2024-04-24-ErYb-AlSr.csv",header = F,sep="",na.strings = "NaN")
 dim(dat2024_04_24_ErYb_AlSr)
 colnames(dat2024_04_24_ErYb_AlSr)=c("MJD","FracDiff")
 
