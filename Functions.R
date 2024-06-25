@@ -295,9 +295,10 @@ taperMat <- calcTapers$tapers
   if(isWhite){
   R_mat <- diag(1, nrow = N) #to start
   }
-  if(!isWhite){
-  R_mat # <- XXX put code in to calculate the sample ACF
-  }
+  #if(!isWhite){
+  #s_acf <- acf(X.t, lag.max = 10, type = "partial")
+  #R_mat <- # <- XXX put code in to calculate the sample ACF
+  #}
   
   for(i in 1:N.fourier){
       if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
