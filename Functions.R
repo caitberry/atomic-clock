@@ -368,17 +368,26 @@ AVAR_spec_var <- function(taus, C.mat){
   }
 }
   
-  ## Spec-based AVAR Uncertainty Calculation #############################################
-  #inputs:  (->) taus = vector of tau values at which you'd like the uncertainty calculated
-  #         (->) avar_var = vector of Var(sigma^2(taus)) values to be used to calculate the bars 
-  #output:  (<-) avar_bounds = length(taus) x 2 sized matrix with lower and upper uncertainty bounds 
-  #                             on the spectral based AVAR estimate   
+## Spec-based AVAR Uncertainty Calculation #############################################
+#inputs:  (->) CI.level = desired confidence level for interval 
+#         (->) taus = vector of tau values at which you'd like the uncertainty calculated
+#         (->) avar = vector of sigma^2(taus) values to be used to calculate the bars 
+#         (->) avar_var = vector of Var(sigma^2(taus)) values to be used to calculate the bars 
+#output: (<-) CI.limits = a tibble with 3 columns, one for tau, one for the lower bound 
+#                         and one for the upper bound of the CI on the spectral based AVAR estimate
+
+AVAR_spec_CI <- function(CI.level, taus, avar, avar_var){
+
+  a <- (1-CI.level)/2
   
-  AVAR_spec_unc <- function(taus, avar_var){
-    
-    #amanda?
-    
-  }
+  CI.limits <- dplyr::bind_rows("lower" = avar + qnorm(a)*sqrt(avar_var),
+                                "upper" = avar + qnorm(1-a)*sqrt(avar_var))
+  
+  CI.limits = dplyr::bind_cols(data.frame(tau=taus),CI.limits)
+  
+  return(CI.limits)
+  
+}
   
   
   
