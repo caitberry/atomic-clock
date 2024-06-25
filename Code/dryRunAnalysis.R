@@ -145,16 +145,16 @@ length(t.vec)
 V.mat <- mtse$get_tapers(t.vec, W = 4/N*3, K = 10) 
 V.mat$e.values
 test=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,#100,
-                        numTapers = 10,calcCov = T,
+                        numTapers = 10,calcCov = F,
                         myW = 4/N*3)
 test$V.mat$e.values ####NEED TO ADD THIS ABILITY TO THE FUNCTION
 dim(test$Cov.mat)
 
-# save test
-today=format(Sys.Date(),format="%b%d")
-resName=paste("2024-04-24-ErYb-AlSr",today,"firstTry",sep="_")
-
-saveRDS(test,file = paste("/home/aak3/NIST/atomic-clock/Results/resultsFor",resName,".Rds",sep=""))
+# # save test
+# today=format(Sys.Date(),format="%b%d")
+# resName=paste("2024-04-24-ErYb-AlSr",today,"firstTry",sep="_")
+# 
+# saveRDS(test,file = paste("/home/aak3/NIST/atomic-clock/Results/resultsFor",resName,".Rds",sep=""))
 
 # 4. Look at data, spectral estimate, and tapers
 library(RColorBrewer)
@@ -217,7 +217,7 @@ ggplot(allTaperDat,aes(t,value,col=Taper))+
 taus <- 2^(0:9)
 taus <- taus[taus<floor(N/3)]
   
-specAVARest=mtse$AVAR_spec(spectral_est = test$spec.hat,taus = taus,calcUnc = T,Cov.mat = test$Cov.mat)
+specAVARest=mtse$AVAR_spec(spectral_est = test$spec.hat,taus = taus,calcUnc = F,Cov.mat = test$Cov.mat)
 
 # 6. calculate avar estimate using old method for same tau series
 
