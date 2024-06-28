@@ -5,7 +5,7 @@
 # v_yb_ideal=2*v_comb+f_shift 
 # f_shift includes: Blackbody radation based on real time temperature measurement (avg shift = -1.2130), 2nd order zeeman based on real time B field measurement by atoms (avg shift = -0.0620), background gas collisions (avg shift = -0.0016), lattice AC stark shift (avg shift = -0.0007), probe AC stark shift (avg shift = 0.0000), graviational red shift (avg shift = 0.0803), and AOMs between atoms and combs (shift of 63000000)
 # Run Duration 1.234323e+04 s, uptime fraction 9.346147e-01. 
- t_mjd	   f_shift [Hz]  	IS_GOOD
+ t_mjd	   f_shift[Hz]  	IS_GOOD
    6.0426717832290000e+04	   6.3000001174294010e+07	   0.0000000000000000e+00	
    6.0426717846849999e+04	   6.3000001174300894e+07	   0.0000000000000000e+00	
    6.0426717865459999e+04	   6.3000001181670621e+07	   0.0000000000000000e+00	

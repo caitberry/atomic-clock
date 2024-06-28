@@ -19,7 +19,7 @@
 # f_sr = (N/M)*f_light + f_shift[Hz] 
 # where N = 1716682, M = 777577, 
 # and f_light is the frequency of the light leaving JILA. 
-t_mjd	f_shift [Hz]	IS_GOOD
+t_mjd	f_shift[Hz]	IS_GOOD
 60426.6804259005	-165703313.03863543	1
 60426.68058901186	-165703313.0539992	1
 60426.680752162945	-165703313.00836802	1
