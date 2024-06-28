@@ -150,17 +150,22 @@ acf2=acf(chunks[[3]],na.action = na.omit,lag.max = p,plot = F)
 acf3=acf(chunks[[4]],na.action = na.omit,lag.max = p,plot = F)
 acf4=acf(chunks[[5]],na.action = na.omit,lag.max = p,plot = F)
 
-acf1$lag
+acf1$n.used
 as.numeric(test)
-acfOut=data.frame(chunk=rep(1:4,each=p+1),
+acfOut=data.frame(chunk=rep(1:5,each=p+1),
                   acf=c(as.numeric(acf1$acf),
                         as.numeric(acf2$acf),
                         as.numeric(acf3$acf),
-                        as.numeric(acf4$acf)),
+                        as.numeric(acf4$acf),
+                        as.numeric(acf_result$acf)),
                   lag=c(as.numeric(acf1$lag)),
-                  N=)
+                  N=rep(c(acf1$n.used,
+                          acf2$n.used,
+                          acf3$n.used,
+                          acf4$n.used,
+                          acf_result$n.used),each=p+1))
 
-ggplot(acfOut,aes(lag,acf,col=chunk))+
+ggplot(acfOut,aes(lag,acf,col=factor(N)))+
   geom_point()
 
 test=acf(chunks[[2]],na.action = na.omit,lag.max = p,plot = F)
@@ -186,3 +191,113 @@ autocorr_matrix <- toeplitz(c(acf_values, rep(0, N - p - 1)))
 head(autocorr_matrix)
 diag(autocorr_matrix)
 autocorr_matrix[1:10,1:10]
+
+
+
+### do for sim data
+
+# Simulate AR(4) data
+# Define the AR(4) model coefficients
+phi <- c(0.5, -0.3, 0.2, -0.1)
+
+# Simulate the AR(4) process with 100 observations
+n <- length(ts_data)
+ar4_sim <- arima.sim(model=list(ar=phi), n=n)
+
+# copy previous NA pattern
+naIndex=which(is.na(dat))
+length(ts_data)
+
+# Plot the simulated data
+plot(ar4_sim, main="Simulated AR(4) Process")
+
+# Calculate and plot the ACF
+acf(ar4_sim, lag.max = p,plot = F)
+
+# Calculate the theoretical ACF
+true_acf <- ARMAacf(ar=phi, ma=numeric(0), lag.max=p)
+
+# Print the ACF values
+true_acf
+
+
+### do for lots
+
+# Load necessary libraries
+library(reshape2)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Define the AR(4) coefficients
+phi <- c(0.5, -0.3, 0.2, -0.1)
+n <- length(ts_data)
+naIndex=which(is.na(dat))
+
+# Number of iterations
+n_iterations <- 1000
+
+# Initialize a data frame to store the ACF results
+acf_results <- data.frame(matrix(ncol = 5, nrow = n_iterations))
+colnames(acf_results) <- paste0("Lag_", 0:p)
+
+# Loop over the number of iterations
+for (i in 1:n_iterations) {
+  # Simulate the AR(4) process
+  ar4_sim <- arima.sim(model=list(ar=phi), n=n)
+  ar4_sim[naIndex]=NA
+  
+  # Calculate the ACF up to lag 4
+  acf_values <- acf(ar4_sim, plot=FALSE, lag.max=p,na.action = na.pass)$acf
+  
+  # Store the ACF values in the data frame
+  acf_results[i, ] <- acf_values
+}
+
+# Convert the data frame to long format
+acf_long <- melt(acf_results, variable.name = "Lag", value.name = "ACF")
+
+# Print the first few rows of the long format data frame
+head(acf_long)
+
+acf_long$type="na.pass"
+
+truth=data.frame(Lag=paste0("Lag_", 0:p),
+                 ACF=ARMAacf(ar=phi, ma=numeric(0), lag.max=p),
+                 type="truth")
+acf_out=bind_rows(acf_long,truth)
+
+# Initialize a data frame to store the ACF results
+acf_results <- data.frame(matrix(ncol = 5, nrow = n_iterations))
+colnames(acf_results) <- paste0("Lag_", 0:p)
+
+# Loop over the number of iterations
+for (i in 1:n_iterations) {
+  # Simulate the AR(4) process
+  ar4_sim <- arima.sim(model=list(ar=phi), n=n)
+  ar4_sim[naIndex]=NA
+  
+  # Calculate the ACF up to lag 4
+  acf_values <- acf(ar4_sim, plot=FALSE, lag.max=p,na.action = na.exclude)$acf
+  
+  # Store the ACF values in the data frame
+  acf_results[i, ] <- acf_values
+}
+
+# Convert the data frame to long format
+acf_long <- melt(acf_results, variable.name = "Lag", value.name = "ACF")
+
+# Print the first few rows of the long format data frame
+head(acf_long)
+
+acf_long$type="na.exclude"
+
+acf_out=bind_rows(acf_out,acf_long)
+
+ggplot(filter(acf_out, Lag != "Lag_0"),aes(Lag,ACF,color=type))+
+  geom_boxplot()
+
+
+
+
+### do i need to use type=partial? that's in cait's code
