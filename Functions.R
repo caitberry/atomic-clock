@@ -276,7 +276,7 @@ tau.shift <- function(f,t){
 #        (->) isWhite = boolean which is set to true if assuming white noise and false if not
 #output: (<-) N.fourier x N.fourier matrix where the ijth entry is Cov(S.hat(f_i), S.hat(f_j))
 
-spec_cov.mat <- function(X.t, taperMat, isWhite = TRUE){
+spec_cov.mat <- function(X.t, taperMat, isWhite = TRUE,acf.lag=4){
   N <- length(stats::na.omit(X.t)) #length of data without gaps
   N.fourier <- floor(N/2) + 1 #Number of fourier frequency modes (nyquist sampling rate)
   K <- dim(taperMat)[2] 
@@ -290,12 +290,15 @@ spec_cov.mat <- function(X.t, taperMat, isWhite = TRUE){
   C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
   
   if(isWhite){
-  R_mat <- diag(1, nrow = N) #to start
+    R_mat <- diag(1, nrow = N) #to start
   }
-  #if(!isWhite){
-  #s_acf <- acf(X.t, lag.max = 10, type = "partial")
-  #R_mat <- # <- XXX put code in to calculate the sample ACF
-  #}
+  if(!isWhite){
+    s_acf <- acf(X.t, plot=FALSE, lag.max=acf.lag,na.action = na.exclude)$acf
+    
+    # Create a Toeplitz matrix from the autocorrelation values
+    R_mat <- matrix(0, nrow = N, ncol = N)
+    R_mat <- toeplitz(c(s_acf, rep(0, N - acf.lag - 1)))
+  }
   
   for(i in 1:N.fourier){
       if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
