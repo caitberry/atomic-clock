@@ -271,14 +271,15 @@ tau.shift <- function(f,t){
 #length N.omitted without gaps
 #N.fourier is the number of fourier frequencies
 #inputs: (->) X.t = Nx1 vector of data, possibly with gaps
+#        (->) N.fourier
 #        (->) taperMat = N.omitted x K matrix of data tapers calculated from get_tapers() function, 
 #                       where K is the number of tapers 
 #        (->) isWhite = boolean which is set to true if assuming white noise and false if not
+#        (->) acf.lag
 #output: (<-) N.fourier x N.fourier matrix where the ijth entry is Cov(S.hat(f_i), S.hat(f_j))
 
-spec_cov.mat <- function(X.t, taperMat, isWhite = TRUE,acf.lag=4){
+spec_cov.mat <- function(X.t, N.fourier, taperMat, isWhite = TRUE,acf.lag=4){
   N <- length(stats::na.omit(X.t)) #length of data without gaps
-  N.fourier <- floor(N/2) + 1 #Number of fourier frequency modes (nyquist sampling rate)
   K <- dim(taperMat)[2] 
   
   freq <- seq(0, 0.5, length.out = N.fourier)
@@ -401,9 +402,11 @@ AVAR_spec_CI <- function(CI.level, taus, avar, avar_var){
 #         (->) numTapers = number of tapers
 #         (->) calcCov = True if you want to calculate the covariance matrix
 #         (->) myW = Analysis half-bandwidth
+#         (->) isWhite
+#         (->) acf.lag
 #output:  (<-) spectral estimate with covariance matrix
 
-spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
+spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhite = TRUE,acf.lag=4){
   N <- length(t.vec)
   freq <- seq(0,0.5, length.out = N.fourier)
   
@@ -415,24 +418,12 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW){
   MTSE_full <- MT_spectralEstimate(x.t, freq, V.mat$tapers) 
   
   ### calculate the covariance matrix 
-  Cov.mat_chave <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
-  
   if(calcCov==T){
-    for(i in 1:N.fourier){
-      if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
-      j = 1
-      while(j <= i){
-        Cov.mat_chave[i,j] <- norm(Conj(t(V.mat$tapers*exp(-1i*2*pi*freq[i]*t.vec)*(1/sqrt(numTapers))))%*%
-                                     (V.mat$tapers*exp(-1i*2*pi*freq[j]*t.vec)*(1/sqrt(numTapers))), type = "2") ### NEED TO FIX THIS FOR NOT WHITE NOISE DATA!
-        j = j+1
-      }
-    }
-    
-    Cov.mat_chave[upper.tri(Cov.mat_chave)] <- t(Cov.mat_chave)[upper.tri(Cov.mat_chave)]
+    Cov.mat=spec_cov.mat(x.t, N.fourier, V.mat$tapers, isWhite,acf.lag)
   }
   
   return(list(freq=freq,
-              spec.hat=MTSE_full$spectrum,Cov.mat=Cov.mat_chave))
+              spec.hat=MTSE_full$spectrum,Cov.mat=Cov.mat))
   
 }
 
