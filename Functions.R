@@ -294,11 +294,11 @@ spec_cov.mat <- function(X.t, N.fourier, taperMat, isWhite = TRUE,acf.lag=4){
     R_mat <- diag(1, nrow = N) #to start
   }
   if(!isWhite){
-    s_acf <- acf(X.t, plot=FALSE, lag.max=acf.lag,na.action = na.exclude)$acf
+    s_acf <- stats::acf(X.t, plot=FALSE, lag.max=acf.lag,na.action = stats::na.exclude)$acf
     
     # Create a Toeplitz matrix from the autocorrelation values
     R_mat <- matrix(0, nrow = N, ncol = N)
-    R_mat <- toeplitz(c(s_acf, rep(0, N - acf.lag - 1)))
+    R_mat <- stats::toeplitz(c(s_acf, rep(0, N - acf.lag - 1)))
   }
   
   for(i in 1:N.fourier){
@@ -417,6 +417,7 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
   
   MTSE_full <- MT_spectralEstimate(x.t, freq, V.mat$tapers) 
   
+  Cov.mat=NA
   ### calculate the covariance matrix 
   if(calcCov==T){
     Cov.mat=spec_cov.mat(x.t, N.fourier, V.mat$tapers, isWhite,acf.lag)
