@@ -1,0 +1,1018 @@
+---
+title: "Dry Run Analysis"
+author: "Amanda Koepke"
+date: "2024-06-20"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+\pagebreak
+## 2024-04-24-ErYb-AlYb
+
+```{r,message=FALSE}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-24-ErYb-AlYb"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=14
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+startTime=Sys.time()
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                       numTapers = myK,calcCov = T,
+                       myW = myW,isWhite = F,acf.lag = 4)
+Sys.time()-startTime
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+
+## 2024-04-24-ErYb-AlSr
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-24-ErYb-AlSr"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+
+# write.csv(data.frame(x.t=x.t,t.vec=t.vec),file = "DataForVK_2024-04-24-ErYb-AlSr.csv",row.names = F)
+# test=read.csv("DataForVK_2024-04-24-ErYb-AlSr.csv")
+# head(test)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=14
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-24-ErYb-YbSr
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-24-ErYb-YbSr"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=10
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-24-TiS-AlSr
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-24-TiS-AlSr"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=14
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-26-ErYb-AlSr
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-26-ErYb-AlSr"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=14
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-26-ErYb-AlYb
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-26-ErYb-AlYb"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=13
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-26-ErYb-YbSr
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-26-ErYb-YbSr"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=10
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-26-TiS-AlSr
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-26-TiS-AlSr"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=14
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-26-TiS-AlYb
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-26-TiS-AlYb"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=13
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
+\pagebreak
+## 2024-04-26-TiS-YbSr
+
+
+```{r,message=FALSE,echo=F}
+
+source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
+### data analysis steps
+# 1. read in data
+
+dataFile="2024-04-26-TiS-YbSr"
+allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+# need to create dat vector with NAs to send to 2.
+
+### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
+dat=allDat$V2
+
+########################################################################################
+# 2. concatenate small gaps
+########################################################################################
+
+formattedData=formatDat(dat)
+
+x.t=formattedData$x.t
+t.vec=formattedData$t.vec
+N=formattedData$N
+
+plot(t.vec,x.t)
+########################################################################################
+# 3. get spectral estimate
+# 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
+# can start with 8/N or 12/N for W
+########################################################################################
+myW=4/N*3
+myK=11
+V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
+V.mat$e.values
+myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
+                             numTapers = myK,calcCov = F,
+                             myW = myW)
+
+today=format(Sys.Date(),format="%b%d")
+saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+
+########################################################################################
+# 4. Look at data, spectral estimate, and tapers
+########################################################################################
+
+plotOutput=stuffForPlots(myK,x.t,t.vec,specRes=myDatSpecEst)
+plotOutput$specPlot
+plotOutput$taperPlot
+
+########################################################################################
+# 5. calculate avar estimate with spectrum for a series of tau values
+########################################################################################
+taus <- 2^(0:9)
+taus <- taus[taus<floor(N/3)]
+
+specAVARest=mtse$AVAR_spec(spectral_est = myDatSpecEst$spec.hat,taus = taus,calcUnc = F)#T,Cov.mat = myDatSpecEst$Cov.mat)
+
+########################################################################################
+# 6. calculate avar estimate using old method for same tau series
+########################################################################################
+
+oldAVARest=mtse$overlapping_avar_fn(y = x.t,m = taus)
+
+oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
+                                   noise_type = "white noise", 
+                                   avar_type = "chisquared", 
+                                   avars = oldAVARest, 
+                                   taus=taus,
+                                   N=N)
+
+########################################################################################
+# 7. plot both with uncertainties
+########################################################################################
+
+avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
+                  avarLower=c(oldAVARestUncertainty$lower,specAVARest$avar-sqrt(specAVARest$avarVar)),
+                  avarUpper=c(oldAVARestUncertainty$upper,specAVARest$avar+sqrt(specAVARest$avarVar)),
+                  tau=rep(taus,2),
+                  Method=rep(c("Current","Spectral"),each=length(taus)),
+                  Data = dataFile)
+
+ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+
+saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+
+```
+
