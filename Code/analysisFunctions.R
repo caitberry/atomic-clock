@@ -8,7 +8,7 @@ library(fields)
 library(tidyverse) #data wrangling
 library(RSpectra) #eigenvalue solving
 
-mtse=modules::use("/home/aak3/NIST/atomic-clock/Functions.R")
+mtse=modules::use(paste(folderLocation,"Functions.R",sep=""))
 
 
 ### data analysis steps

@@ -7,6 +7,9 @@ output: pdf_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+folderLocation="C:/Users/aak3/Documents/atomic-clock/"
+# folderLocation="/home/aak3/NIST/atomic-clock/"
 ```
 
 \pagebreak
@@ -14,13 +17,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r,message=FALSE}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+source(file = paste(folderLocation,"Code/analysisFunctions.R",sep=""))
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-24-ErYb-AlYb"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -48,11 +51,11 @@ V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK)
 V.mat$e.values
 startTime=Sys.time()
 myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
-                       numTapers = myK,calcCov = T,
+                       numTapers = myK,calcCov = F,
                        myW = myW,isWhite = F,acf.lag = 4)
 Sys.time()-startTime
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -106,7 +109,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -116,13 +119,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-24-ErYb-AlSr"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -157,7 +160,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -211,7 +214,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -220,13 +223,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-24-ErYb-YbSr"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -257,7 +260,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -311,7 +314,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -320,13 +323,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-24-TiS-AlSr"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -357,7 +360,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -411,7 +414,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -420,13 +423,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-26-ErYb-AlSr"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -457,7 +460,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -511,7 +514,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -520,13 +523,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-26-ErYb-AlYb"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -557,7 +560,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -611,7 +614,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -620,13 +623,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-26-ErYb-YbSr"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -657,7 +660,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -711,7 +714,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -720,13 +723,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-26-TiS-AlSr"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -757,7 +760,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -811,7 +814,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -820,13 +823,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-26-TiS-AlYb"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -857,7 +860,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -911,7 +914,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
@@ -921,13 +924,13 @@ saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarD
 
 ```{r,message=FALSE,echo=F}
 
-source(file = "/home/aak3/NIST/atomic-clock/Code/analysisFunctions.R")
+
 
 ### data analysis steps
 # 1. read in data
 
 dataFile="2024-04-26-TiS-YbSr"
-allDat=read.csv(paste("/home/aak3/NIST/atomic-clock/Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
+allDat=read.csv(paste(folderLocation,"Data/clockRatioOffsetTimeseries_first2024dryRun/",dataFile,".csv",sep=""),header = F,sep="",na.strings = "NaN",skip = 3)
 # need to create dat vector with NAs to send to 2.
 
 ### 03/05/2018 and 03/06/2018 analyzed on 07/10/18 frac.diff. = (measured-ideal)/ideal * 1e15
@@ -958,7 +961,7 @@ myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2
                              myW = myW)
 
 today=format(Sys.Date(),format="%b%d")
-saveRDS(object = myDatSpecEst,file = paste("/home/aak3/NIST/atomic-clock/Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
 
 ########################################################################################
 # 4. Look at data, spectral estimate, and tapers
@@ -1012,7 +1015,7 @@ ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   xlab(expression(tau))+
   geom_errorbar()
 
-saveRDS(object = avarDF,file = paste("/home/aak3/NIST/atomic-clock/Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
+saveRDS(object = avarDF,file = paste(folderLocation,"Results/avarDFfor",dataFile,"_",today,".Rds",sep=""))
 
 ```
 
