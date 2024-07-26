@@ -8,6 +8,10 @@ library(fields)
 library(tidyverse) #data wrangling
 library(RSpectra) #eigenvalue solving
 
+library(parallel)
+library(Rcpp)
+library(RcppArmadillo)
+
 mtse=modules::use(paste(folderLocation,"Functions.R",sep=""))
 
 

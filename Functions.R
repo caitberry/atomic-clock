@@ -265,6 +265,7 @@ tau.shift <- function(f,t){
 ## Uncertainty: Spectral-based Method ################################################
 
 
+
 ## Spectrum Covariance Matrix Function ######################################################
 # Calculates Cov(S.hat(f_i), S.hat(f_j))
 #For data of length N, possibly with gaps
@@ -278,43 +279,7 @@ tau.shift <- function(f,t){
 #        (->) acf.lag
 #output: (<-) N.fourier x N.fourier matrix where the ijth entry is Cov(S.hat(f_i), S.hat(f_j))
 
-spec_cov.mat <- function(X.t, N.fourier, taperMat, isWhite = TRUE,acf.lag=4){
-  N <- length(stats::na.omit(X.t)) #length of data without gaps
-  K <- dim(taperMat)[2] 
-  
-  freq <- seq(0, 0.5, length.out = N.fourier)
-  
-  t.vec <- 1:length(X.t)
-  t.vec[which(is.na(X.t))] <- NA
-  t.vec <- stats::na.omit(t.vec)
-  
-  C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
-  
-  if(isWhite){
-    R_mat <- diag(1, nrow = N) #to start
-  }
-  if(!isWhite){
-    s_acf <- stats::acf(X.t, plot=FALSE, lag.max=acf.lag,na.action = stats::na.exclude)$acf
-    
-    # Create a Toeplitz matrix from the autocorrelation values
-    R_mat <- matrix(0, nrow = N, ncol = N)
-    R_mat <- stats::toeplitz(c(s_acf, rep(0, N - acf.lag - 1)))
-  }
-  
-  for(i in 1:N.fourier){
-      if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
-      j = 1
-      while(j <= i){
-        V_star_mat <- Conj(t(taperMat*exp(-1i*2*pi*freq[i]*t.vec)))
-        V_mat <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
-        C.mat[i,j] <- (1/K)*norm(V_star_mat%*%R_mat%*%V_mat, type = "2") 
-        j = j+1
-      }
-    }
-  C.mat[upper.tri(C.mat)] <- t(C.mat)[upper.tri(C.mat)]
-  
-  return(list(C.mat = C.mat))
-}
+
 
 
 
@@ -406,7 +371,7 @@ AVAR_spec_CI <- function(CI.level, taus, avar, avar_var){
 #         (->) acf.lag
 #output:  (<-) spectral estimate with covariance matrix
 
-spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhite = TRUE,acf.lag=4){
+spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhite = TRUE,acf.lag=4,numCores){
   N <- length(t.vec)
   freq <- seq(0,0.5, length.out = N.fourier)
   
@@ -420,7 +385,7 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
   Cov.mat=NA
   ### calculate the covariance matrix 
   if(calcCov==T){
-    Cov.mat=spec_cov.mat(x.t, N.fourier, V.mat$tapers, isWhite,acf.lag)
+    Cov.mat=spec_cov.mat(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag,numCores)
   }
   
   return(list(freq=freq,

@@ -1,29 +1,7 @@
-############################## Parallelization ##################################
-##### Title: Parallel_Covariance_Windows.R                                  #####
-##### Description: This file contains code to parallelize the calculation   #####
-#####              of the covariance matrix of the spectral estimate using  #####
-#####              c++ function and parApply() in the "parallel" package.   #####
-#####              This is meant to be used on a windows machine as an      #####
-#####              alternative to mcapply() which doesn't work on Windows.  #####
-#################################################################################-
-#Set working directory for Cait: 
-# setwd("/home/cmb15/ClockDataAnalysis/Code/Cait")
-# source("Parallel_Covariance_Windows.R")
-
-###################-
-#### libraries ####
-###################-
-
-library(parallel)
-library(Rcpp)
-library(RcppArmadillo)
-
-###################-
-#### functions ####
-###################-
-
 ## upper triangle indices
 generate_upper_triangle_indices <- function(N) {
+  
+  print("generate_upper_triangle_indices")
   # Create a sequence of row indices
   row_indices <- rep(1:N, each = N)
   # Create a sequence of column indices
@@ -36,8 +14,10 @@ generate_upper_triangle_indices <- function(N) {
 }
 
 ## compute the entry C.mat_ij
-compute_entry_parallel <- function(ij, taperMat = taperMatrix, setK = K, setN = N, c = c_vec){
+compute_entry_parallel <- function(ij, taperMat = taperMatrix, t.vec=t.vec, freq=freq,setK = K, setN = N, c = c_vec){
   #i,j, taperMat = taperMatrix, setK = K, setN = N, c = c_vec
+  print("compute_entry_parallel")
+  
   i = ij[1]
   j = ij[2]
   
@@ -48,6 +28,8 @@ compute_entry_parallel <- function(ij, taperMat = taperMatrix, setK = K, setN = 
 
 ## fill in the upper triangle of a matrix from a vector
 fill_upper_triangle <- function(vec, N, incl_diag = TRUE) {
+  
+  print("fill_upper_triangle")
   # Initialize an NxN matrix with NA
   mat <- matrix(NA, nrow = N, ncol = N)
   
@@ -66,74 +48,67 @@ fill_upper_triangle <- function(vec, N, incl_diag = TRUE) {
   return(mat)
 }
 
-## mtse module
-mtse <- modules::use("Functions.R")
-
-###################-
-#####  Method #####
-###################-
 
 
-## Start a Cluster ####
-
-### pick number of cores 
-### can use detectCores() to see how many are available
-numCores <- 14
-
-### make the cluster
-cl <- makeCluster(numCores)
-
-## Pre-processing ####
-
-### 1. load packages ####
-clusterEvalQ(cl, {
-  library(Rcpp)
-})
-
-### 2. send source C code ####
-clusterEvalQ(cl, {
-  sourceCpp('est_entry_FFT.cpp')
-})
-
-### 3. Calculate predetermined variables ####
-
-N=128 # length of data
-N.fourier = floor(N/2) + 1
-t.vec <- 1:N  # time vector
-
-#### tapers
-setW = 8/N
-K = 5
-taperObject <- mtse$get_tapers(t.vec, W = setW, K = K)
-taperMatrix <- taperObject$tapers
-
-#### c vector
-max.lag.acf = 10
-sample.acf <- seq(1,0.1, length.out = max.lag.acf) #toy example
-c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf), 0, rep(0, times = N-max.lag.acf), rev(sample.acf[-1]))
-length(c_vec)
-
-#### frequency vector
-freq <- seq(0, 0.5, length.out = N.fourier)  # Frequency vector
-
-#### list of indices (don't really need to send this to the cluster, but good for debugging if needed)
-upper_triangle_indices <- generate_upper_triangle_indices(N.fourier)
-
-### 4. Send variables/necessary functions to the cluster ####
-
-clusterExport(cl, list("t.vec", "N", "K", "c_vec", "taperMatrix", "freq", "upper_triangle_indices")) #objects
-clusterExport(cl, "compute_entry_parallel") #functions
-
-start_time_fast = Sys.time()
-compute_entry_parallel(upper_triangle_indices[1,])
-total_time_fast = Sys.time() - start_time_fast
-total_time_fast
-
-
-## Run code on cluster ####
-
-##### (run this code chunk all at once ###
-#####   for most accurate timing)      ###
+spec_cov.mat=function(x.t, t.vec, N.fourier,taperMatrix,isWhite,
+                      max.lag.acf,numCores){
+  print("spec_cov.mat")
+  N <- length(stats::na.omit(x.t)) #length of data without gaps
+  K <- dim(taperMatrix)[2] 
+  
+  freq <- seq(0, 0.5, length.out = N.fourier)
+  
+  t.vec <- 1:length(x.t)
+  t.vec[which(is.na(x.t))] <- NA
+  t.vec <- stats::na.omit(t.vec)
+  
+  numCores <- numCores
+  
+  ### make the cluster
+  cl <- parallel::makeCluster(numCores)
+  
+  ## Pre-processing ####
+  
+  ### 1. load packages ####
+  parallel::clusterEvalQ(cl, {
+    library(Rcpp)
+  })
+  
+  ### 2. send source C code ####
+  parallel::clusterEvalQ(cl, {
+    Rcpp::sourceCpp('/home/aak3/NIST/atomic-clock/CovarianceCalculation/est_entry_FFT.cpp')
+    # Rcpp::sourceCpp(paste(folderLocation,'CovarianceCalculation/est_entry_FFT.cpp',sep=""))
+  })
+  
+  ### 3. Calculate predetermined variables ####
+  
+  #### c vector
+  print("c vector")
+  if(isWhite){
+    sample.acf <- c(1,rep(0,max.lag.acf-1))
+  }
+  if(!isWhite){
+    sample.acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+  }
+  
+  c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf), 0, rep(0, times = N-max.lag.acf), rev(sample.acf[-1]))
+  length(c_vec)
+  
+  #### list of indices (don't really need to send this to the cluster, but good for debugging if needed)
+  upper_triangle_indices <- generate_upper_triangle_indices(N.fourier)
+  
+  ### 4. Send variables/necessary functions to the cluster ####
+  print("K is")
+  print(K)
+  parallel::clusterExport(cl, list("t.vec", "N", "K", "c_vec", "taperMatrix", "freq", "upper_triangle_indices")) #objects
+  print("exported the objects")
+  parallel::clusterExport(cl, "compute_entry_parallel") #functions
+  
+  
+  ## Run code on cluster ####
+  
+  ##### (run this code chunk all at once ###
+  #####   for most accurate timing)      ###
   start_time_fast = Sys.time() #for timing, start time
   print("start parallel")
   my_list <- list() #a vector to hold the entries
@@ -143,21 +118,22 @@ total_time_fast
   print(total_time_fast) 
   
   stopCluster(cl) #stop the cluster
-#######--------------------------------###
+  #######--------------------------------###
   
-
   
-## Make the Covariance matrix ####
-### 1. Fill in upper triangle of C.mat ####
-C.mat <- fill_upper_triangle(vec = my_list, N.fourier, incl_diag = FALSE)
-
-### 2. Fill in lower triangle of C.mat ####
-C.mat[lower.tri(C.mat)] <- t(C.mat)[lower.tri(C.mat)]
-
-### 3. Fill in Diagonal of C.mat ####
-tN = max.lag.acf
-R_mat <- toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
-diag(C.mat) <- norm(t(taperMatrix)%*%R_mat%*%taperMatrix/K, type = "2")
-
-## look at result ##
-C.mat[1:10,1:10]
+  
+  ## Make the Covariance matrix ####
+  ### 1. Fill in upper triangle of C.mat ####
+  C.mat <- fill_upper_triangle(vec = my_list, N.fourier, incl_diag = FALSE)
+  
+  ### 2. Fill in lower triangle of C.mat ####
+  C.mat[lower.tri(C.mat)] <- t(C.mat)[lower.tri(C.mat)]
+  
+  ### 3. Fill in Diagonal of C.mat ####
+  tN = max.lag.acf
+  R_mat <- toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
+  diag(C.mat) <- norm(t(taperMatrix)%*%R_mat%*%taperMatrix/K, type = "2")
+  
+  ## look at result ##
+  return(list(C.mat = C.mat))
+}

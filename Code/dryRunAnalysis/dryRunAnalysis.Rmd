@@ -8,8 +8,8 @@ output: pdf_document
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 
-folderLocation="C:/Users/aak3/Documents/atomic-clock/"
-# folderLocation="/home/aak3/NIST/atomic-clock/"
+# folderLocation="C:/Users/aak3/Documents/atomic-clock/"
+folderLocation="/home/aak3/NIST/atomic-clock/"
 ```
 
 \pagebreak
@@ -39,6 +39,15 @@ x.t=formattedData$x.t
 t.vec=formattedData$t.vec
 N=formattedData$N
 
+
+x.t=formattedData$x.t[1:1000]
+t.vec=formattedData$t.vec[1:1000]
+N=length(x.t)
+
+
+
+
+
 plot(t.vec,x.t)
 ########################################################################################
 # 3. get spectral estimate
@@ -51,8 +60,8 @@ V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK)
 V.mat$e.values
 startTime=Sys.time()
 myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
-                       numTapers = myK,calcCov = F,
-                       myW = myW,isWhite = F,acf.lag = 4)
+                       numTapers = myK,calcCov = T,
+                       myW = myW,isWhite = F,acf.lag = 4,numCores=14)
 Sys.time()-startTime
 today=format(Sys.Date(),format="%b%d")
 saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))

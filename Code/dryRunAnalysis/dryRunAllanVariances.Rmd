@@ -15,28 +15,27 @@ library(tidyr)
 
 ```{r,fig.height=11,echo=F}
 
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-26-TiS-YbSr_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-26-TiS-AlYb_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-26-TiS-AlSr_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-26-ErYb-YbSr_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-26-ErYb-AlYb_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-26-ErYb-AlSr_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-24-TiS-AlSr_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-24-ErYb-YbSr_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-24-ErYb-AlSr_Jun21.Rds
-# file:///home/aak3/NIST/atomic-clock/Results/spectralEstFor2024-04-24-ErYb-AlYb_Jun21.Rds
+# dat1=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-YbSr_Jun25.Rds")
+# dat2=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-AlYb_Jun25.Rds")
+# dat3=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-AlSr_Jun25.Rds")
+# dat4=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-YbSr_Jun25.Rds")
+# dat5=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-AlYb_Jun25.Rds")
+# dat6=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-AlSr_Jun25.Rds")
+# dat7=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-TiS-AlSr_Jun25.Rds")
+# dat8=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-YbSr_Jun25.Rds")
+# dat9=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-AlSr_Jun25.Rds")
+# dat10=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-AlYb_Jun25.Rds")
 
-
-dat1=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-YbSr_Jun25.Rds")
-dat2=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-AlYb_Jun25.Rds")
-dat3=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-AlSr_Jun25.Rds")
-dat4=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-YbSr_Jun25.Rds")
-dat5=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-AlYb_Jun25.Rds")
-dat6=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-AlSr_Jun25.Rds")
-dat7=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-TiS-AlSr_Jun25.Rds")
-dat8=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-YbSr_Jun25.Rds")
-dat9=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-AlSr_Jun25.Rds")
-dat10=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-AlYb_Jun25.Rds")
+dat1=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-YbSr_Jul25.Rds")
+dat2=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-AlYb_Jul25.Rds")
+dat3=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-TiS-AlSr_Jul25.Rds")
+dat4=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-YbSr_Jul25.Rds")
+dat5=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-AlYb_Jul25.Rds")
+dat6=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-26-ErYb-AlSr_Jul25.Rds")
+dat7=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-TiS-AlSr_Jul25.Rds")
+dat8=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-YbSr_Jul25.Rds")
+dat9=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-AlSr_Jul25.Rds")
+dat10=readRDS("/home/aak3/NIST/atomic-clock/Results/avarDFfor2024-04-24-ErYb-AlYb_Jul25.Rds")
 
 
 alldat=bind_rows(dat1,dat2,dat3,dat4,dat5,dat6,dat7,dat8,dat9,dat10)
