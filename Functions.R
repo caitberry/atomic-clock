@@ -385,7 +385,8 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
   Cov.mat=NA
   ### calculate the covariance matrix 
   if(calcCov==T){
-    Cov.mat=spec_cov.mat(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag,numCores)
+    # Cov.mat=spec_cov.mat(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag,numCores)
+    Cov.mat=spec_cov.mat_slow(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag)
   }
   
   return(list(freq=freq,
@@ -394,7 +395,39 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
 }
 
 
-
+spec_cov.mat_slow <- function(X.t, t.vec, N.fourier, taperMat, isWhite,acf.lag){
+  N <- length(stats::na.omit(X.t)) #length of data without gaps
+  K <- dim(taperMat)[2] 
+  
+  freq <- seq(0, 0.5, length.out = N.fourier)
+  
+  C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
+  
+  if(isWhite){
+    R_mat <- diag(1, nrow = N) #to start
+  }
+  if(!isWhite){
+    s_acf <- stats::acf(X.t, plot=FALSE, lag.max=acf.lag,na.action = stats::na.exclude)$acf
+    
+    # Create a Toeplitz matrix from the autocorrelation values
+    R_mat <- matrix(0, nrow = N, ncol = N)
+    R_mat <- stats::toeplitz(c(s_acf, rep(0, N - acf.lag - 1)))
+  }
+  
+  for(i in 1:N.fourier){
+    if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
+    j = 1
+    while(j <= i){
+      V_star_mat <- Conj(t(taperMat*exp(-1i*2*pi*freq[i]*t.vec)))
+      V_mat <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+      C.mat[i,j] <- (1/K)*norm(V_star_mat%*%R_mat%*%V_mat, type = "2") 
+      j = j+1
+    }
+  }
+  C.mat[upper.tri(C.mat)] <- t(C.mat)[upper.tri(C.mat)]
+  
+  return(C.mat = C.mat)
+}
 
 
 ## Uncertainty: Overlapping AVAR #####################################################

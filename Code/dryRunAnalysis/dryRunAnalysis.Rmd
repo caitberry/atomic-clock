@@ -39,16 +39,12 @@ x.t=formattedData$x.t
 t.vec=formattedData$t.vec
 N=formattedData$N
 
-
-x.t=formattedData$x.t[1:1000]
-t.vec=formattedData$t.vec[1:1000]
-N=length(x.t)
-
-
-
-
-
 plot(t.vec,x.t)
+
+
+write.csv(data.frame(x.t=x.t,t.vec=t.vec),file = "/home/aak3/NIST/atomic-clock/DataForVK_2024-04-24-ErYb-AlYb.csv",row.names = F)
+test=read.csv("DataForVK_2024-04-24-ErYb-AlYb.csv")
+head(test)
 ########################################################################################
 # 3. get spectral estimate
 # 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
@@ -60,8 +56,31 @@ V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK)
 V.mat$e.values
 startTime=Sys.time()
 myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
-                       numTapers = myK,calcCov = T,
+                       numTapers = myK,calcCov = F,
                        myW = myW,isWhite = F,acf.lag = 4,numCores=14)
+
+#############################covariance calc
+
+#### tapers
+setW = myW
+K = myK
+taperMatrix=V.mat$tapers
+
+#### frequency vector
+N.fourier = floor(N/2) + 1
+freq <- seq(0, 0.5, length.out = N.fourier)  # Frequency vector
+
+### pick number of cores 
+### can use detectCores() to see how many are available
+numCores <- 100
+
+# isWhite=F
+max.lag.acf=4
+sample.acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+
+source(paste(folderLocation,"CovarianceCalculation/Parallel_Covariance_Windows.R",sep=""))
+
+##############################################
 Sys.time()-startTime
 today=format(Sys.Date(),format="%b%d")
 saveRDS(object = myDatSpecEst,file = paste(folderLocation,"Results/spectralEstFor",dataFile,"_",today,".Rds",sep=""))
@@ -255,6 +274,10 @@ t.vec=formattedData$t.vec
 N=formattedData$N
 
 plot(t.vec,x.t)
+
+# write.csv(data.frame(x.t=x.t,t.vec=t.vec),file = "/home/aak3/NIST/atomic-clock/DataForVK_2024-04-24-ErYb-YbSr.csv",row.names = F)
+# test=read.csv("DataForVK_2024-04-24-ErYb-YbSr.csv")
+# head(test)
 ########################################################################################
 # 3. get spectral estimate
 # 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
