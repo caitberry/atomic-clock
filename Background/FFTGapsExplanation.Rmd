@@ -1,0 +1,111 @@
+---
+title: "FFT With Gaps"
+author: "CM Berry"
+date: "2024-07-25"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+fft0 <- function(z, inverse=FALSE) {
+  n <- length(z)
+  if(n == 0) return(z)
+  k <- 0:(n-1)
+  ff <- (if(inverse) 1 else -1) * 2*pi * 1i * k/n
+  vapply(1:n, function(h) sum(z * exp(ff*(h-1)), na.rm = TRUE), complex(1))
+}
+```
+
+## Set Up
+
+We are interested in the question of whether we can use the FFT to calculate the Fourier Transform of uniformly spaced data which contain gaps.
+
+In this case, our data are uniformly spaced other than the fact that we have stretches of time where the processes are unobserved (i.e. gaps) as shown below.
+
+```{r}
+y <- y_miss <-  rnorm(1028)
+missing_window <- c(100:150, 500:600)
+y_miss[missing_window] <-NA 
+
+plot(y_miss, xlab = "Time (sec)", ylab = "X_t", pch = 19)
+```
+
+Say we would like to calculate the Fourier Transform of this discrete signal. 
+We can do this with the DFT (Discrete Fourier Transform)
+
+Imagine we could observe the entire signal above.
+
+```{r}
+plot(y_miss, xlab = "Time (sec)", ylab = "X_t", pch = 19)
+points(missing_window, y[missing_window], pch = 19, col = "purple")
+```
+
+The DFT of a signal $\{x_t\}_{t = 0}^{N-1}$, as shown above, is given by:
+
+$$ D[f_j] = \sum_{t = 0}^{N-1} x_t \exp(-i2\pi f_j t)$$
+
+for $f_j = \frac{j - 1}{N}, j = 1, \ldots, N$.
+
+Consider the case where this signal might be missing (the purple points above). Then those points would simply not contribute to this sum at the given frequency. 
+
+Then the original series $x_t$ where $x_t = NA$ for some $t$ should yield the same DFT as the one where $x_t = 0$ for those time points where the data is missing. 
+
+
+## Plots
+
+For $x_t$ where we leave the NA is, the DFT is:
+
+```{r, echo=TRUE}
+# plotting DFT of x_t with 0 values where NA
+y_zeros <- y_miss
+y_zeros[is.na(y_miss)] <- 0
+plot(abs(fft0(y_zeros)), ylab = "DFT(x_t)", xlab = "j", pch = 19, ylim = c(0,100))
+```
+
+Now compare to the DFT calculated with the FFT of the same signal:
+
+```{r, echo=TRUE}
+# plotting comparing slow calculation of DFT with FFT output:
+plot(abs(fft0(y_zeros)), ylab = "DFT(x_t)", xlab = "j", pch = 19, ylim = c(0,100))
+points(abs(fft(y_zeros)), col = "red")
+legend("topright",legend = c("DFT Slow", "FFT"), col = c("black", "red"), pch = c(19, 1))
+```
+
+We can see from this plot they match, so that's great!
+
+Next we want to show that the DFT with the missing values set to NA will yeild the same results.
+```{r, echo=TRUE}
+# comparing DFT of zeroed signal and NA signal
+plot(abs(fft0(y_zeros)), ylab = "DFT(x_t)", xlab = "j", pch = 19, ylim = c(0,100))
+points(abs(fft(y_zeros)), col = "red")
+points(abs(fft0(y_miss)), col = "blue", pch = 2)
+legend("topright",legend = c("DFT Slow 0", "FFT", "DFT Slow NA"), col = c("black", "red", "blue"), pch = c(19, 1, 2))
+```
+
+Again we see a match. 
+
+Therefore we have the following equivalence:
+
+For $f_j$, $j = 1,\ldots, N$:
+
+$$DFT_0(f_j) = FFT_0(f_j) = DFT_{NA}(f_j)$$
+
+In particular, this is good evidence that taking the FFT of $x_t$ where NA values are set to 0 will give the same results as it would if we were to do the DFT the "slow" way (equation) with $x_t$ where missing values are set to NA.
+
+
+
+## Full Data vs. Missing Data
+
+In theory, we should get a similar transform for a data with gaps as without because these came from the same underlying process. Does this hold? (This is a separate question from above and doesn't affect whether we should use the FFT on gapped data, merely a question to explore about our use of this spectral estimate).
+
+Let's take a look:
+
+```{r}
+plot(abs(fft(y)), ylab = "DFT(x_t)", xlab = "j", pch = 19, ylim = c(0,100))
+points(abs(fft(y_zeros)), col = "red")
+```
+
+The magnitude of the points from the process with missing values are generally lower than those of the original full dataset.
+
+
+
