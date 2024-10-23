@@ -13,7 +13,10 @@ import("tidyverse", #data wrangling
        "fields", #dist.mat
        "dplyr", #bind_rows
        "stats", #na.omit, na.exlclude
-       "arfima") #tacvfARFIMA
+       "arfima",#tacvfARFIMA
+       "parallel",
+       "Rcpp",
+       "RcppArmadillo") 
 
 export("get_tapers", "MT_spectralEstimate", "MT_spectralEstimate_fft",
        "avar_fn_vec", "overlapping_avar_fn_vec", "tavar_ARFIMA",
@@ -385,8 +388,8 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
   Cov.mat=NA
   ### calculate the covariance matrix 
   if(calcCov==T){
-    # Cov.mat=spec_cov.mat(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag,numCores)
-    Cov.mat=spec_cov.mat_slow(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag)
+    Cov.mat=spec_cov.mat(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag,numCores)
+    # Cov.mat=spec_cov.mat_slow(x.t, t.vec, N.fourier, V.mat$tapers, isWhite,acf.lag)
   }
   
   return(list(freq=freq,
@@ -428,6 +431,162 @@ spec_cov.mat_slow <- function(X.t, t.vec, N.fourier, taperMat, isWhite,acf.lag){
   
   return(C.mat = C.mat)
 }
+
+
+
+#########################################################
+### start of new parallel cov Functions
+#########################################################
+
+## upper triangle indices
+generate_upper_triangle_indices <- function(N) {
+  
+  print("generate_upper_triangle_indices")
+  # Create a sequence of row indices
+  row_indices <- rep(1:N, each = N)
+  # Create a sequence of column indices
+  col_indices <- rep(1:N, times = N)
+  # Combine row and column indices into a matrix
+  all_indices <- cbind(row_indices, col_indices)
+  # Filter out indices to get only the upper triangle (excluding the diagonal)
+  upper_triangle_indices <- all_indices[row_indices < col_indices, ]
+  return(upper_triangle_indices)
+}
+
+## compute the entry C.mat_ij
+compute_entry_parallel <- function(ij, taperMatrix, sett.vec=t.vec, setfreq=freq,setK = K, setN = N, c = c_vec){
+  #i,j, taperMat = taperMatrix, setK = K, setN = N, c = c_vec
+  print("compute_entry_parallel")
+  
+  i = ij[1]
+  j = ij[2]
+  
+  V_star <- t(taperMatrix*exp(1i*2*pi*setfreq[i]*sett.vec))
+  V <- taperMatrix*exp(-1i*2*pi*setfreq[j]*sett.vec)
+  return(est_entry_FFT(V_star, V, c, setK, setN))
+}
+
+## fill in the upper triangle of a matrix from a vector
+fill_upper_triangle <- function(vec, N, incl_diag = TRUE) {
+  
+  print("fill_upper_triangle")
+  # Initialize an NxN matrix with NA
+  mat <- matrix(NA, nrow = N, ncol = N)
+  
+  # Get the indices of the upper triangle (excluding the diagonal)
+  upper_tri_indices1 <- which(upper.tri(mat, diag = incl_diag), arr.ind = TRUE)
+  upper_tri_indices <- upper_tri_indices1[order(upper_tri_indices1[,1]),]
+  
+  # Check if the length of the vector matches the number of upper triangle elements
+  if (length(vec) != nrow(upper_tri_indices)) {
+    stop("Length of vector does not match the number of upper triangle elements excluding the diagonal.")
+  }
+  
+  # Fill the matrix upper triangle with the elements of the vector
+  mat[upper_tri_indices] <- vec
+  
+  return(mat)
+}
+
+spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
+                      max.lag.acf,numCores){
+  
+
+  print("spec_cov.mat")
+  N <- length(stats::na.omit(x.t)) #length of data without gaps
+  taperMatrix=taperMat
+  K <- dim(taperMatrix)[2] 
+  
+  freq <- seq(0, 0.5, length.out = N.fourier)
+  
+  # t.vec <- 1:length(x.t)
+  # t.vec[which(is.na(x.t))] <- NA
+  # t.vec <- stats::na.omit(t.vec)
+  # numCores <- numCores
+  
+  ### make the cluster
+  cl <- parallel::makeCluster(numCores)
+  
+  ## Pre-processing ####
+  
+  ### 1. load packages ####
+  parallel::clusterEvalQ(cl, {
+    library(Rcpp)
+  })
+  
+  ### 2. send source C code ####
+  parallel::clusterEvalQ(cl, {
+    Rcpp::sourceCpp('/home/aak3/NIST/atomic-clock/CovarianceCalculation/est_entry_FFT.cpp')
+    # Rcpp::sourceCpp(paste(folderLocation,'CovarianceCalculation/est_entry_FFT.cpp',sep=""))
+  })
+  
+  ### 3. Calculate predetermined variables ####
+  
+  #### c vector
+  print("c vector")
+  if(isWhite){
+    sample.acf <- c(1,rep(0,max.lag.acf-1))
+  }
+  if(!isWhite){
+    sample.acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+  }
+  
+  c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf), 0, rep(0, times = N-max.lag.acf), rev(sample.acf[-1]))
+  
+  #### list of indices (don't really need to send this to the cluster, but good for debugging if needed)
+  upper_triangle_indices <- generate_upper_triangle_indices(N.fourier)
+  
+  ### 4. Send variables/necessary functions to the cluster ####
+  print("K is")
+  print(K)
+  print("N is")
+  print(N)
+  parallel::clusterExport(cl, list("t.vec", "N", "K", "c_vec", "taperMatrix", "freq", 
+                                   "upper_triangle_indices"),envir=environment()) #objects
+  
+  ######################this is not exporting correctly!! adding taperMatrix explicitly below seemed to help, but then freq was the holdup
+  # i feel like maybe the variables aren't talking to the outside functions, since i make it all the way to "  print("start parallel")" without error
+  # i tried adding the functions inside this function, did not help
+  # maybe try pass all variables as arguments of your function CrossValJM() so that they are automatically exported to the clusters
+  # https://stackoverflow.com/questions/47424367/error-in-check-for-remote-errors-val-5-nodes-produced-an-error-object-not-fo
+  print("exported the objects")
+  parallel::clusterExport(cl, "compute_entry_parallel") #functions
+
+  ## Run code on cluster ####
+  
+  ##### (run this code chunk all at once ###
+  #####   for most accurate timing)      ###
+  start_time_fast = Sys.time() #for timing, start time
+  print("start parallel")
+  my_list <- list() #a vector to hold the entries
+  my_list <- parallel::parApply(cl, FUN = compute_entry_parallel, X = upper_triangle_indices, MARGIN = 1)#,taperMatrix=taperMat) this helped, but then got stuck at freq, not a good long term fix
+  
+  total_time_fast = Sys.time() - start_time_fast
+  print(total_time_fast) 
+  
+  parallel::stopCluster(cl) #stop the cluster
+  #######--------------------------------###
+  
+  
+  
+  ## Make the Covariance matrix ####
+  ### 1. Fill in upper triangle of C.mat ####
+  C.mat <- fill_upper_triangle(vec = my_list, N.fourier, incl_diag = FALSE)
+  
+  ### 2. Fill in lower triangle of C.mat ####
+  C.mat[lower.tri(C.mat)] <- t(C.mat)[lower.tri(C.mat)]
+  
+  ### 3. Fill in Diagonal of C.mat ####
+  tN = max.lag.acf
+  R_mat <- stats::toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
+  diag(C.mat) <- norm(t(taperMatrix)%*%R_mat%*%taperMatrix/K, type = "2")
+  
+  ## look at result ##
+  return(list(C.mat = C.mat))
+}
+#########################################################
+### end of new parallel cov Functions
+#########################################################
 
 
 ## Uncertainty: Overlapping AVAR #####################################################

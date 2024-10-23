@@ -35,9 +35,9 @@ dat=allDat$V2
 
 formattedData=formatDat(dat)
 
-x.t=formattedData$x.t
-t.vec=formattedData$t.vec
-N=formattedData$N
+x.t=formattedData$x.t[1:500]   ####################CHANGE THIS BACK
+t.vec=formattedData$t.vec[1:500]####################CHANGE THIS BACK
+N=length(x.t)#formattedData$N####################CHANGE THIS BACK
 
 plot(t.vec,x.t)
 
@@ -55,8 +55,10 @@ myK=14
 V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
 V.mat$e.values
 startTime=Sys.time()
+
+source(file = paste(folderLocation,"Code/analysisFunctions.R",sep="")) ####################CHANGE THIS BACK (running again here for code testing)
 myDatSpecEst=mtse$spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
-                       numTapers = myK,calcCov = F,
+                       numTapers = myK,calcCov = T,
                        myW = myW,isWhite = F,acf.lag = 4,numCores=14)
 
 #############################covariance calc
