@@ -21,7 +21,7 @@ import("tidyverse", #data wrangling
 export("get_tapers", "MT_spectralEstimate", "MT_spectralEstimate_fft",
        "avar_fn_vec", "overlapping_avar_fn_vec", "tavar_ARFIMA",
        "lomb_scargle", "spectralEstWithUnc", "transfer.func",
-       "AVAR_spec","avar_CI") #functions to export
+       "AVAR_spec","avar_CI","spec_cov.mat_slow") #functions to export
 
 # Functions ###########################################################################
 

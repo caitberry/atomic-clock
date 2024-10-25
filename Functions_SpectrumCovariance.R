@@ -43,7 +43,7 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
 ## upper triangle indices
 generate_upper_triangle_indices <- function(N) {
   
-  print("generate_upper_triangle_indices")
+  # print("generate_upper_triangle_indices")
   # Create a sequence of row indices
   row_indices <- rep(1:N, each = N)
   # Create a sequence of column indices
@@ -58,7 +58,7 @@ generate_upper_triangle_indices <- function(N) {
 ## compute the entry C.mat_ij
 compute_entry_parallel <- function(ij, tapMat=taperMatrix, sett.vec=t.vec, setfreq=freq,setK = K, setN = N, c = c_vec){
   #i,j, taperMat = taperMatrix, setK = K, setN = N, c = c_vec
-  print("compute_entry_parallel")
+  # print("compute_entry_parallel")
   
   i = ij[1]
   j = ij[2]
@@ -71,7 +71,7 @@ compute_entry_parallel <- function(ij, tapMat=taperMatrix, sett.vec=t.vec, setfr
 ## fill in the upper triangle of a matrix from a vector
 fill_upper_triangle <- function(vec, N, incl_diag = TRUE) {
   
-  print("fill_upper_triangle")
+  # print("fill_upper_triangle")
   # Initialize an NxN matrix with NA
   mat <- matrix(NA, nrow = N, ncol = N)
   
@@ -94,7 +94,7 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
                       max.lag.acf,numCores){
   
   
-  print("spec_cov.mat")
+  # print("spec_cov.mat")
   N <- length(stats::na.omit(x.t)) #length of data without gaps
   taperMatrix=taperMat
   K <- dim(taperMatrix)[2] 
@@ -120,7 +120,7 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
   ### 3. Calculate predetermined variables ####
   
   #### c vector
-  print("c vector")
+  # print("c vector")
   if(isWhite){
     sample.acf <- c(1,rep(0,max.lag.acf-1))
   }
@@ -170,8 +170,9 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
   
   ### 3. Fill in Diagonal of C.mat ####
   tN = max.lag.acf
-  R_mat <- stats::toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
-  diag(C.mat) <- norm(t(taperMatrix)%*%R_mat%*%taperMatrix/K, type = "2")
+  # R_mat <- stats::toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
+  # diag(C.mat) <- norm(t(taperMatrix)%*%R_mat%*%taperMatrix/K, type = "2")
+  # these were temporary, need to find the real values
   
   ## look at result ##
   return(list(C.mat = C.mat))

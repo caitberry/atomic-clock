@@ -139,7 +139,14 @@ C.mat <- fill_upper_triangle(vec = my_list, N.fourier, incl_diag = FALSE)
 C.mat[lower.tri(C.mat)] <- t(C.mat)[lower.tri(C.mat)]
 
 ### 3. Fill in Diagonal of C.mat ####
-tN = max.lag.acf
-R_mat <- toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
-diag(C.mat) <- norm(t(taperMatrix)%*%R_mat%*%taperMatrix/K, type = "2")
+# tN = max.lag.acf
+# R_mat <- toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
+s_acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+
+# Create a Toeplitz matrix from the autocorrelation values
+R_mat <- matrix(0, nrow = N, ncol = N)
+R_mat <- stats::toeplitz(c(s_acf, rep(0, N - max.lag.acf - 1)))
+
+diag(C.mat) <- (1/K)*norm(t(taperMatrix)%*%R_mat%*%taperMatrix, type = "2")
+
 

@@ -40,6 +40,9 @@ formattedData=formatDat(dat)
 x.t=formattedData$x.t
 t.vec=formattedData$t.vec
 N=formattedData$N
+# x.t=formattedData$x.t[1:3000]
+# t.vec=formattedData$t.vec[1:3000]
+# N=length(x.t)#formattedData$N
 
 plot(t.vec,x.t)
 
@@ -58,8 +61,9 @@ V.mat$e.values
 startTime=Sys.time()
 
 myDatSpecEst=spectralEstWithUnc(x.t = x.t,t.vec=t.vec,N.fourier = floor(N/2) + 1,
-                       numTapers = myK,calcCov = T,
-                       myW = myW,isWhite = F,acf.lag = 4,numCores=80)
+                     numTapers = myK,calcCov = T,
+                     myW = myW,isWhite = F,acf.lag = 4,numCores=80)
+Sys.time()-startTime
 
 # #############################covariance calc
 # 

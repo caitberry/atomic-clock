@@ -3,14 +3,14 @@
 # folderLocation="C:/Users/aak3/Documents/atomic-clock/"
 folderLocation="/home/aak3/NIST/atomic-clock/"
 
-# source(file = paste(folderLocation,"Functions_SpectrumCovariance.R",sep="")) 
+mtse=modules::use(paste(folderLocation,"Functions.R",sep=""))
 
 source(file = paste(folderLocation,"Code/analysisFunctions.R",sep=""))
 
 ### data analysis steps
 # 1. read in data
 
-N=3000
+N=100
 x.t=rnorm(N)
 t.vec=1:N
 
@@ -62,6 +62,17 @@ numCores <- 20
 max.lag.acf=4
 sample.acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
 
+
+slowCmat=mtse$spec_cov.mat_slow(X.t = x.t,t.vec = t.vec,N.fourier=N.fourier,taperMat = taperMatrix,isWhite = F,acf.lag = 4)
+
+Sys.time()-startTime
+
 source(paste(folderLocation,"CovarianceCalculation/Parallel_Covariance_Windows.R",sep=""))
 
 Sys.time()-startTime
+
+fastCmat=C.mat
+
+
+diffMat=fastCmat-slowCmat
+diag(fastCmat)-diag(slowCmat)
