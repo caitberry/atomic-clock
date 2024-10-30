@@ -4,8 +4,8 @@ library(Rcpp)
 library(RcppArmadillo)
 
 ## Spectral Estimate and Uncertainty ################################################
-#inputs:  (->) x.t = vector of data (possibly with NA values)
-#         (->) t.vec
+#inputs:  (->) x.t = vector of data (possibly with NA values, include if they are in the dataset)
+#         (->) t.vec = vector of data (possibly with NA values, include if they are in the dataset)
 #         (->) N.fourier
 #         (->) numTapers = number of tapers
 #         (->) calcCov = True if you want to calculate the covariance matrix
@@ -15,15 +15,13 @@ library(RcppArmadillo)
 #output:  (<-) spectral estimate with covariance matrix
 
 spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhite = TRUE,acf.lag=4,numCores){
-  N <- length(t.vec)
-  freq <- seq(0,0.5, length.out = N.fourier)
   
-  delta.f <- freq[2] #interval spacing between frequencies, needed for spectral avar calculation
+  freq <- seq(0,0.5, length.out = N.fourier)
   
   ##calculate tapers for this data spacing
   V.mat <- mtse$get_tapers(t.vec, W = myW, K = numTapers) #W was 4/N
   
-  MTSE_full <- mtse$MT_spectralEstimate(x.t, freq, V.mat$tapers) 
+  MTSE_full <- mtse$MT_spectralEstimate_fft(x.t, freq, V.mat$tapers) 
   
   Cov.mat=NA
   ### calculate the covariance matrix 
@@ -95,7 +93,7 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
   
   
   # print("spec_cov.mat")
-  N <- length(stats::na.omit(x.t)) #length of data without gaps
+  N <- length(x.t) #length of data with gaps
   taperMatrix=taperMat
   K <- dim(taperMatrix)[2] 
   
