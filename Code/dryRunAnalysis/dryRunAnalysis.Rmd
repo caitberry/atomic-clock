@@ -54,8 +54,8 @@ plot(t.vec,x.t)
 # 3a) try a variety of W and K values and check eigenvalues to make sure you've made good selections
 # can start with 8/N or 12/N for W
 ########################################################################################
-myW=4/N*3
-myK=14
+myW=8/N
+myK=5
 V.mat <- mtse$get_tapers(t.vec, W = myW, K = myK) 
 V.mat$e.values
 startTime=Sys.time()

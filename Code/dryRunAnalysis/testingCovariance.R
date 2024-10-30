@@ -65,3 +65,9 @@ sample.acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats:
 source(paste(folderLocation,"CovarianceCalculation/Parallel_Covariance_Windows.R",sep=""))
 
 Sys.time()-startTime
+
+
+# N=500, 1.15 mins
+# N=1000, 2.73 mins
+# N=2000, 21.9 mins
+# N=3000, 1.543067 days
