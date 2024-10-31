@@ -24,15 +24,49 @@ export("get_tapers",
        "lomb_scargle", "transfer.func",
        "AVAR_spec","avar_CI") #functions to export
 
-# Functions ###########################################################################
 
+# Helper Functions ####################################################################
+
+## Inserting NA values into a vector at specified indices 
+#inputs: (->) original_vector = L x 1 vector of non-NA values
+#        (->) template_vector = N x 1 vector of values and NAs in the 
+#                               correct index placement which we want to match in the output
+#output: (<-) vector of size N x 1
+
+.fill_vector_with_na_sprinkled <- function(original_vector, template_vector) {
+  # Length of the original vector
+  N <- length(original_vector)
+  
+  # Check that the template vector has the appropriate length
+  if (sum(is.na(template_vector)) != (length(template_vector) - N)) {
+    stop("The number of NA values in the template vector must be equal to the difference in lengths.")
+  }
+  
+  # Initialize a counter for the original vector
+  original_index <- 1
+  
+  # Fill in the template vector
+  for (i in 1:length(template_vector)) {
+    if (is.na(template_vector[i])) {
+      next
+    } else {
+      template_vector[i] <- original_vector[original_index]
+      original_index <- original_index + 1
+    }
+  }
+  
+  return(template_vector)
+}
+
+
+# Main Functions ###########################################################################
 
 ## Calculating Missing Data Tapers ####################################################
 #inputs: (->) t.n = time points of length N (possibly with NA values), 
 #        (->) W = analysis half bandwidth, 
 #        (->) K = number of tapers
-#output: (<-) L x K matrix of tapers where 
-#               L = length of time series without missing values, 
+#output: (<-) N x K matrix of tapers where 
+#               N = length of time series with missing values, 
 #               K = number of tapers
 
 get_tapers <- function(t.n, W, K){
@@ -47,64 +81,26 @@ get_tapers <- function(t.n, W, K){
   eig_vecs <- eigdec$vectors #get only the vectors
   print("tapers computed")
   
-  return(list("tapers" = eig_vecs, "e.values" = eigdec$values))
+  taperMatrixNA <- apply(eig_vecs, MARGIN = 2, FUN = .fill_vector_with_na_sprinkled, template_vector = t.n)
+  
+  return(list("tapers" = taperMatrixNA, "e.values" = eigdec$values))
 } 
 
 
 
 ## Calculating Missing Data MTSE #####################################################
-
-
-
-##### commenting this old function out, if we add it back I think we should make sure it is correct (why redefining t.n? are the N defs correct?)
-# #inputs:  (->) X.t = time series of length N with any missing values 
-# #                   and length L without, 
-# #         (->) freqs (suggested value of seq(0,0.5, length.out = floor(N/2) + 1))
-# #         (->) V.mat = L X K dimension taper matrix
-# #outputs: (<-) freqs = fourier frequencies
-# #         (<-) spectrum = spectral estimate
-# 
-# MT_spectralEstimate <- function(X.t, freqs, V.mat){
-#   im <- complex(real = 0, imaginary = 1)
-#   X.t <- X.t - mean(X.t, na.rm = TRUE) #demean
-#   N.long <- length(X.t)
-#   t.n <- 1:N.long
-#   missing.indices <- which(is.na(X.t))
-#   t.n[which(is.na(X.t))] <- NA
-#   t.n_m <- fields::rdist(stats::na.omit(t.n))[1,]
-#   
-#   ##use tapers to generate spectral estimate
-#   N <- length(stats::na.omit(t.n))
-#   S.x.hat <- rep(NA, times = length(freqs))
-#   K <- dim(V.mat)[2]
-#   
-#   for(j in 1:length(freqs)){
-#     k.vec <- rep(NA,times = K)
-#     for(k in 1:K){
-#       inner.sum <- sum(V.mat[,k]*stats::na.exclude(X.t)*exp(-im*2*pi*freqs[j]*t.n_m))
-#       k.vec[k] <- abs(inner.sum)^2
-#     }
-#     S.x.hat[j] <- mean(k.vec)
-#   }
-#   return(list("spectrum" = S.x.hat, "freqs" = freqs))
-# }
-
-
-
-
-## Calculating MTSE with FFT ##########################################################
-
-#inputs:  (->) X.t = time series of length N with any missing values 
-#                   and length L without, 
-#         (->) V.mat = L X K dimension taper matrix
+#inputs:  (->) X.t = time series of length N including any missing values 
+#         (->) V.mat = N X K dimension taper matrix
 #outputs: (<-) freqs = fourier frequencies
 #         (<-) spectrum = spectral estimate
 
 
+
 MT_spectralEstimate_fft <- function(X.t, V.mat){
-  
   ##use tapers to generate spectral estimate
-  N <- length(stats::na.exclude(X.t))
+  N <- length(X.t)
+  X.t[is.na(X.t)] <- 0 #set NA values in X.t to 0
+  V.mat[is.na(V.mat)] <- 0 #set NA values in V.mat to 0
   N.fourier <- floor(N/2) + 1
   S.x.hat <- rep(NA, times = N.fourier)
   freqs <- seq(0,0.5, length.out = N.fourier)
@@ -112,7 +108,7 @@ MT_spectralEstimate_fft <- function(X.t, V.mat){
   S.k.mat <- matrix(NA,nrow = K, ncol = N.fourier)
   
   for(k in 1:K){
-    spec.vec <- stats::fft(V.mat[,k]*stats::na.exclude(X.t))[1:N.fourier]
+    spec.vec <- stats::fft(V.mat[,k]*X.t)[1:N.fourier]
     S.k.mat[k,] <- abs(spec.vec)^2
   }
   
@@ -120,6 +116,7 @@ MT_spectralEstimate_fft <- function(X.t, V.mat){
   
   return(list("spectrum" = S.x.hat, "freqs" = freqs))
 }
+
 
 
 ## AVAR Calculation (Regular) #########################################################
