@@ -21,7 +21,7 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
   ##calculate tapers for this data spacing
   V.mat <- mtse$get_tapers(t.vec, W = myW, K = numTapers) #W was 4/N
   
-  MTSE_full <- mtse$MT_spectralEstimate_fft(x.t, freq, V.mat$tapers) 
+  MTSE_full <- mtse$MT_spectralEstimate_fft(x.t, V.mat$tapers) 
   
   Cov.mat=NA
   ### calculate the covariance matrix 
