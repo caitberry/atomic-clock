@@ -97,8 +97,7 @@ sourceCpp(paste("/home/aak3/NIST/atomic-clock/",'CovarianceCalculation/est_entry
 
 
 #### c vector
-c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf), 0, rep(0, times = N-max.lag.acf), rev(sample.acf[-1]))
-head(c_vec)
+c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf-1), 0, rep(0, times = N-max.lag.acf-1), rev(sample.acf[-1]))
 
 #### list of indices (don't really need to send this to the cluster, but good for debugging if needed)
 upper_triangle_indices <- generate_upper_triangle_indices(N.fourier)

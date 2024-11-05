@@ -126,7 +126,7 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
     sample.acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
   }
   
-  c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf), 0, rep(0, times = N-max.lag.acf), rev(sample.acf[-1]))
+  c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf-1), 0, rep(0, times = N-max.lag.acf-1), rev(sample.acf[-1]))
   
   #### list of indices (don't really need to send this to the cluster, but good for debugging if needed)
   upper_triangle_indices <- generate_upper_triangle_indices(N.fourier)
@@ -167,10 +167,15 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
   C.mat[lower.tri(C.mat)] <- t(C.mat)[lower.tri(C.mat)]
   
   ### 3. Fill in Diagonal of C.mat ####
-  tN = max.lag.acf
-  # R_mat <- stats::toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
-  # diag(C.mat) <- norm(t(taperMatrix)%*%R_mat%*%taperMatrix/K, type = "2")
-  # these were temporary, need to find the real values
+  # tN = max.lag.acf
+  # R_mat <- toeplitz(c(seq(1,0.1, length.out = tN), rep(0, times = N-tN))) #to start
+  s_acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+  
+  # Create a Toeplitz matrix from the autocorrelation values
+  R_mat <- matrix(0, nrow = N, ncol = N)
+  R_mat <- stats::toeplitz(c(s_acf, rep(0, N - max.lag.acf - 1)))
+  
+  diag(C.mat) <- (1/K)*norm(t(taperMatrix)%*%R_mat%*%taperMatrix, type = "2")
   
   ## look at result ##
   return(list(C.mat = C.mat))
