@@ -41,9 +41,14 @@ compute_entry_parallel <- function(ij, taperMat = taperMatrix, setK = K, setN = 
   i = ij[1]
   j = ij[2]
   
+  N.noNA=sum(!is.na(t.vec))
+  taperMat=na.omit(taperMat)
+  t.vec=na.omit(t.vec)
+
   V_star <- t(taperMat*exp(1i*2*pi*freq[i]*t.vec))
   V <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
-  return(est_entry_FFT(V_star, V, c, setK, setN))
+  
+  return(est_entry_FFT(V_star, V, c, setK, N.noNA))
 }
 
 ## fill in the upper triangle of a matrix from a vector
@@ -97,7 +102,9 @@ sourceCpp(paste("/home/aak3/NIST/atomic-clock/",'CovarianceCalculation/est_entry
 
 
 #### c vector
-c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf-1), 0, rep(0, times = N-max.lag.acf-1), rev(sample.acf[-1]))
+# c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf-1), 0, rep(0, times = N-max.lag.acf-1), rev(sample.acf[-1]))
+N.noNA=sum(!is.na(t.vec))
+c_vec <- c(sample.acf,rep(0, times = N.noNA-max.lag.acf-1), 0, rep(0, times = N.noNA-max.lag.acf-1), rev(sample.acf[-1]))
 
 #### list of indices (don't really need to send this to the cluster, but good for debugging if needed)
 upper_triangle_indices <- generate_upper_triangle_indices(N.fourier)
@@ -108,7 +115,7 @@ clusterExport(cl, list("t.vec", "N", "K", "c_vec", "taperMatrix", "freq", "upper
 clusterExport(cl, "compute_entry_parallel") #functions
 
 start_time_fast = Sys.time()
-compute_entry_parallel(upper_triangle_indices[1,])
+compute_entry_parallel(upper_triangle_indices[1,], taperMat = taperMatrix, setK = K, setN = N, c = c_vec)
 total_time_fast = Sys.time() - start_time_fast
 total_time_fast
 

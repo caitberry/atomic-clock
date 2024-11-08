@@ -54,17 +54,21 @@ generate_upper_triangle_indices <- function(N) {
 }
 
 ## compute the entry C.mat_ij
-compute_entry_parallel <- function(ij, tapMat=taperMatrix, sett.vec=t.vec, setfreq=freq,setK = K, setN = N, c = c_vec){
+compute_entry_parallel <- function(ij, taperMat = taperMatrix, setK = K, setN = N, c = c_vec){
   #i,j, taperMat = taperMatrix, setK = K, setN = N, c = c_vec
-  # print("compute_entry_parallel")
-  
   i = ij[1]
   j = ij[2]
   
-  V_star <- t(tapMat*exp(1i*2*pi*setfreq[i]*sett.vec))
-  V <- tapMat*exp(-1i*2*pi*setfreq[j]*sett.vec)
-  return(est_entry_FFT(V_star, V, c, setK, setN))
+  N.noNA=sum(!is.na(t.vec))
+  taperMat=na.omit(taperMat)
+  t.vec=na.omit(t.vec)
+  
+  V_star <- t(taperMat*exp(1i*2*pi*freq[i]*t.vec))
+  V <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+  
+  return(est_entry_FFT(V_star, V, c, setK, N.noNA))
 }
+
 
 ## fill in the upper triangle of a matrix from a vector
 fill_upper_triangle <- function(vec, N, incl_diag = TRUE) {
@@ -126,7 +130,8 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
     sample.acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
   }
   
-  c_vec <- c(sample.acf,rep(0, times = N-max.lag.acf-1), 0, rep(0, times = N-max.lag.acf-1), rev(sample.acf[-1]))
+  N.noNA=sum(!is.na(t.vec))
+  c_vec <- c(sample.acf,rep(0, times = N.noNA-max.lag.acf-1), 0, rep(0, times = N.noNA-max.lag.acf-1), rev(sample.acf[-1]))
   
   #### list of indices (don't really need to send this to the cluster, but good for debugging if needed)
   upper_triangle_indices <- generate_upper_triangle_indices(N.fourier)
