@@ -115,7 +115,7 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
   
   ### 2. send source C code ####
   parallel::clusterEvalQ(cl, {
-    Rcpp::sourceCpp('/home/aak3/NIST/atomic-clock/CovarianceCalculation/est_entry_FFT.cpp')
+    Rcpp::sourceCpp('CovarianceCalculation/est_entry_FFT.cpp')
     # Rcpp::sourceCpp(paste(folderLocation,'CovarianceCalculation/est_entry_FFT.cpp',sep=""))
   })
   
@@ -177,13 +177,13 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
   s_acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
   
   # Create a Toeplitz matrix from the autocorrelation values
-  R_mat <- matrix(0, nrow = N, ncol = N)
-  R_mat <- stats::toeplitz(c(s_acf, rep(0, N - max.lag.acf - 1)))
+  R_mat <- matrix(0, nrow = N.noNA, ncol = N.noNA)
+  R_mat <- stats::toeplitz(c(s_acf, rep(0, N.noNA - max.lag.acf - 1)))
   
-  diag(C.mat) <- (1/K)*norm(t(taperMatrix)%*%R_mat%*%taperMatrix, type = "2")
+  diag(C.mat) <- (1/K)*norm(t(stats::na.omit(taperMatrix))%*%R_mat%*%stats::na.omit(taperMatrix), type = "2")
   
   ## look at result ##
-  return(list(C.mat = C.mat))
+  return(C.mat)
 }
 #########################################################
 ### end of new parallel cov Functions

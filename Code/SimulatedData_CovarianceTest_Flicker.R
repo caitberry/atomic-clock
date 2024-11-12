@@ -1,7 +1,10 @@
+library(RobPer)
+
 set.seed(123)
 N=1000 #length of data with gaps
 
-x.t <- rnorm(N)  # Replace with your time series data
+# x.t <- rnorm(N) + 0.001*TK95(N = N, alpha = 1) 
+x.t <- TK95(N = N, alpha = 1)
 omitted=c(301:400)
 x.t[omitted]=NA
 
@@ -18,6 +21,7 @@ print(V.mat$e.values)
 taperMatrix=V.mat$tapers
 
 MTSE_full <- mtse$MT_spectralEstimate_fft(x.t, taperMatrix) 
+plot(t.vec,x.t)
 plot(MTSE_full$freqs,MTSE_full$spectrum)
 
 Cov.mat=spec_cov.mat(x.t = x.t, t.vec = t.vec, N.fourier = floor(N/2) + 1, 
@@ -64,6 +68,20 @@ avarDF=data.frame(avar=c(oldAVARest,specAVARest$avar),
                   Method=rep(c("Current","Spectral"),each=length(taus)))
 
 ggplot(avarDF,aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  # theme(legend.position = c(.15, .2))+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()
+# facet_wrap(~Ratio)
+
+library(dplyr)
+ggplot(filter(avarDF,Method=='Spectral'),aes(tau,avar,col=Method,ymin=avarLower,ymax=avarUpper))+
   geom_point()+
   ### add true straight line below
   # geom_abline(slope = -1,intercept = 0,size=1)+
