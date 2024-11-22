@@ -1,0 +1,6 @@
+{
+    "python.createEnvironment.contentButton": "show",
+    "python.autoComplete.extraPaths": [],
+    "python.defaultInterpreterPath": "~/anaconda3/bin/python",
+    "python.analysis.extraPaths": []
+}
