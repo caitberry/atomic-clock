@@ -1,0 +1,62 @@
+This is BibTeX, Version 0.99d (TeX Live 2023)
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+The style file: techpubs.bst
+Database file #1: References.bib
+Warning--I didn't find a database entry for "wilkinson_1990"
+Warning--I didn't find a database entry for "Xiong2015"
+Warning--I didn't find a database entry for "Prives2016"
+Warning--I didn't find a database entry for "Roberts1982"
+Warning--I didn't find a database entry for "Maloney2016"
+Warning--I didn't find a database entry for "giancoli2008physics"
+Warning--I didn't find a database entry for "Eston1993"
+Warning--I didn't find a database entry for "MSU-CSE-06-2"
+Warning--I didn't find a database entry for "Farindon"
+Warning--I didn't find a database entry for "Marcheford"
+Warning--I didn't find a database entry for "Joslin"
+Warning--I didn't find a database entry for "Caxton"
+Warning--I didn't find a database entry for "Isley"
+Warning--I didn't find a database entry for "FIPS1402"
+Warning--I didn't find a database entry for "SP80053r4"
+You've used 0 entries,
+            2914 wiz_defined-function locations,
+            645 strings with 4836 characters,
+and the built_in function-call counts, 30 in all, are:
+= -- 0
+> -- 0
+< -- 0
++ -- 0
+- -- 0
+* -- 2
+:= -- 7
+add.period$ -- 0
+call.type$ -- 0
+change.case$ -- 0
+chr.to.int$ -- 0
+cite$ -- 0
+duplicate$ -- 0
+empty$ -- 1
+format.name$ -- 0
+if$ -- 1
+int.to.chr$ -- 0
+int.to.str$ -- 0
+missing$ -- 0
+newline$ -- 9
+num.names$ -- 0
+pop$ -- 0
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 1
+stack$ -- 0
+substring$ -- 0
+swap$ -- 0
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 0
+width$ -- 0
+write$ -- 8
+(There were 15 warnings)

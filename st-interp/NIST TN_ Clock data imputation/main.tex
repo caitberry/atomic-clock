@@ -262,7 +262,8 @@ Delete if not applicable\\
 \end{itemize}
 \item Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
 \begin{itemize}
-	\item 
+	\item numpy.interp, linear 
+	\item pandas.interpolate, linear 
 \end{itemize}
 \item Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
 \item End results: clock ratio data to compare offset to previous measurements (may contain missing values?) 
