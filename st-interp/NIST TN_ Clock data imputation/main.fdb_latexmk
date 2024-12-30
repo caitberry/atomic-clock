@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex main"] 1734619857 "main.aux" "main.bbl" "main" 1734619915 0
+["bibtex main"] 1734619857 "main.aux" "main.bbl" "main" 1734619968 0
   "./References.bib" 1734388224 0 d41d8cd98f00b204e9800998ecf8427e ""
   "./techpubs.bst" 1734388224 24433 561ea01e18d97acc31bebf3b6c5faba5 ""
-  "main.aux" 1734619915 1798 557403fa2351095d7348add5d6d19aba "pdflatex"
+  "main.aux" 1734619968 1798 557403fa2351095d7348add5d6d19aba "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1734619914 "/Users/smt3/Documents/GitHub/atomic-clock/st-interp/NIST TN_ Clock data imputation/main.tex" "main.pdf" "main" 1734619915 0
-  "/Users/smt3/Documents/GitHub/atomic-clock/st-interp/NIST TN_ Clock data imputation/main.tex" 1734619914 15493 6204851ba710a2170dfca9be543cc377 ""
+["pdflatex"] 1734619968 "/Users/smt3/Documents/GitHub/atomic-clock/st-interp/NIST TN_ Clock data imputation/main.tex" "main.pdf" "main" 1734619968 0
+  "/Users/smt3/Documents/GitHub/atomic-clock/st-interp/NIST TN_ Clock data imputation/main.tex" 1734619968 15504 69d87e0d2eb6ac13bd97fb09121e6f9d ""
   "/usr/local/texlive/2023/texmf-dist/fonts/enc/dvips/base/8r.enc" 1165713224 4850 80dc9bab7f31fb78a000ccfed0e27cab ""
   "/usr/local/texlive/2023/texmf-dist/fonts/map/fontname/texfonts.map" 1577235249 3524 cb3e574dea2d1052e39280babc910dc8 ""
   "/usr/local/texlive/2023/texmf-dist/fonts/tfm/adobe/symbol/psyr.tfm" 1136768653 1408 5937f58aa508ea2cea4901c07d10f5fe ""
@@ -143,13 +143,13 @@
   "Chrysanthemum.jpg" 1734388224 879394 076e3caed758a1c18c91a0e9cae3368f ""
   "DoC-logo.eps" 1734388224 1020962 4cb50c0af0d229111f9c4a78a92d2658 ""
   "NIST-logo.eps" 1734388224 451359 b0bfcc10c71f647af8d5eac216049dc5 ""
-  "main.aux" 1734619915 1798 557403fa2351095d7348add5d6d19aba "pdflatex"
+  "main.aux" 1734619968 1798 557403fa2351095d7348add5d6d19aba "pdflatex"
   "main.bbl" 1734619857 385 4799d3cf326c7d0162d4011d9cce69d8 "bibtex main"
-  "main.lof" 1734619915 110 d37a0ce677dc0c1bd390b34d73e7ecf3 "pdflatex"
-  "main.lot" 1734619915 89 3e80f29c68f55b108e52724da2946bff "pdflatex"
-  "main.out" 1734619915 444 51e5a7962bc4df92daa2c8d72748723f "pdflatex"
-  "main.tex" 1734619914 15493 6204851ba710a2170dfca9be543cc377 ""
-  "main.toc" 1734619915 227 18f0ec41a909ae06ac40d8d4bb89f04a "pdflatex"
+  "main.lof" 1734619968 110 d37a0ce677dc0c1bd390b34d73e7ecf3 "pdflatex"
+  "main.lot" 1734619968 89 3e80f29c68f55b108e52724da2946bff "pdflatex"
+  "main.out" 1734619968 444 51e5a7962bc4df92daa2c8d72748723f "pdflatex"
+  "main.tex" 1734619968 15504 69d87e0d2eb6ac13bd97fb09121e6f9d ""
+  "main.toc" 1734619968 227 18f0ec41a909ae06ac40d8d4bb89f04a "pdflatex"
   (generated)
   "main.aux"
   "main.lof"
