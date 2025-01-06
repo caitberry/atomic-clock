@@ -4,16 +4,23 @@ author:
   - Suzanne Thornton
   - Caitlin Berry
   - Amanda Koepke
-date: "Month Year"
-output:
-  pdf_document:
-    toc: true
-    number_sections: true
+date: "Month 2025"
+#output:
+#  pdf_document:
+format:
+  pdf:
+    documentclass: article
+    keep-tex: true
+    toc: false #true
+#    toc-depth: 3
+#    number_sections: true
     fig_caption: true
-    latex_engine: pdftex #xelatex
+    latex_engine: pdflatex #xelatex  
+block-headings: false 
 fontsize: 12pt
 mainfont: "Times New Roman"
 geometry: margin=1in
+
 header-includes:
   - \usepackage{amsmath}
   - \usepackage{amsfonts}
@@ -27,22 +34,22 @@ header-includes:
   - \usepackage[utf8]{inputenc}
   - \usepackage{textcomp}
   - \usepackage[hang,flushmargin,bottom]{footmisc}
-#  - \usepackage{titlesec}
-#    \titleformat{\section}{\normalsize\bfseries}{\thesection.}{1em}{}
-#    \titleformat*{\subsection}{\normalsize\bfseries}
+  - \usepackage{titlesec}
+    \titleformat{\section}{\normalsize\bfseries}{\thesection.}{1em}{}
+    \titleformat*{\subsection}{\normalsize\bfseries}
 
   - \usepackage{tocloft}
-    \renewcommand{\cftdot}{}	
-    \renewcommand{\contentsname}{Table of Contents}
-    \renewcommand{\cftpartleader}{\cftdotfill{\cftdotsep}}  
-    \renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
-    \renewcommand\cftbeforesecskip{\setlength{4pt}{}}
-    \addtolength{\cftfignumwidth}{1em}
-    \renewcommand{\cftfigpresnum}{\figurename\ }
-    \addtolength{\cfttabnumwidth}{1em}
-    \renewcommand{\cfttabpresnum}{\tablename\ }
-    \setlength{\cfttabindent}{0in}     
-    \setlength{\cftfigindent}{0in} 
+#    \renewcommand{\cftdot}{}
+#    \renewcommand{\contentsname}{Table of Contents}
+    # \renewcommand{\cftpartleader}{\cftdotfill{\cftdotsep}}  
+    # \renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+    # \renewcommand\cftbeforesecskip{\setlength{4pt}{}}
+    # \addtolength{\cftfignumwidth}{1em}
+    # \renewcommand{\cftfigpresnum}{\figurename\ }
+    # \addtolength{\cfttabnumwidth}{1em}
+    # \renewcommand{\cfttabpresnum}{\tablename\ }
+    # \setlength{\cfttabindent}{0in}     
+    # \setlength{\cftfigindent}{0in} 
 
   - \usepackage{enumitem}
   - \usepackage[numbers,sort&compress]{natbib}
@@ -167,11 +174,11 @@ Natl. Inst. Stand. Technol. Tech. Note \pubnumber, \pageref{LastPage} pages (\mo
 \end{flushright}
 \end{titlepage}
  
-\section*{Abstract}
-\normalsize Required\\
+\section*{Abstract} <!-- {.unnumbered .unlisted}-->
+\normalsize Required
 
-\section*{Key words}
-\normalsize Required, alphabetized, separated by semicolon, and end in a period.\\
+\section*{Key words} <!-- {.unnumbered .unlisted} --> 
+\normalsize Required, alphabetized, separated by semicolon, and end in a period.
 \pagebreak
  
 \begin{center}
@@ -181,15 +188,15 @@ Natl. Inst. Stand. Technol. Tech. Note \pubnumber, \pageref{LastPage} pages (\mo
 \end{center}
 \pagebreak
 
-\section*{Glossary}
-Delete if not applicable\\
+\section*{Glossary} <!-- {.unnumbered .unlisted}-->
+Delete if not applicable
 \pagebreak
 
 
-## Introduction {#sec-intro}
+\section{Introduction} <!--\label{sec:intro}-->
 
-### All Subsection Headings Capitalized {#sec-subsec:headingscap}
-This can be seen in Eq. (1) and Table 1. Information about flowers is available in Sec.@sec-intro .\footnote{NIST disclaimer text here.}
+\subsection{All Subsection Headings Capitalized}\label{subsec:headingscap}
+This can be seen in Eq. (1) and Table 1. Information about flowers is available in Sec.\ref{sec:intro} .\footnote{NIST disclaimer text here.}
 <!---
 %   Section references are “Sec. X”.
 % 	“Section X” is used at beginning of sentence. 
@@ -272,11 +279,12 @@ This can be seen in Eq. (1) and Table 1. Information about flowers is available 
 %	to comply with Section 508 accessibility standards. 
 ---> 
 
-\section*{Acknowledgments}
+<!--
+## Acknowledgments {.unnumbered .unlisted}
 \noindent Delete if not applicable\\
 
-<!--ERROR: Issue w/ adding these sections to the table of contents.
-\section*{References}
+
+## References {.unnumbered}
 \addcontentsline{toc}{section}{References}
 \bibliographystyle{techpubs}
 \bibliography{References}
