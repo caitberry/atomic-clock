@@ -1,0 +1,290 @@
+---
+title: "Aligning Timescales and Frequency Combs"
+author:
+  - Suzanne Thornton
+  - Caitlin Berry
+  - Amanda Koepke
+date: "Month Year"
+output:
+  pdf_document:
+    toc: true
+    number_sections: true
+    fig_caption: true
+    latex_engine: pdftex #xelatex
+fontsize: 12pt
+mainfont: "Times New Roman"
+geometry: margin=1in
+header-includes:
+  - \usepackage{amsmath}
+  - \usepackage{amsfonts}
+  - \usepackage{amssymb}
+  - \usepackage{graphicx}
+  - \usepackage{xcolor}
+  - \usepackage{bm}
+  - \usepackage{secdot}
+  - \usepackage{mathptmx}
+  - \usepackage{float}
+  - \usepackage[utf8]{inputenc}
+  - \usepackage{textcomp}
+  - \usepackage[hang,flushmargin,bottom]{footmisc}
+#  - \usepackage{titlesec}
+#    \titleformat{\section}{\normalsize\bfseries}{\thesection.}{1em}{}
+#    \titleformat*{\subsection}{\normalsize\bfseries}
+
+  - \usepackage{tocloft}
+    \renewcommand{\cftdot}{}	
+    \renewcommand{\contentsname}{Table of Contents}
+    \renewcommand{\cftpartleader}{\cftdotfill{\cftdotsep}}  
+    \renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+    \renewcommand\cftbeforesecskip{\setlength{4pt}{}}
+    \addtolength{\cftfignumwidth}{1em}
+    \renewcommand{\cftfigpresnum}{\figurename\ }
+    \addtolength{\cfttabnumwidth}{1em}
+    \renewcommand{\cfttabpresnum}{\tablename\ }
+    \setlength{\cfttabindent}{0in}     
+    \setlength{\cftfigindent}{0in} 
+
+  - \usepackage{enumitem}
+  - \usepackage[numbers,sort&compress]{natbib}
+    \renewcommand{\bibsection}{}
+    \setlength{\bibsep}{0.0pt}
+
+  - \usepackage[hidelinks]{hyperref}
+    \hypersetup{
+        colorlinks = true,
+        urlcolor ={blue},
+        citecolor = {.},
+        linkcolor = {.},
+        anchorcolor = {.},
+        filecolor = {.},
+        menucolor = {.},
+        runcolor = {.}
+        pdftitle={}, 
+        pdfsubject={}, 
+        pdfauthor={},  
+        pdfkeywords={}  
+    }
+    \urlstyle{same}
+
+  - \usepackage{epstopdf}
+  - \usepackage{fancyhdr, lastpage}
+    \setlength{\topmargin}{-0.5in}
+    \setlength{\headheight}{39pt}
+    \setlength{\oddsidemargin}{0.25in}
+    \setlength{\evensidemargin}{0.25in}
+    \setlength{\textwidth}{6.0in}
+    \setlength{\textheight}{8.5in}
+
+  - \usepackage{caption}
+    \captionsetup{font=small,labelfont=bf,figurename=Fig.,labelsep=period,justification=raggedright} 
+
+ # - \pdfminorversion=7
+---
+\newcommand{\pubnumber}{XXXX}
+\newcommand{\DOI}{https://doi.org/10.6028/NIST.TN.XXXX}
+\newcommand{\monthyear}{Month Year}
+
+\urlstyle{rm}   
+	
+ 
+\begin{titlepage}
+	\begin{flushright}
+ 
+\LARGE{\textbf{NIST Technical Note \pubnumber}}\\
+\vfill
+ 
+\Huge{\textbf{Aligning Timescales and Frequency Combs}}\\
+\vfill
+ 
+\large Suzanne Thornton\\
+\large Caitlin Berry\\
+\large Amanda Koepke\\
+\vfill
+ 
+\normalsize This publication is available free of charge from:\\
+\DOI\\
+\vfill
+ 
+
+\includegraphics[width=0.3\linewidth]{NIST-logo.eps}\\ 
+
+
+\end{flushright}
+\end{titlepage}
+\begin{titlepage}
+ 
+\begin{flushright}
+ 
+\LARGE{\textbf{NIST Technical Note \pubnumber}}\\
+\vfill 
+ 
+\Huge{\textbf{Title}}\\
+\vfill
+ 
+\normalsize First Author\\
+Second Author\\
+\textit{Office of XXXX}\\
+\textit{First Operating Unit}\\
+\vspace{12pt}
+Third Author\\
+Fourth Author\\
+\textit{Office of XXXX}\\
+\textit{Second Operating Unit}\\
+\vfill
+ 
+\normalsize This publication is available free of charge from:\\
+\DOI\\
+\vfill
+ 
+\normalsize \monthyear
+\vfill
+ 	
+
+\includegraphics[width=0.18\linewidth]{DoC-logo.eps}\\ 
+\vfill
+ 
+\footnotesize U.S. Department of Commerce\\ 
+\textit{Gina M. Raimondo, Secretary}\\
+\vspace{10pt}
+National Institute of Standards and Technology\\ 
+\hspace*{-3cm}\textit{James K. Olthoff, Performing the Non-Exclusive Functions and Duties of the Under Secretary of Commerce \\
+for Standards and Technology \& Director, National Institute of Standards and Technology} 
+\end{flushright}
+\end{titlepage}
+
+\begin{titlepage}
+ 
+\begin{flushright}
+\footnotesize  Certain commercial entities, equipment, or materials may be identified in this document in order to describe an experimental procedure or concept adequately. Such identification is not intended to imply recommendation or endorsement by the National Institute of Standards and Technology, nor is it intended to imply that the entities, materials, or equipment are necessarily the best available for the purpose.\\ 
+\vfill
+ 
+\normalsize \textbf{National Institute of Standards and Technology Technical Note \pubnumber\\ 
+Natl. Inst. Stand. Technol. Tech. Note \pubnumber, \pageref{LastPage} pages (\monthyear)} \\
+\textbf{CODEN: NTNOEF}\\
+\vspace{12pt}
+\textbf{This publication is available free of charge from: \DOI}
+\vfill
+\end{flushright}
+\end{titlepage}
+ 
+\section*{Abstract}
+\normalsize Required\\
+
+\section*{Key words}
+\normalsize Required, alphabetized, separated by semicolon, and end in a period.\\
+\pagebreak
+ 
+\begin{center}
+	\tableofcontents
+	\listoftables
+	\listoffigures
+\end{center}
+\pagebreak
+
+\section*{Glossary}
+Delete if not applicable\\
+\pagebreak
+
+
+## Introduction {#sec-intro}
+
+### All Subsection Headings Capitalized {#sec-subsec:headingscap}
+This can be seen in Eq. (1) and Table 1. Information about flowers is available in Sec.@sec-intro .\footnote{NIST disclaimer text here.}
+<!---
+%   Section references are “Sec. X”.
+% 	“Section X” is used at beginning of sentence. 
+--->
+
+\begin{equation}
+{x}^{n} + {y}^{n} = {z}^{n}
+\end{equation}
+
+
+\begin{itemize}
+\item Initial input: Independent series of clock and comb data
+\begin{itemize}
+	\item Clock shift files containing variables: MJD, shift, and possibly ISGOOD 
+	\item Frequency comb data containing variables: MJD, SDR:frep ErYb, fo ErYb, fb Si ErYb, fb Al ErYb, fb Yb ErYb
+\end{itemize}
+\item Read data into Python
+\item Define functions to find optical frequencies for each clock with comb equation, these frequencies will become additional variables in the frequency comb data object 
+\item compute total correction for each clock's shift data 
+\item Data processing 
+\begin{itemize}
+	\item change all data variables to type float for high precision computing
+	\item find overlapping MJD values for each clock frequency data set 
+	\item visualize gaps in the clock frequency data sets 
+	\item decide upon initial and final MJD values for analysis  
+\end{itemize} 
+\item Imputation -  decide how to deal with missing shift values
+\begin{itemize}
+	\item adjust start/end MJD indices for large gaps of missing values 
+	\item use interpolation techniques (see below) for short sequence of individual missing values 
+	\item keep with caution about how this may impact subsequent steps 
+\end{itemize}
+\item Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
+\begin{itemize}
+	\item numpy.interp, linear 
+	\item pandas.interpolate, linear 
+	\item incorporate randomness 
+	\item kalman smoothing 
+\end{itemize}
+\item Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
+\item End results: clock ratio data to compute offset to compare to previous measurements (may contain missing values?) 
+\end{itemize}
+
+
+
+
+
+
+\begin{table}[H]
+	\centering
+	\caption{Title.}
+	\small
+	\begin{tabular}{cc}
+		\hline
+		ColumnA & ColumnB \\ \hline
+		text & text{\scriptsize $^{\textrm a}$} \\
+		text & text \\
+		text & text \\
+		text & text \\
+		\hline
+	\end{tabular}
+	
+	{\footnotesize 	{\scriptsize $^{\textrm a}$}Footnote}
+\end{table}
+<!-- 
+%   Tables should appear after they are mentioned in the text. 
+%	Superscripted letters (a, b, c, etc.) should be used for table footnotes.
+--> 
+
+\begin{figure}[h] 
+	\centering 	\includegraphics[width=0.5\linewidth]{Chrysanthemum.jpg}
+	\caption{This is the caption text.}
+	\label{fig:Chrysanthemum}
+\end{figure}
+<!---
+%   Figure references are “Fig. X”.
+% 	“Figure X” is used at beginning of sentence. 
+% 	Figures should appear after they are mentioned in the text.
+%	Figures must have embedded alternate text or “alt text” in order 
+%	to comply with Section 508 accessibility standards. 
+---> 
+
+\section*{Acknowledgments}
+\noindent Delete if not applicable\\
+
+<!--ERROR: Issue w/ adding these sections to the table of contents.
+\section*{References}
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{techpubs}
+\bibliography{References}
+<!--
+%   Please use the techpubs BibTeX style when compiling bibliography, or follow the instructions on tinyurl.com/techpubsnist to format your .bib / .bbl file appropriately.
+-->
+
+<!-- \section*{Appendix A: Supplemental Materials}
+\addcontentsline{toc}{section}{Appendix A: Supplemental Materials}
+Brief description of supplemental files\\
+--> 

@@ -1,9 +1,0 @@
-\begin{thebibliography}{}
-\providecommand{\url}[1]{\texttt{#1}}
-\providecommand{\urlprefix}{Available at }
-\expandafter\ifx\csname urlstyle\endcsname\relax
-  \providecommand{\doi}[1]{https://doi.org/\discretionary{}{}{}#1}\else
-  \providecommand{\doi}{https://doi.org/\discretionary{}{}{}\begingroup \urlstyle{rm}\Url}\fi
-\providecommand{\eprint}[2][]{\url{#2}}
-
-\end{thebibliography}
