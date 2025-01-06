@@ -2,7 +2,7 @@ library(tidyr)
 library(ggplot2)
 library(dplyr)
 
-numberOfSimulations = 500
+numberOfSimulations = 1000
 
 set.seed(123)
 N=2048+2048*.5 #length of data with gaps
@@ -113,7 +113,13 @@ Cov.mat=spec_cov.mat(x.t = x.t, t.vec = t.vec, N.fourier = floor(N/2) + 1,
                      taperMat = V.mat$tapers, isWhite = F,
                      max.lag.acf = 4,
                      numCores=4)
+
+Cov.matWN=spec_cov.mat(x.t = x.t, t.vec = t.vec, N.fourier = floor(N/2) + 1, 
+                     taperMat = V.mat$tapers, isWhite = T,
+                     max.lag.acf = 4,
+                     numCores=4)
 diag(Cov.mat)[1]
+diag(Cov.matWN)[1]
 specAVARest=mtse$AVAR_spec(spectral_est = MTSE_full$spectrum,taus = taus,calcUnc = T,Cov.mat = Cov.mat)
 oldAVARest=mtse$overlapping_avar_fn(y = na.omit(x.t),m = taus)
 
@@ -226,4 +232,25 @@ ggplot(simBars, aes(tau, mean, ymin = lowerSim, ymax = upperSim, col = Method)) 
 
 
 
+###################################################
+### can't see w/o facets
+###################################################
 
+truthDF=data.frame(tau=taus,measurement=1/taus)
+truthDF$Method="Truth"
+
+ggplot(dat,aes(Method,measurement,col=Method))+
+  geom_boxplot()+
+  facet_wrap(~tau,scales = "free")+
+  geom_hline(data = truthDF, aes(yintercept = measurement, col = Method), size = 1)+
+  geom_errorbar(data = avarDF, aes(Method, avar, col = "Estimated", ymin = avarLower, ymax = avarUpper),
+                position = position_dodge(width = 0.1), width = 0.2, size = 0.8, alpha = 0.7) # Error bars for avarDF
+
+  
+
+  
+
++
+  geom_errorbar(data = avarDF, aes(tau, avar, col = "black", ymin = avarLower, ymax = avarUpper),
+                position = position_dodge(width = 0.25), width = 0.2, size = 0.8, linetype = "dashed", alpha = 0.7)+
+  
