@@ -221,13 +221,13 @@ This can be seen in Eq. (1) and Table 1. Information about flowers is available 
 	\item change all data variables to type float for high precision computing
 	\item find overlapping MJD values for each clock frequency data set 
 	\item visualize gaps in the clock frequency data sets 
-	\item decide upon initial and final MJD values for analysis  
 \end{itemize} 
 \item Imputation -  decide how to deal with missing shift values
 \begin{itemize}
-	\item adjust start/end MJD indices for large gaps of missing values 
+	\item note MJD indices for large gaps of missing values 
 	\item use interpolation techniques (see below) for short sequence of individual missing values 
-	\item keep with caution about how this may impact subsequent steps 
+	\item keep with caution about how this may impact subsequent steps
+  \item decide upon initial and final MJD values for analysis  
 \end{itemize}
 \item Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
 \begin{itemize}
