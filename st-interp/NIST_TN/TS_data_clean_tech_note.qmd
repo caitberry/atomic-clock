@@ -258,6 +258,7 @@ important TS properties
 
   * white - little/no autocorrelation, stationary TS; autocorrelation plot w/ approx $95\%$ of the spikes within an interval of $\pm 1.96/\sqrt{T}$, where $T$ is the length of the time series; Autocorrelation Testing (i.e. the autocorrelation of the signal must be different from zero only for order zero)
 
+  * flicker/pink 
 
 
 
