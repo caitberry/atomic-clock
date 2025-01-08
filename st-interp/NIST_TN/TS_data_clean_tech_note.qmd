@@ -231,14 +231,32 @@ This can be seen in Eq. (1) and Table 1. Information about flowers is available 
 \end{itemize}
 \item Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
 \begin{itemize}
-	\item numpy.interp, linear 
-	\item pandas.interpolate, linear 
-	\item incorporate randomness 
-	\item kalman smoothing 
+	\item numpy.interp and pandas.interpolate, linear 
+	\item other options: incorporate randomness, kalman smoothing
+  \item lit review 
+    \begin{itemize}
+    \item including (but not limited to) the problem of transforming a low-freq uency series into a high-frequency one
+      \begin{itemize}
+      \item A Survey of Methods to Interpolate, Distribute and  Extrapolate Time Series (2010) https://www.scirp.org/html/3396.html - Kalman filtering Sec. 6 
+      \end{itemize}
+    \item 
+    \end{itemize} 
 \end{itemize}
 \item Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
 \item End results: clock ratio data to compute offset to compare to previous measurements (may contain missing values?) 
 \end{itemize}
+
+important TS properties 
+
+- type of missingness - random (MCAR (e.g. sensor failure), MAR, NMAR), structural deficiency
+
+- trend(s) - autocorrelation plot slowly decreases as the lag increases; Cox-Stuart Test
+
+- seasonality - factors of fixed, known frequencies; autocorrelation plot has larger values for the multiples of the seasonal frequency; Autocorrelation Testing of a certain order 
+
+- noise type
+
+  * white - little/no autocorrelation, stationary TS; autocorrelation plot w/ approx $95\%$ of the spikes within an interval of $\pm 1.96/\sqrt{T}$, where $T$ is the length of the time series; Autocorrelation Testing (i.e. the autocorrelation of the signal must be different from zero only for order zero)
 
 
 
