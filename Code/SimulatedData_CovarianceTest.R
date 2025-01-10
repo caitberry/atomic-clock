@@ -1,12 +1,15 @@
-set.seed(123)
+# set.seed(123)
 N=1000 #length of data with gaps
 
 x.t <- rnorm(N)  # Replace with your time series data
 omitted=c(301:400)
+# omitted=c(10:20)
 x.t[omitted]=NA
 
 t.vec <- 1:N
 t.vec[which(is.na(x.t))] <- NA
+
+plot(t.vec,x.t)
 
 mtse=modules::use("Functions.R")
 source("Functions_SpectrumCovariance.R")
@@ -14,16 +17,21 @@ source("Functions_SpectrumCovariance.R")
 W=4/N*3
 K=5
 V.mat <- mtse$get_tapers(t.vec, W = W, K = K) 
-print(V.mat$e.values)
+print(V.mat$e.values) #these should be close to 1
 taperMatrix=V.mat$tapers
 
 MTSE_full <- mtse$MT_spectralEstimate_fft(x.t, taperMatrix) 
-plot(MTSE_full$freqs,MTSE_full$spectrum)
 
-Cov.mat=spec_cov.mat(x.t = x.t, t.vec = t.vec, N.fourier = floor(N/2) + 1, 
-                     taperMat = V.mat$tapers, isWhite = F,
-                     max.lag.acf = 4,
-                     numCores=10)
+plot(MTSE_full$freqs,MTSE_full$spectrum)
+abline(h=1)
+
+# Cov.mat=spec_cov.mat(x.t = x.t, t.vec = t.vec, N.fourier = floor(N/2) + 1,
+#                      taperMat = V.mat$tapers, isWhite = F,
+#                      max.lag.acf = 4,
+#                      numCores=10)
+# 
+Cov.mat=spec_cov.mat_slow_WN(t.vec = t.vec, N.fourier = floor(N/2) + 1, taperMat = taperMatrix)
+
 diag(Cov.mat)[1]
 specDF=data.frame(frequency=MTSE_full$freqs,
                   S=MTSE_full$spectrum,
@@ -31,7 +39,10 @@ specDF=data.frame(frequency=MTSE_full$freqs,
 library(ggplot2)
 ggplot(specDF,aes(frequency,S,ymin=S-2*unc,ymax=S+2*unc))+
   geom_point()+
-  geom_errorbar()
+  geom_errorbar()+
+  geom_hline(yintercept=1) 
+
+### Angela: this is a horrible plot, how can we make it better?
 
 # 5. calculate avar estimate with spectrum for a series of tau values
 

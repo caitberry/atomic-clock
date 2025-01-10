@@ -601,6 +601,35 @@ AVAR_spec_CI <- function(CI.level, taus, avar, avar_var){
 #               
 #               
 
+
+spec_cov.mat_slow_WN <- function(t.vec, N.fourier, taperMat){
+  K <- dim(taperMat)[2]
+  
+  freq <- seq(0, 0.5, length.out = N.fourier)
+  
+  C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
+  
+  for(i in 1:N.fourier){
+    if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
+    j = 1
+    while(j <= i){
+      V_star_mat <- Conj(t(taperMat*exp(-1i*2*pi*freq[i]*t.vec)))
+      V_mat <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+      
+      V_star_matOMIT=V_star_mat[,-which(colSums(is.na(V_star_mat))==5)]
+      V_matOMIT=V_mat[-which(rowSums(is.na(V_mat))==5),]
+      
+      C.mat[i,j] <- (1/K)*norm(V_star_matOMIT%*%V_matOMIT, type = "2") 
+      j = j+1
+    }
+  }
+  C.mat[upper.tri(C.mat)] <- t(C.mat)[upper.tri(C.mat)]
+  
+  return(C.mat = C.mat)
+}
+
+
+
 avar_CI <- function(CI.level,noise_type = "white noise", avar_type, avars, taus,N){
   
   a <- (1-CI.level)/2
