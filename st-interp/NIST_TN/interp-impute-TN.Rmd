@@ -1,0 +1,85 @@
+
+\section{Introduction}
+
+relevant TS properties 
+
+- type of missingness - random (MCAR (e.g. sensor failure), MAR, NMAR), structural deficiency
+
+- trend(s) - autocorrelation plot slowly decreases as the lag increases; Cox-Stuart Test
+
+- seasonality - factors of fixed, known frequencies; autocorrelation plot has larger values for the multiples of the seasonal frequency; Autocorrelation Testing of a certain order 
+
+- noise type
+
+  * white - little/no autocorrelation, stationary TS; autocorrelation plot w/ approx $95\%$ of the spikes within an interval of $\pm 1.96/\sqrt{T}$, where $T$ is the length of the time series; Autocorrelation Testing (i.e. the autocorrelation of the signal must be different from zero only for order zero)
+
+  * flicker/pink 
+
+\subsection{Audience}\label{subsec:audience}
+
+\subsection{Collaborators}\label{subsec:collabs} 
+
+\subsection{Report Organization}\label{subsec:organization}
+
+
+\section{Data Preparation}
+
+Initial input: Independent series of clock and comb data
+\begin{itemize}
+	\item Clock shift files containing variables: MJD, shift, and possibly ISGOOD 
+	\item Frequency comb data containing variables: MJD, SDR:frep ErYb, fo ErYb, fb Si ErYb, fb Al ErYb, fb Yb ErYb
+\end{itemize}
+
+ Read data into Python
+
+ Define functions to find optical frequencies for each clock with comb equation, these frequencies will become additional variables in the frequency comb data object 
+
+ compute total correction for each clock's shift data 
+
+ Data processing 
+\begin{itemize}
+	\item change all data variables to type float for high precision computing
+	\item find overlapping MJD values for each clock frequency data set 
+	\item visualize gaps in the clock frequency data sets 
+\end{itemize} 
+
+\section{Missing Data}
+
+Identify large gaps vs individual or small sequences of missing values of shift data.  
+
+Identify possible/likely causes of missingness 
+
+\begin{itemize}
+	\item note MJD indices for large gaps of missing values 
+	\item use interpolation techniques (see below) for short sequence of individual missing values 
+	\item keep with caution about how this may impact subsequent steps
+  \item decide upon initial and final MJD values for analysis  
+\end{itemize}
+
+
+\section{Frequency Alignment}
+
+AFTER data is processed, deciding how to handle missing values, THEN address the likely issue of differences in frequency of observations with interpolation techniques. 
+
+Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
+
+\begin{itemize}
+	\item numpy.interp and pandas.interpolate, linear 
+	\item other options: incorporate randomness, kalman smoothing
+  \item lit review 
+    \begin{itemize}
+    \item including (but not limited to) the problem of transforming a low-frequency series into a high-frequency one
+      \begin{itemize}
+      \item A Survey of Methods to Interpolate, Distribute and  Extrapolate Time Series (2010) https://www.scirp.org/html/3396.html - Kalman filtering Sec. 6 
+      \end{itemize}
+    \item 
+    \end{itemize} 
+\end{itemize}
+
+
+
+\section{Summary and Next Steps}\label{sec:summary}
+
+Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
+
+End results: clock ratio data to compute offset to compare to previous measurements (may contain missing values?) 

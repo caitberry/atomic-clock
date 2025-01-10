@@ -195,12 +195,16 @@ Delete if not applicable
 
 \section{Introduction} <!--\label{sec:intro}-->
 
-\subsection{All Subsection Headings Capitalized}\label{subsec:headingscap}
+\subsection{Audience}\label{subsec:audience}
 This can be seen in Eq. (1) and Table 1. Information about flowers is available in Sec.\ref{sec:intro} .\footnote{NIST disclaimer text here.}
 <!---
 %   Section references are “Sec. X”.
 % 	“Section X” is used at beginning of sentence. 
 --->
+
+\subsection{Collaborators}\label{subsec:collabs} 
+
+\subsection{Report Organization}\label{subsec:organization}
 
 \begin{equation}
 {x}^{n} + {y}^{n} = {z}^{n}
@@ -263,7 +267,6 @@ important TS properties
 
 
 
-
 \begin{table}[H]
 	\centering
 	\caption{Title.}
@@ -297,6 +300,9 @@ important TS properties
 %	Figures must have embedded alternate text or “alt text” in order 
 %	to comply with Section 508 accessibility standards. 
 ---> 
+
+\section{Summary and Next Steps}\label{sec:summary}
+
 
 <!--
 ## Acknowledgments {.unnumbered .unlisted}
