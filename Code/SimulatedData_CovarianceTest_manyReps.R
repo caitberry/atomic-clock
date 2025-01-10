@@ -5,9 +5,11 @@ library(dplyr)
 numberOfSimulations = 1000
 
 set.seed(123)
-N=2048+2048*.5 #length of data with gaps
+# N=2048+2048*.5 #length of data with gaps
+N=200
 
-omitted=c(100:400, 750:864 ,1300:1600, 1700:1905, 2013:2113)#1024 missing
+# omitted=c(100:400, 750:864 ,1300:1600, 1700:1905, 2013:2113)#1024 missing
+omitted=c(100:140)
 
 t.vec <- 1:N
 t.vec[omitted] <- NA
@@ -44,6 +46,7 @@ for(i in 1:numberOfSimulations){
   
 }
 
+plot(t.vec,x.t)
 
 saveRDS(samat,paste("Results/samat",runDate,"_W",setWnum,"_K",setK,"_N",N,"_",numberOfSimulations,"sims_WhiteNoiseGaps.Rds",sep=""))
 saveRDS(oamat,paste("Results/oamat",runDate,"_W",setWnum,"_K",setK,"_N",N,"_",numberOfSimulations,"sims_WhiteNoiseGaps.Rds",sep=""))
@@ -118,9 +121,22 @@ Cov.matWN=spec_cov.mat(x.t = x.t, t.vec = t.vec, N.fourier = floor(N/2) + 1,
                      taperMat = V.mat$tapers, isWhite = T,
                      max.lag.acf = 4,
                      numCores=4)
+
+Cov.matWN_slow=spec_cov.mat_slow_WN(t.vec = t.vec, N.fourier = floor(N/2) + 1,
+                                    taperMat = V.mat$tapers)
+
+saveRDS(Cov.mat,paste("Results/Covmat",runDate,"_W",setWnum,"_K",setK,"_N",N,"_",numberOfSimulations,"sims_WhiteNoiseGaps.Rds",sep=""))
+saveRDS(Cov.matWN,paste("Results/CovmatWN",runDate,"_W",setWnum,"_K",setK,"_N",N,"_",numberOfSimulations,"sims_WhiteNoiseGaps.Rds",sep=""))
+# saveRDS(Cov.matWN_slow,paste("Results/CovmatWNslow",runDate,"_W",setWnum,"_K",setK,"_N",N,"_",numberOfSimulations,"sims_WhiteNoiseGaps.Rds",sep=""))
+
 diag(Cov.mat)[1]
 diag(Cov.matWN)[1]
+# diag(Cov.matWN_slow)[1]
+
 specAVARest=mtse$AVAR_spec(spectral_est = MTSE_full$spectrum,taus = taus,calcUnc = T,Cov.mat = Cov.mat)
+specAVARestWN=mtse$AVAR_spec(spectral_est = MTSE_full$spectrum,taus = taus,calcUnc = T,Cov.mat = Cov.matWN)
+specAVARest$avarVar-specAVARestWN$avarVar ### close enough??
+
 oldAVARest=mtse$overlapping_avar_fn(y = na.omit(x.t),m = taus)
 
 oldAVARestUncertainty=mtse$avar_CI(CI.level = .68,
@@ -246,11 +262,4 @@ ggplot(dat,aes(Method,measurement,col=Method))+
   geom_errorbar(data = avarDF, aes(Method, avar, col = "Estimated", ymin = avarLower, ymax = avarUpper),
                 position = position_dodge(width = 0.1), width = 0.2, size = 0.8, alpha = 0.7) # Error bars for avarDF
 
-  
-
-  
-
-+
-  geom_errorbar(data = avarDF, aes(tau, avar, col = "black", ymin = avarLower, ymax = avarUpper),
-                position = position_dodge(width = 0.25), width = 0.2, size = 0.8, linetype = "dashed", alpha = 0.7)+
   
