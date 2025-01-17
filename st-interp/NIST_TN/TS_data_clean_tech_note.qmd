@@ -125,7 +125,7 @@ header-includes:
 \LARGE{\textbf{NIST Technical Note \pubnumber}}\\
 \vfill 
  
-\Huge{\textbf{Title}}\\
+\Huge{\textbf{Imputation and Interpolation for the Handeling of Clock Data}}\\
 \vfill
  
 \normalsize First Author\\
@@ -193,14 +193,15 @@ Delete if not applicable
 \pagebreak
 
 
-\section{Introduction} <!--\label{sec:intro}-->
+\section{Introduction}\label{sec:intro}
+
+The purpose of this report is to present a methodological approach for applying imputation and interpolation techniques to clock frequency data. 
 
 \subsection{Audience}\label{subsec:audience}
-This can be seen in Eq. (1) and Table 1. Information about flowers is available in Sec.\ref{sec:intro} .\footnote{NIST disclaimer text here.}
-<!---
-%   Section references are “Sec. X”.
-% 	“Section X” is used at beginning of sentence. 
---->
+
+Unit 68 Physical Measurement Laboratory, 668 Time and Frequency Division 
+
+Unit 77 Information Technology Laboratory, 776 Statistical Engineering Division 
 
 \subsection{Collaborators}\label{subsec:collabs} 
 
