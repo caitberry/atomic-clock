@@ -195,7 +195,9 @@ Delete if not applicable
 
 \section{Introduction}\label{sec:intro}
 
-The purpose of this report is to present a methodological approach for applying imputation and interpolation techniques to clock frequency data. 
+The purpose of this report is to present a methodological approach for applying imputation and interpolation techniques to clock frequency data. This report is a result of collaboartive research into statistical methdods for the analysis of high-precision atomic clock data by the Statistical Engineering Divison of the Information Technology Laboratory and the Time and Frequency Divison of the Physical Measurement Laboratory. 
+
+Because of the high precision in observed data, the reproducible estimation of, say, atomic clock frequency ratios requires careful attention to data processing steps. The idiosyncrasies of processing clock data that we focus on in this report options for the treatment of missing data and for the comparison of low frequency data to high frequency data. We describe the nature of these challenges with supporting examples and we present recommendations for addressing these challenges in a transparant, reproducible manner.      
 
 \subsection{Audience}\label{subsec:audience}
 
