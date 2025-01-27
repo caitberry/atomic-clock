@@ -1,19 +1,41 @@
+---
+title: "Clock data interpolation TN draft"
+author: "Thornton"
+output:
+  word_document:
+---
 
-\section{Introduction}
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## R Markdown and plots 
+
+```{r cars}
+summary(cars)
+```
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+
+## Introduction
 
 The purpose of this report is to present a methodological approach for applying imputation and interpolation techniques to clock frequency data. This report is a result of collaborative research into statistical methods for the analysis of high-precision atomic clock data by the Statistical Engineering Division of the Information Technology Laboratory and the Time and Frequency Division of the Physical Measurement Laboratory. 
 
 Because of the high precision in observed data, the reproducible estimation of, say, atomic clock frequency ratios requires careful attention to data processing steps. The idiosyncrasies of processing clock data that we focus on in this report options for the treatment of missing data and for the comparison of low frequency data to high frequency data. We describe the nature of these challenges with supporting examples and we present recommendations for addressing these challenges in a transparent, reproducible manner.      
 
 
-\subsection{Audience}\label{subsec:audience}
+## Audience
 
-\subsection{Collaborators}\label{subsec:collabs} 
+## Collaborators  
 
-\subsection{Report Organization}\label{subsec:organization}
+## Report Organization 
 This note is organized chronologically according to our recommended order of operations. In Section \ref{sec:dataprep}, we discuss necessary data preparation steps, Section \ref{sec:missingdata} covers the handling of missing clock shift data, Section \ref{sec:interp} details techniques for handling multiple, misaligned data sets, and Section \ref{sec:iterate} discusses how to iterate these steps resulting in a coherent final data set for estimation and inference. Section \ref{sec:summary} concludes with a summary and remarks on next steps.   
 
-\section{Data Preparation}\label{sec:dataprep}
+# Data Preparation 
 
 Initial input: Independent series of clock and comb data
 \begin{itemize}
@@ -29,12 +51,13 @@ Initial input: Independent series of clock and comb data
 
  Data processing 
 \begin{itemize}
+  \item filter out all "not good" data. will probably not be any missing values after that but in case there are then go on to imputation step 
 	\item change all data variables to type float for high precision computing
 	\item find overlapping MJD values for each clock frequency data set 
 	\item visualize gaps in the clock frequency data sets 
 \end{itemize} 
 
-\section{Missing Data}\label{sec:missingdat}
+# Missing Data 
 
 Identify large gaps vs individual or small sequences of missing values of shift data.  
 
@@ -48,7 +71,7 @@ Identify possible/likely causes of missingness
 \end{itemize}
 
 
-\section{Frequency Alignment}
+# Frequency Alignment
 
 AFTER data is processed, deciding how to handle missing values, THEN address the likely issue of differences in frequency of observations with interpolation techniques. 
 
@@ -68,17 +91,17 @@ Interpolation - to get clock data to match up with comb time intervals, key diff
 \end{itemize}
 
 
-\section{Iterating the Data Processing Steps}\label{sec:iterate}
+# Iterating the Data Processing Steps
 
 
-\section{Summary and Next Steps}\label{sec:summary}
+# Summary and Next Steps 
 
 Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
 
 End results: clock ratio data to compute offset to compare to previous measurements (may contain missing values?) 
 
 
-\section{Misc.}
+# Misc.
 
 
 relevant TS properties 
