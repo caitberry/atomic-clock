@@ -20,7 +20,8 @@ summary(cars)
 plot(pressure)
 ```
 
-
+<!--- Open Command Palette: Press F1 or Ctrl + Shift + P to open the command palette.
+Run Knit Command: Type rmarkdown: Render and select the desired output format (e.g., HTML, PDF).--->
 ## Introduction
 
 The purpose of this report is to present a methodological approach for applying imputation and interpolation techniques to clock frequency data. This report is a result of collaborative research into statistical methods for the analysis of high-precision atomic clock data by the Statistical Engineering Division of the Information Technology Laboratory and the Time and Frequency Division of the Physical Measurement Laboratory. 
