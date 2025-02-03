@@ -6,19 +6,11 @@ output:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+library(tidyverse)
+library(MASS)
 ```
 
-
-## R Markdown and plots 
-
-```{r cars}
-summary(cars)
-```
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
 
 <!--- Open Command Palette: Press F1 or Ctrl + Shift + P to open the command palette.
 Run Knit Command: Type rmarkdown: Render and select the desired output format (e.g., HTML, PDF).--->
@@ -35,6 +27,12 @@ Because of the high precision in observed data, the reproducible estimation of, 
 
 ## Report Organization 
 This note is organized chronologically according to our recommended order of operations. In Section \ref{sec:dataprep}, we discuss necessary data preparation steps, Section \ref{sec:missingdata} covers the handling of missing clock shift data, Section \ref{sec:interp} details techniques for handling multiple, misaligned data sets, and Section \ref{sec:iterate} discusses how to iterate these steps resulting in a coherent final data set for estimation and inference. Section \ref{sec:summary} concludes with a summary and remarks on next steps.   
+
+# Background 
+
+Due to the nature of the machinery involved in generating clock data, the time series will be an irregularly observed one. That is, it is typical that the interval between consecutive measurement times $t_{i}$ and $t_{i+1}$ is non-constant, where $t_{i}$ is a particular MDJ value. This is true even for comb data, though in a much less drastic way. 
+
+For example, most intervals for data from the ErYb comb are around $t_{i+1} - t_{i} = 0.000012$ however some observational gaps can be as large as $t_{j+1} - t_{j} = 0.000022$. In any case, these discrepancies in the time at which the frequency data is collected result in an irregularly sampled time series which poses its own challenges in analysis. Typically, such irregularities are corrected by interpolation.  
 
 # Data Preparation 
 
