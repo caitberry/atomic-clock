@@ -32,7 +32,9 @@ This note is organized chronologically according to our recommended order of ope
 
 Due to the nature of the machinery involved in generating clock data, the time series will be an irregularly observed one. That is, it is typical that the interval between consecutive measurement times $t_{i}$ and $t_{i+1}$ is non-constant, where $t_{i}$ is a particular MDJ value. This is true even for comb data, though in a much less drastic way. 
 
-For example, most intervals for data from the ErYb comb are around $t_{i+1} - t_{i} = 0.000012$ however some observational gaps can be as large as $t_{j+1} - t_{j} = 0.000022$. In any case, these discrepancies in the time at which the frequency data is collected result in an irregularly sampled time series which poses its own challenges in analysis. Typically, such irregularities are corrected by interpolation.  
+For example, most intervals for data from the ErYb comb are around $t_{i+1} - t_{i} = 0.000012$ however some observational gaps can be almost double that size with, say, $t_{j+1} - t_{j} = 0.000022$. In any case, these discrepancies in the time at which the frequency data is collected result in an irregularly sampled time series which poses its own challenges in analysis. Typically, such irregularities are corrected by interpolation which is the topic of a later section.  
+
+Data filtering is not a topic of this manuscript but it is important to note as a part of the data pre-processing stage. Scientists, on an *ad hoc* basis will mark the frequency observations as "good" or "bad". This is indicated with a binary variable $IS_{GOOD} = 0, \text{ if data point is not reliable}$ and $IS_{GOOD} = 1,$ otherwise. 
 
 # Data Preparation 
 
