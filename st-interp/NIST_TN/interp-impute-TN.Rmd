@@ -42,6 +42,13 @@ Data filtering is not a topic of this manuscript but it is important to note as 
 
 Filter out all "not good" data. will probably not be any missing values after that but the next subsection addresses the case in which there are still missing values in the clock data. 
 
+For example, suppose the $Al+$ clock data is stored in a data frame called shift_data_Al. This data frame contains three variables, $t_{MJD}$, $f_{shift}$, and $IS_GOOD$. In order to analyze only the data that is marked as good by the clock scientist, we can use the following Python code to create a subset of only the good data, named shift_data_Al_good. 
+
+```{python, eval=FALSE, echo=TRUE}
+good_condition_al = shift_data_Al["IS_GOOD"] == 1
+shift_data_Al_good = shift_data_Al[good_condition_al].reset_index(drop=True)
+```
+
 ## Handle Any Missing Data 
 
 Identify large gaps vs individual or small sequences of missing values of shift data. Visualize gaps in the clock frequency data sets.
