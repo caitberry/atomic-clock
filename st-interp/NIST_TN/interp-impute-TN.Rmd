@@ -28,51 +28,49 @@ Because of the high precision in observed data, the reproducible estimation of, 
 ## Report Organization 
 This note is organized chronologically according to our recommended order of operations. In Section \ref{sec:dataprep}, we discuss necessary data preparation steps, Section \ref{sec:missingdata} covers the handling of missing clock shift data, Section \ref{sec:interp} details techniques for handling multiple, misaligned data sets, and Section \ref{sec:iterate} discusses how to iterate these steps resulting in a coherent final data set for estimation and inference. Section \ref{sec:summary} concludes with a summary and remarks on next steps.   
 
-# Background 
-
-Due to the nature of the machinery involved in generating clock data, the time series will be an irregularly observed one. That is, it is typical that the interval between consecutive measurement times $t_{i}$ and $t_{i+1}$ is non-constant, where $t_{i}$ is a particular MDJ value. This is true even for comb data, though in a much less drastic way. 
-
-For example, most intervals for data from the ErYb comb are around $t_{i+1} - t_{i} = 0.000012$ however some observational gaps can be almost double that size with, say, $t_{j+1} - t_{j} = 0.000022$. In any case, these discrepancies in the time at which the frequency data is collected result in an irregularly sampled time series which poses its own challenges in analysis. Typically, such irregularities are corrected by interpolation which is the topic of a later section.  
-
-Data filtering is not a topic of this manuscript but it is important to note as a part of the data pre-processing stage. Scientists, on an *ad hoc* basis will mark the frequency observations as "good" or "bad". This is indicated with a binary variable $IS_{GOOD} = 0, \text{ if data point is not reliable}$ and $IS_{GOOD} = 1,$ otherwise. 
 
 # Data Preparation 
 
-Initial input: Independent series of clock and comb data
-\begin{itemize}
-	\item Clock shift files containing variables: MJD, shift, and possibly ISGOOD 
-	\item Frequency comb data containing variables: MJD, SDR:frep ErYb, fo ErYb, fb Si ErYb, fb Al ErYb, fb Yb ErYb
-\end{itemize}
+The data considered in this note include independent time series of clock and comb data. We assume that upon reading the data into Python, all variables are of type float for high precision. The next two subsections however only apply to clock data files. The last subsection applies to all data files. 
 
- Read data into Python
+Due to the nature of the machinery involved in generating clock and comb data, any time series analyzed will be an irregularly observed one. That is, the interval between consecutive measurement times $t_{i}$ and $t_{i+1}$, where $t_{i}$ is a particular MDJ value, is non-constant. This is true even for comb data, though in a much less drastic way. For example, most intervals for data from the ErYb comb are around $t_{i+1} - t_{i} = 0.000012$ however some observational gaps can be almost double that size with, say, $t_{j+1} - t_{j} = 0.000022$. In any case, these discrepancies in the time at which the frequency data is collected result in an irregularly sampled time series which poses its own challenges in analysis. Typically, such irregularities are corrected by interpolation which is the topic of a later section.  
 
- Define functions to find optical frequencies for each clock with comb equation, these frequencies will become additional variables in the frequency comb data object 
-
- compute total correction for each clock's shift data 
-
- Data processing 
-\begin{itemize}
-  \item filter out all "not good" data. will probably not be any missing values after that but in case there are then go on to imputation step 
-	\item change all data variables to type float for high precision computing
-	\item find overlapping MJD values for each clock frequency data set 
-	\item visualize gaps in the clock frequency data sets 
-\end{itemize} 
-
-# Missing Data 
-
-Identify large gaps vs individual or small sequences of missing values of shift data.  
-
-Identify possible/likely causes of missingness 
-
-\begin{itemize}
-	\item note MJD indices for large gaps of missing values 
-	\item use interpolation techniques (see below) for short sequence of individual missing values 
-	\item keep with caution about how this may impact subsequent steps
-  \item decide upon initial and final MJD values for analysis  
-\end{itemize}
+Data filtering is not a topic of this manuscript but it is important to note as a part of the data pre-processing stage. Scientists, on an *ad hoc* basis, will mark the clock frequency observations as "good" or "bad". This is indicated with a binary variable $IS_{GOOD} = 0, \text{ if data point is not reliable}$ and $IS_{GOOD} = 1,$ otherwise. 
 
 
-# Frequency Alignment
+## Exclude Bad Clock Data 
+
+Filter out all "not good" data. will probably not be any missing values after that but the next subsection addresses the case in which there are still missing values in the clock data. 
+
+For example, suppose the $Al+$ clock data is stored in a data frame called shift_data_Al. This data frame contains three variables, $t_{MJD}$, $f_{shift}$, and $IS_{GOOD}$. In order to analyze only the data that is marked as good by the clock scientist, we can use the following Python code to create a subset of only the good data, named shift_data_Al_good. 
+
+```{python, eval=FALSE, echo=TRUE}
+good_condition_al = shift_data_Al["IS_GOOD"] == 1
+shift_data_Al_good = shift_data_Al[good_condition_al].reset_index(drop=True)
+```
+
+## Handle Any Missing Data 
+
+Identify large gaps vs individual or small sequences of missing values of shift data. Visualize gaps in the clock frequency data sets.
+
+One may use interpolation techniques (see next section) for short sequence of individual missing values but not recommended for large gaps. larger gaps should be factored into the next step where one decides which window of observations will be analyzed.  
+
+If large gaps are maintained, caution about how this may impact subsequent steps and conclusions. 
+
+## Determine Overlapping Windows of Observation 
+
+find overlapping MJD values for each clock frequency data set. decide upon initial and final MJD values for analysis 
+
+# Interpolation 
+
+## Regular Time Intervals 
+
+For comb data, interpolate to get data that lies on regular time intervals.
+
+Note that this step must be completed for each element necessary to calculate the optical frequency of each clock based on the comb equation. If analyzing three clocks, say, $Yb$, $Sr$, and $Al+$, then in addition to interpolating the values of SDR:frep_ErYb, onto a time grid of equidistant $MDJ$ points, one must also interpolate the values of fb_Al_ErYb and fb_Yb_ErYb. 
+
+
+## Frequency Alignment
 
 AFTER data is processed, deciding how to handle missing values, THEN address the likely issue of differences in frequency of observations with interpolation techniques. 
 
@@ -92,7 +90,9 @@ Interpolation - to get clock data to match up with comb time intervals, key diff
 \end{itemize}
 
 
-# Iterating the Data Processing Steps
+# Multi-taper Spectral Analysis 
+
+Some comments on advantage of this analysis approach in requiring less interpolation and producing more reliable estimates. 
 
 
 # Summary and Next Steps 
@@ -102,10 +102,7 @@ Calculate clock frequencies by adding together comb frequencies and shift data, 
 End results: clock ratio data to compute offset to compare to previous measurements (may contain missing values?) 
 
 
-# Misc.
-
-
-relevant TS properties 
+<!--- # Relevant TS properties 
 
 - type of missingness - random (MCAR (e.g. sensor failure), MAR, NMAR), structural deficiency
 
@@ -118,3 +115,4 @@ relevant TS properties
   * white - little/no autocorrelation, stationary TS; autocorrelation plot w/ approx $95\%$ of the spikes within an interval of $\pm 1.96/\sqrt{T}$, where $T$ is the length of the time series; Autocorrelation Testing (i.e. the autocorrelation of the signal must be different from zero only for order zero)
 
   * flicker/pink 
+---> 
