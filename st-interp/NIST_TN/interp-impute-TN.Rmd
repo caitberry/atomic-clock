@@ -69,9 +69,34 @@ An important characteristic of clock and comb data is that the beginning and end
 
 Let $X = 60535$ and consider, for example, a time series of comb data that begins at $t_{MJD} = X + 0.682346$ and ends at $t_{MJD} = X + 0.911951$. Suppose we are interested in estimating the average frequency ratio of the $Al+$ and $Sr$ clocks which begin and end at $[X + 0.6818403, X + 0.9108218]$ and $[X + 0.705143550906, X + 0.9791847021]$, respectively. For now, suppose there are no gaps of missing data in either clock time series. 
 
-[include graphic showing intervals]
 
-The follow Python functions are useful in determining the final intersecting time interval used for analysis. 
+```{r, echo=FALSE}
+library(ggplot2) 
+x <- 60535
+comb <- c(x + 0.682346, x + 0.911951)
+al <- c(x + 0.6818403, x + 0.9108218 )
+sr <- c(x + 0.705143550906, x + 0.9791847021)
+df <- data.frame(c("comb", "Al", "Sr"), rbind(comb, al, sr))
+colnames(df) <- c("source", "start", "end")
+rownames(df) <- NULL
+df_plot <- data.frame(source = rep(df$source,2), time = c(df$start, df$end)) 
+
+ggplot(df_plot) +
+  geom_point(aes(x=time, y=0, color=source), size = 15, shape="|", alpha=0.7)  +
+  annotate("segment", x=min(df$start)-0.01, xend=max(df$end)+0.01, y=0, yend=0, linewidth=1) +
+#  annotate("segment", x=min(df$start)-0.01, xend=min(df$start)-0.01, y=-0.0001, yend=0.0001, linewidth=2) +
+#  annotate("segment", x=max(df$end)+0.01, xend=max(df$end)+0.01, y=-0.0001, yend=0.0001, linewidth=2) +
+#  geom_text(aes(label = x), col="white") +
+  scale_x_continuous(limits = c(min(df$start)-0.01, max(df$end)+0.01)) +
+  scale_y_continuous(limits = c(-0.001,0.001)) +
+#  scale_color_manual(values = unname(colours)) + 
+  theme(panel.background = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank(),
+        axis.title = element_blank())
+```
+
+The follow Python functions are useful in determining the final intersecting time interval for analysis. 
 
 ```{python, eval=FALSE, echo=TRUE}
 # Extracts series element that is as close to the target as possible without going over.
