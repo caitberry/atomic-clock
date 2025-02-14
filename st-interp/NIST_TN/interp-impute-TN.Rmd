@@ -150,7 +150,7 @@ Interpolation - to get clock data to match up with comb time intervals, key diff
 \end{itemize}
 
 
-# Multi-taper Spectral Analysis  ?
+# Advantage of Multi-taper Spectral Analysis Approach ?
 
 Some comments on advantage of this analysis approach in requiring less interpolation and producing more reliable estimates. 
 
