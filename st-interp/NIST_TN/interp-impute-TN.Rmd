@@ -142,24 +142,22 @@ To derive a ratio time series for any two clocks, the time points of observation
 
 **Method 3**: Realign the comb time series so that observations represent a regularly spaced series. 
 
-
-AFTER data is processed, deciding how to handle missing values, THEN address the likely issue of differences in frequency of observations with interpolation techniques. 
-
-Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
-
+Once a method for alignment is determined, the implementation of the alignment will occur through time series interpolation. There are many different techniques for interpolating time series data. [Cite some sources.] For univariate time series 
 
 
 # Summary and Next Steps 
 
 The process we have outlined for aligning the observational frequency of clock time series follows these steps: 
 
-Step 1) Process the data for each time series.
+Step 1) Process the data for each time series to determine the final window of observation and exclude low-quality data. 
 
 Step 2) Determine if there are any missing data and decide whether or not to impute values that are missing. 
 
 Step 3) Determine which method of frequency alignment will be used and decide upon an interpolation technique to implement the alignment. 
 
 Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
+
+[all of this analysis is occuring within the time domain? not the frequency domain?] 
 
 
 
