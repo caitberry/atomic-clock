@@ -132,47 +132,34 @@ Note that this step must be completed for each element necessary to calculate th
 
 ## Frequency Alignment
 
+The culmination of the previous data processing steps is the arithmetic combination of several time series that are observed with different frequencies. At this stage, there is no missing data in any of the series; however, each series is comprised of observations along an irregular time scale. [For scientific reasons], the comb time series is typically observed more regularly than any individual clock shift series. Thus the comb data represent a high-frequency series and the clock shift data are low-frequency in comparison. 
+
+To derive a ratio time series for any two clocks, the time points of observations for each clock must be in alignment with those of the comb. There are several methodological approaches one may take to align all three series. 
+
+**Method 1**: Align clock A with the observations of the comb. Then align clock B with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series. 
+
+**Method 2**: Align clock A with the observations of clock B. 
+
+**Method 3**: Realign the comb time series so that observations represent a regularly spaced series. 
+
+
 AFTER data is processed, deciding how to handle missing values, THEN address the likely issue of differences in frequency of observations with interpolation techniques. 
 
 Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
 
-\begin{itemize}
-	\item numpy.interp and pandas.interpolate, linear 
-	\item other options: incorporate randomness, kalman smoothing
-  \item lit review 
-    \begin{itemize}
-    \item including (but not limited to) the problem of transforming a low-frequency series into a high-frequency one
-      \begin{itemize}
-      \item A Survey of Methods to Interpolate, Distribute and  Extrapolate Time Series (2010) https://www.scirp.org/html/3396.html - Kalman filtering Sec. 6 
-      \end{itemize}
-    \item 
-    \end{itemize} 
-\end{itemize}
-
-
-# Advantage of Multi-taper Spectral Analysis Approach ?
-
-Some comments on advantage of this analysis approach in requiring less interpolation and producing more reliable estimates. 
 
 
 # Summary and Next Steps 
 
+The process we have outlined for aligning the observational frequency of clock time series follows these steps: 
+
+Step 1) Process the data for each time series.
+
+Step 2) Determine if there are any missing data and decide whether or not to impute values that are missing. 
+
+Step 3) Determine which method of frequency alignment will be used and decide upon an interpolation technique to implement the alignment. 
+
 Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
 
-End results: clock ratio data to compute offset to compare to previous measurements (may contain missing values?) 
 
 
-<!--- # Relevant TS properties 
-
-- type of missingness - random (MCAR (e.g. sensor failure), MAR, NMAR), structural deficiency
-
-- trend(s) - autocorrelation plot slowly decreases as the lag increases; Cox-Stuart Test
-
-- seasonality - factors of fixed, known frequencies; autocorrelation plot has larger values for the multiples of the seasonal frequency; Autocorrelation Testing of a certain order 
-
-- noise type
-
-  * white - little/no autocorrelation, stationary TS; autocorrelation plot w/ approx $95\%$ of the spikes within an interval of $\pm 1.96/\sqrt{T}$, where $T$ is the length of the time series; Autocorrelation Testing (i.e. the autocorrelation of the signal must be different from zero only for order zero)
-
-  * flicker/pink 
----> 
