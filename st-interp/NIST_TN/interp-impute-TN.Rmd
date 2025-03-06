@@ -32,11 +32,22 @@ The next section presents some background information and an example to provide 
 <!-------------------------------------------------------------->
 # Background 
 
+The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Each sub-series is independent of the others but each may contain missing values and is irregularly sampled. Furthermore, the sub-series may have slightly or dramatically different start and end times. 
+
+The application that motivates this article is the analysis of atomic clock ratio data. 
+
+[Background on existing approaches for combining time series]
+
+[Background on existing methods for univariate time series imputation]
+
+[Background on existing work mapping low frequency series to high frequency one.] 
+
+[Mention and reference work on spectral analysis of time series for atomic clock data] In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. 
 
 <!-------------------------------------------------------------->
-# Data Visualization
+# Data Exploration
 
-## Assess Missing Data 
+## Visualize Missing Data 
 
 Data visualization is an important first step to identify any missing data or unexpected patterns. It is crucial that individual time series are visualized before they are combined. This step also helps with the determination of identifying the overlapping window of observations which is the topic of the next section. 
 
@@ -60,7 +71,7 @@ The treatment of long sequences of missing data is distinct from the treatment o
 
 [Add note of caution about how keeping missing data until end is not advisable.] 
 
-## Determine Overlapping Windows of Observation 
+## Determine Overlapping Window of Observation 
 
 An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each data file under consideration. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{MJD,i}, t_{MDJ, j}]$ that includes the largest possible intersection of observations from each data file. 
 
