@@ -73,6 +73,8 @@ The treatment of long sequences of missing data is distinct from the treatment o
 
 ## Determine Overlapping Window of Observation 
 
+
+
 An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each data file under consideration. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{MJD,i}, t_{MDJ, j}]$ that includes the largest possible intersection of observations from each data file. 
 
 Let $X = 60535$ and consider, for example, a time series of comb data that begins at $t_{MJD} = X + 0.682346$ and ends at $t_{MJD} = X + 0.911951$. Suppose we are interested in estimating the average frequency ratio of the $Al+$ and $Sr$ clocks which begin and end at $[X + 0.6818403, X + 0.9108218]$ and $[X + 0.705143550906, X + 0.9791847021]$, respectively. For now, suppose there are no gaps of missing data in either clock time series. 
