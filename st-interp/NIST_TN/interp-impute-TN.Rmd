@@ -58,7 +58,7 @@ plt.show()
 
 The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series [cite sources] can be implemented for individual missing values, long sequences of missingness indicate a need to reconsider the start and end times of the series. Large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze. This is the topic of the next section.   
 
-[Add not of caution about how keeping missing data until end is not advisable.] 
+[Add note of caution about how keeping missing data until end is not advisable.] 
 
 ## Determine Overlapping Windows of Observation 
 
@@ -74,12 +74,12 @@ comb <- c(x + 0.71, x + 0.92)
 al <- c(x + 0.6818403, x + 0.9108218 )
 sr <- c(x + 0.705143550906, x + 0.9791847021)
 df <- data.frame(c("Clock 1", "Clock 2", "Comb"), rbind(al, sr, comb))
-colnames(df) <- c("source", "start", "end")
+colnames(df) <- c("Series", "start", "end")
 rownames(df) <- NULL
-df_plot <- data.frame(source = rep(df$source,2), time = c(df$start, df$end)) 
+df_plot <- data.frame(Series = rep(df$Series,2), time = c(df$start, df$end)) 
 
 ggplot(df_plot) +
-  geom_point(aes(x=time, y=0, color=source), size = 15, shape="|", alpha=0.7)  +
+  geom_point(aes(x=time, y=0, color=Series), size = 15, shape="|", alpha=0.7)  +
   annotate("segment", x=min(df$start)-0.01, xend=max(df$end)+0.01, y=0, yend=0, linewidth=1) +
 #  annotate("segment", x=min(df$start)-0.01, xend=min(df$start)-0.01, y=-0.0001, yend=0.0001, linewidth=2) +
 #  annotate("segment", x=max(df$end)+0.01, xend=max(df$end)+0.01, y=-0.0001, yend=0.0001, linewidth=2) +
