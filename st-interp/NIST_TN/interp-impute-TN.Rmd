@@ -36,18 +36,29 @@ The next section presents some background information and an example to provide 
 <!-------------------------------------------------------------->
 # Data Visualization
 
-## Visualize Missing Data 
+## Assess Missing Data 
 
-After excluding low quality clock data, the next step is to visualize any missing shift values. Although there may not be any missing data once the previous step has been completed, due to the *ad hoc* nature of data quality marking, we will discuss how to assess any remaining missing data for completeness. 
+Data visualization is an important first step to identify any missing data or unexpected patterns. It is crucial that individual time series are visualized before they are combined. This step also helps with the determination of identifying the overlapping window of observations which is the topic of the next section. 
 
-[python package to visualize with image examples of missing data and complete data] 
+To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e. truly empty data values). 
 
-[strategy to handle missing data] 
-Identify large gaps vs individual or small sequences of missing values of shift data. Visualize gaps in the clock frequency data sets.
+```{python, eval=FALSE, echo=TRUE}
+missing_index = pd.isnull(time_series_data)
+print(missing_index.sum())
+```
 
-One may use interpolation techniques (see next section) for short sequence of individual missing values but not recommended for large gaps. larger gaps should be factored into the next step where one decides which window of observations will be analyzed.  
+While this numerical summary of missing values is informative, it is not enough to identify any unusual patterns in missing data. There is no substitute for a visual analysis of data. A useful Python package for visualizing any patterns in missing data is the package "missingno" which can be implemented as follows. 
 
-If large gaps are maintained, caution about how this may impact subsequent steps and conclusions. 
+```{python, eval=FALSE, echo=TRUE}
+import missingno as msno
+
+msno.matrix(time_series_data)
+plt.show()
+```
+
+The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series [cite sources] can be implemented for individual missing values, long sequences of missingness indicate a need to reconsider the start and end times of the series. Large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze. This is the topic of the next section.   
+
+[Add not of caution about how keeping missing data until end is not advisable.] 
 
 ## Determine Overlapping Windows of Observation 
 
@@ -59,10 +70,10 @@ Let $X = 60535$ and consider, for example, a time series of comb data that begin
 ```{r, echo=FALSE}
 library(ggplot2) 
 x <- 60535
-comb <- c(x + 0.682346, x + 0.911951)
+comb <- c(x + 0.71, x + 0.92)
 al <- c(x + 0.6818403, x + 0.9108218 )
 sr <- c(x + 0.705143550906, x + 0.9791847021)
-df <- data.frame(c("comb", "Al", "Sr"), rbind(comb, al, sr))
+df <- data.frame(c("Clock 1", "Clock 2", "Comb"), rbind(al, sr, comb))
 colnames(df) <- c("source", "start", "end")
 rownames(df) <- NULL
 df_plot <- data.frame(source = rep(df$source,2), time = c(df$start, df$end)) 
