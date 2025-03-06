@@ -14,7 +14,7 @@ library(MASS)
 
 <!--- Open Command Palette: Press F1 or Ctrl + Shift + P to open the command palette.
 Run Knit Command: Type rmarkdown: Render and select the desired output format (e.g., HTML, PDF).--->
-## Introduction
+# Introduction
 
 The purpose of this report is to present a methodological approach for applying imputation and interpolation techniques to clock frequency data. This report is a result of collaborative research into statistical methods for the analysis of high-precision atomic clock data by the Statistical Engineering Division of the Information Technology Laboratory and the Time and Frequency Division of the Physical Measurement Laboratory. 
 
@@ -26,29 +26,15 @@ Because of the high precision in observed data, the reproducible estimation of, 
 ## Collaborators  
 
 ## Report Organization 
-This note is organized chronologically according to our recommended order of operations. In Section \ref{sec:dataprep}, we discuss necessary data preparation steps, Section \ref{sec:missingdata} covers the handling of missing clock shift data, Section \ref{sec:interp} details techniques for handling multiple, misaligned data sets, and Section \ref{sec:iterate} discusses how to iterate these steps resulting in a coherent final data set for estimation and inference. Section \ref{sec:summary} concludes with a summary and remarks on next steps.   
+The next section presents some background information and an example to provide context for the problem at hand. Section 3 discusses the initial necessary data exploration steps, Section 4 covers interpolation methods for handling multiple, misaligned data sets, and Section 5 concludes by summarizing the steps needed to produce a coherent final data set for estimation and inference. 
 
 
-# Data Preparation 
-
-The data considered in this note include independent time series of clock and comb data. We assume that upon reading the data into Python, all variables are of type float for high precision. The next two subsections however only apply to clock data files. The last subsection applies to all data files. 
-
-Due to the nature of the machinery involved in generating clock and comb data, any time series analyzed will be an irregularly observed one. That is, the interval between consecutive measurement times $t_{i}$ and $t_{i+1}$, where $t_{i}$ is a particular MDJ value, is non-constant. This is true even for comb data, though in a much less drastic way. For example, most intervals for data from the ErYb comb are around $t_{i+1} - t_{i} = 0.000012$ however some observational gaps can be almost double that size with, say, $t_{j+1} - t_{j} = 0.000022$. In any case, these discrepancies in the time at which the frequency data is collected result in an irregularly sampled time series which poses its own challenges in analysis. Typically, such irregularities are corrected by interpolation which is the topic of a later section.  
-
-Data filtering is not a topic of this manuscript but it is important to note as a part of the data pre-processing stage. Scientists, on an *ad hoc* basis, will mark the clock frequency observations as "good" or "bad". This is indicated with a binary variable $IS_{GOOD} = 0, \text{ if data point is not reliable}$ and $IS_{GOOD} = 1,$ otherwise. 
+<!-------------------------------------------------------------->
+# Background 
 
 
-## Exclude Low Quality Clock Data 
-
-Having obtained clock shift files that include the three variables $t_{MJD}$, $f_{shift}$, and $IS_{GOOD}$, a comb data file containing $t_{MJD}$ and any other variables necessary to compute the optical frequency for each clock, and ensuring the values of the variables are high precision decimal type, the first step in processing the data for analysis is to exclude any clock observations where $IS_{GOOD}=0$. 
-
-For example, suppose the $Al+$ clock data is stored in a data frame called *shift_data_Al*. In order to analyze only the data that is marked as reliable by the clock scientist, we can use the following Python code to create a subset containing only the good data, named *shift_data_Al_good*. 
-
-```{python, eval=FALSE, echo=TRUE}
-good_condition_al = shift_data_Al["IS_GOOD"] == 1
-shift_data_Al_good = shift_data_Al[good_condition_al].reset_index(drop=True)
-```
-
+<!-------------------------------------------------------------->
+# Data Visualization
 
 ## Visualize Missing Data 
 
@@ -121,6 +107,7 @@ def ub_extract(target, data):
 ```
 
 
+<!-------------------------------------------------------------->
 # Interpolation 
 
 ## Regular Time Intervals 
@@ -156,8 +143,8 @@ Depending on the type of analysis, having an irregularly sampled time series may
 
 Once a method for alignment is determined, the implementation of the alignment will occur through time series interpolation. There are many different techniques for interpolating time series data. [Cite some sources.]  
 
-
-# Summary and Next Steps 
+<!-------------------------------------------------------------->
+# Conclusion 
 
 The process we have outlined for aligning the observational frequency of clock time series follows these steps: 
 
