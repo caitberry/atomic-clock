@@ -37,11 +37,11 @@ The challenge presented here has several layers that complicate a traditional ti
 
 The application that motivates this article is the analysis of atomic clock ratio data. 
 
-[Background on existing approaches for combining time series]
+[Background on existing approaches for combining time series i.e. convolution of time series]
 
-[Background on existing methods for univariate time series imputation]
+[Background on existing methods for univariate time series imputation] @howe2021, @pavia2010, @lepot2017
 
-[Background on existing work mapping low frequency series to high frequency one.] 
+[Background on existing work mapping low frequency series to high frequency one. AKA mixed frequency data analysis] 
 
 [Background on existing work on irregularly samples time series.] @shukla2019 @nieto2015 @erdogan2005
 
