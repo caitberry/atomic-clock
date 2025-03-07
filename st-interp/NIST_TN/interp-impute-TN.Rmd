@@ -3,6 +3,7 @@ title: "Clock data interpolation TN draft"
 author: "Thornton"
 output:
   word_document:
+bibliography: References.bib
 ---
 
 ```{r setup, include=FALSE}
@@ -41,6 +42,8 @@ The application that motivates this article is the analysis of atomic clock rati
 [Background on existing methods for univariate time series imputation]
 
 [Background on existing work mapping low frequency series to high frequency one.] 
+
+[Background on existing work on irregularly samples time series.] @shukla2019 @nieto2015 @erdogan2005
 
 [Mention and reference work on spectral analysis of time series for atomic clock data] In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. 
 
@@ -131,12 +134,6 @@ def ub_extract(target, data):
 
 <!-------------------------------------------------------------->
 # Interpolation 
-
-## Regular Time Intervals 
-
-For comb data, interpolate to get data that lies on regular time intervals.
-
-Note that this step must be completed for each element necessary to calculate the optical frequency of each clock based on the comb equation. If analyzing three clocks, say, $Yb$, $Sr$, and $Al+$, then in addition to interpolating the values of SDR:frep_ErYb, onto a time grid of equidistant $MDJ$ points, one must also interpolate the values of fb_Al_ErYb and fb_Yb_ErYb. 
 
 
 ## Frequency Alignment
