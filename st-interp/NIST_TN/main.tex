@@ -238,39 +238,6 @@ Delete if not applicable\\
 \pagenumbering{arabic}
 
 
-\begin{itemize}
-\item Initial input: Independent series of clock and comb data
-\begin{itemize}
-	\item Clock shift files containing variables: MJD, shift, and possibly ISGOOD 
-	\item Frequency comb data containing variables: MJD, SDR:frep ErYb, fo ErYb, fb Si ErYb, fb Al ErYb, fb Yb ErYb
-\end{itemize}
-\item Read data into Python
-\item Define functions to find optical frequencies for each clock with comb equation, these frequencies will become additional variables in the frequency comb data object 
-\item compute total correction for each clock's shift data 
-\item Data processing 
-\begin{itemize}
-	\item change all data variables to type float for high precision computing
-	\item find overlapping MJD values for each clock frequency data set 
-	\item visualize gaps in the clock frequency data sets 
-	\item decide upon initial and final MJD values for analysis  
-\end{itemize} 
-\item Imputation -  decide how to deal with missing shift values
-\begin{itemize}
-	\item adjust start/end MJD indices for large gaps of missing values 
-	\item use interpolation techniques (see below) for short sequence of individual missing values 
-	\item keep with caution about how this may impact subsequent steps 
-\end{itemize}
-\item Interpolation - to get clock data to match up with comb time intervals, key difference from imputation step is data is contained w/in a certain range of start/stop MJD values 
-\begin{itemize}
-	\item numpy.interp, linear 
-	\item pandas.interpolate, linear 
-	\item incorporate randomness 
-	\item kalman smoothing 
-\end{itemize}
-\item Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
-\item End results: clock ratio data to compute offset to compare to previous measurements (may contain missing values?) 
-\end{itemize}
-
 \normalsize The chrysanthemum can be seen in Fig.~\ref{fig:Chrysanthemum}.You can learn more about flowers in Refs. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   When referring to references in the text parenthetically, 

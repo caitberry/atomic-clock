@@ -47,3 +47,14 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+
+# Latex files
+st-interp/NIST_TN/main.aux
+st-interp/NIST_TN/main.fdb_latexmk
+st-interp/NIST_TN/main.fls
+st-interp/NIST_TN/main.lof
+st-interp/NIST_TN/main.log
+st-interp/NIST_TN/main.lot
+st-interp/NIST_TN/main.out
+st-interp/NIST_TN/main.synctex.gz
+st-interp/NIST_TN/main.toc
