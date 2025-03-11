@@ -106,7 +106,9 @@ ggplot(df_plot) +
         axis.title = element_blank())
 ```
 
-The follow Python functions are useful for detecting the intersecting time interval for analysis of the target series. 
+For this reason, the target time series cannot be computed over any time intervals containing sequentially missing values for one or more of the sub-series. It is more accurate in such cases to consider data before and after a large gap as separate time series with smaller sample sizes. Thus, in the case where a sub-series contains at least one large gap of missing values, the final overlapping window of observation will be considerably smaller as will the target series sample size. [Reiterate note about how keeping missing values until the end is not a valid approach - even if it can be computed with software.]   
+
+In addition to visualizing the sub-series, the follow Python functions may be useful for detecting the overlapping window of observation for the target series. 
 
 ```{python, eval=FALSE, echo=TRUE}
 # Extracts series element that is as close to the target as possible without going over.
@@ -137,15 +139,15 @@ def ub_extract(target, data):
 
 ## Frequency Alignment
 
-The culmination of the previous data processing steps is the arithmetic combination of several time series that are observed with different frequencies. At this stage, there is no missing data in any of the series; however, each series is comprised of observations along an irregular time scale. [For scientific reasons], the comb time series is typically observed more regularly than any individual clock shift series. Thus the comb data represent a high-frequency series and the clock shift data are low-frequency in comparison. 
+The culmination of the previous data processing steps yields several independent sub-series that begin and end at the same time points but that may be observed with very different frequencies. At this stage, there is no missing data in any of the sub-series; however, because each series is comprised of observations along an irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates. 
 
-To derive a ratio time series for any two clocks, the time points of observations for each clock must be in alignment with those of the comb. There are several methodological approaches one may take to align all three series. Without loss of generality, suppose clock A is observed with either the same or a lower frequency compared to clock B and suppose that clock B and the comb data are observed with similar frequencies. 
+Without loss of generality and for the sake of illustration, let us suppose that we are constructing a target series from a comb sub-series and two clock sub-series. Suppose further that Clock 1 is observed with either a similar or lower frequency than Clock 2 and Clock 2 is observed with a similar frequency as the comb sub-series. To derive a ratio time series for any two clocks, the time points of observations for sub-series must be in alignment with one another. Here we give an overview of several methodological approaches one may take to align all three series.
 
-**Method 1**: Align clock A with the observations of the comb. Then align clock B with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series.  
+**Method 1**: Align Clock 1 with the observations of the comb. Then align Clock 2 with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series.  
 
-**Method 2**: Align clock A with the observations of clock B. Then align the new series for clock A with the comb. Finally, align clock B with the comb and proceed to derive the ratio time series for analysis. This approach may be reasonable if clock A is observed with a much lower frequency compared to clock B. As with Method 1, the result will be a time series with the same irregular observation pattern as the comb data.  
+**Method 2**: Align Clock 1 with the observations of Clock 2. Then align the new series for Clock 1 with the comb. Finally, align Clock 2 with the comb and proceed to derive the ratio time series for analysis. This approach may be reasonable if Clock 1 is observed with a much lower frequency compared to Clock 2. As with Method 1, the result will be a time series with the same irregular observation pattern as the comb data.  
 
-**Method 3**: Realign the comb time series so that the observations are regularly sampled along the time interval of interest. Align clock A with the new, regularly observed comb series. Align clock B with the new, regularly observed comb series. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.  
+**Method 3**: Realign the comb time series so that the observations are regularly sampled along the time interval of interest. Align Clock 1 with the new, regularly observed comb series. Align Clock 2 with the new, regularly observed comb series. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.  
 
 **Method 4**: Align clock A with the observations of clock B. Then align the comb with clock B. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the series of observations from clock B. This approach essentially disregards or masks comb data for the sake of matching the observational time points of clock B. 
 
