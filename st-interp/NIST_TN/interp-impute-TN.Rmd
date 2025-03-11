@@ -33,7 +33,7 @@ The next section presents some background information and an example to provide 
 <!-------------------------------------------------------------->
 # Background 
 
-The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Each sub-series is independent of the others but each may contain missing values and is irregularly sampled. Furthermore, the sub-series may have slightly or dramatically different start and end times. 
+The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Each sub-series is independent of the other(s) but each may contain missing values and is irregularly sampled, possibly at very different frequencies. Furthermore, the sub-series may have slightly or dramatically different start and end times. 
 
 The application that motivates this article is the analysis of atomic clock ratio data. 
 
@@ -54,14 +54,14 @@ The application that motivates this article is the analysis of atomic clock rati
 
 Data visualization is an important first step to identify any missing data or unexpected patterns. It is crucial that individual time series are visualized before they are combined. This step also helps with the determination of identifying the overlapping window of observations which is the topic of the next section. 
 
-To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e. truly empty data values). 
+To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e. truly empty or null data values). 
 
 ```{python, eval=FALSE, echo=TRUE}
 missing_index = pd.isnull(time_series_data)
 print(missing_index.sum())
 ```
 
-While this numerical summary of missing values is informative, it is not enough to identify any unusual patterns in missing data. There is no substitute for a visual analysis of data. A useful Python package for visualizing any patterns in missing data is the package "missingno" which can be implemented as follows. 
+While this numerical summary of missing values is informative, it is not enough to identify any unusual patterns of missingness. For this, there is no substitute for a visual analysis of the data. A useful Python package for visualizing missing data is the package "missingno" which can be implemented as follows. 
 
 ```{python, eval=FALSE, echo=TRUE}
 import missingno as msno
@@ -70,16 +70,15 @@ msno.matrix(time_series_data)
 plt.show()
 ```
 
-The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series [cite sources] can be implemented for individual missing values, long sequences of missingness indicate a need to reconsider the start and end times of the series. Large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze. This is the topic of the next section.   
+The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series [cite sources] can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. Large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze in the target series. This is the topic of the next section.   
 
 [Add note of caution about how keeping missing data until end is not advisable.] 
 
 ## Determine Overlapping Window of Observation 
 
-An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each data file under consideration. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{MJD,i}, t_{MDJ, j}]$ that includes the largest possible intersection of observations from each data file. 
+An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{i}, t_{j}]$ that includes the largest possible intersection of non-missing observations from each sub-series. 
 
-Let $X = 60535$ and consider, for example, a time series of comb data that begins at $t_{MJD} = X + 0.682346$ and ends at $t_{MJD} = X + 0.911951$. Suppose we are interested in estimating the average frequency ratio of the $Al+$ and $Sr$ clocks which begin and end at $[X + 0.6818403, X + 0.9108218]$ and $[X + 0.705143550906, X + 0.9791847021]$, respectively. For now, suppose there are no gaps of missing data in either clock time series. 
-
+Consider the figure below which marks the start and end points of observations for three sub-series, a time series of comb data, a time series from two different atomic clocks. If there are no large gaps of missing values in any of these series, the largest window of observation for the target series (which in this case is a ratio of the two clock values) begins at the first time point of the comb series and ends at the last time point of Clock 1's series. Even though there are more observations outside of this range, these observations cannot be used because values from all three time series are necessary to construct the target series.  
 
 ```{r, echo=FALSE}
 library(ggplot2) 
@@ -107,7 +106,7 @@ ggplot(df_plot) +
         axis.title = element_blank())
 ```
 
-The follow Python functions are useful in determining the final intersecting time interval for analysis. 
+The follow Python functions are useful for detecting the intersecting time interval for analysis of the target series. 
 
 ```{python, eval=FALSE, echo=TRUE}
 # Extracts series element that is as close to the target as possible without going over.
