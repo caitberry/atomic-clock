@@ -33,7 +33,7 @@ The next section presents some background information and an example to provide 
 <!-------------------------------------------------------------->
 # Background 
 
-The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Each sub-series is independent of the others but each may contain missing values and is irregularly sampled. Furthermore, the sub-series may have slightly or dramatically different start and end times. 
+The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Each sub-series is independent of the other(s) but each may contain missing values and is irregularly sampled, possibly at very different frequencies. Furthermore, the sub-series may have slightly or dramatically different start and end times. 
 
 The application that motivates this article is the analysis of atomic clock ratio data. 
 
@@ -54,14 +54,14 @@ The application that motivates this article is the analysis of atomic clock rati
 
 Data visualization is an important first step to identify any missing data or unexpected patterns. It is crucial that individual time series are visualized before they are combined. This step also helps with the determination of identifying the overlapping window of observations which is the topic of the next section. 
 
-To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e. truly empty data values). 
+To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e. truly empty or null data values). 
 
 ```{python, eval=FALSE, echo=TRUE}
 missing_index = pd.isnull(time_series_data)
 print(missing_index.sum())
 ```
 
-While this numerical summary of missing values is informative, it is not enough to identify any unusual patterns in missing data. There is no substitute for a visual analysis of data. A useful Python package for visualizing any patterns in missing data is the package "missingno" which can be implemented as follows. 
+While this numerical summary of missing values is informative, it is not enough to identify any unusual patterns of missingness. For this, there is no substitute for a visual analysis of the data. A useful Python package for visualizing missing data is the package "missingno" which can be implemented as follows. 
 
 ```{python, eval=FALSE, echo=TRUE}
 import missingno as msno
@@ -70,7 +70,7 @@ msno.matrix(time_series_data)
 plt.show()
 ```
 
-The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series [cite sources] can be implemented for individual missing values, long sequences of missingness indicate a need to reconsider the start and end times of the series. Large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze. This is the topic of the next section.   
+The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series [cite sources] can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. Large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze in the target series. This is the topic of the next section.   
 
 [Add note of caution about how keeping missing data until end is not advisable.] 
 
@@ -78,10 +78,9 @@ The treatment of long sequences of missing data is distinct from the treatment o
 
 
 
-An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each data file under consideration. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{MJD,i}, t_{MDJ, j}]$ that includes the largest possible intersection of observations from each data file. 
+An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{i}, t_{j}]$ that includes the largest possible intersection of non-missing observations from each sub-series. 
 
-Let $X = 60535$ and consider, for example, a time series of comb data that begins at $t_{MJD} = X + 0.682346$ and ends at $t_{MJD} = X + 0.911951$. Suppose we are interested in estimating the average frequency ratio of the $Al+$ and $Sr$ clocks which begin and end at $[X + 0.6818403, X + 0.9108218]$ and $[X + 0.705143550906, X + 0.9791847021]$, respectively. For now, suppose there are no gaps of missing data in either clock time series. 
-
+Consider the figure below which marks the start and end points of observations for three sub-series, a time series of comb data, a time series from two different atomic clocks. If there are no large gaps of missing values in any of these series, the largest window of observation for the target series (which in this case is a ratio of the two clock values) begins at the first time point of the comb series and ends at the last time point of Clock 1's series. Even though there are more observations outside of this range, these observations cannot be used because values from all three time series are necessary to construct the target series.  
 
 ```{r, echo=FALSE}
 library(ggplot2) 
@@ -109,7 +108,9 @@ ggplot(df_plot) +
         axis.title = element_blank())
 ```
 
-The follow Python functions are useful in determining the final intersecting time interval for analysis. 
+For this reason, the target time series cannot be computed over any time intervals containing sequentially missing values for one or more of the sub-series. It is more accurate in such cases to consider data before and after a large gap as separate time series with smaller sample sizes. Thus, in the case where a sub-series contains at least one large gap of missing values, the final overlapping window of observation will be considerably smaller as will the target series sample size. [Reiterate note about how keeping missing values until the end is not a valid approach - even if it can be computed with software.]   
+
+In addition to visualizing the sub-series, the follow Python functions may be useful for detecting the overlapping window of observation for the target series. 
 
 ```{python, eval=FALSE, echo=TRUE}
 # Extracts series element that is as close to the target as possible without going over.
@@ -140,15 +141,15 @@ def ub_extract(target, data):
 
 ## Frequency Alignment
 
-The culmination of the previous data processing steps is the arithmetic combination of several time series that are observed with different frequencies. At this stage, there is no missing data in any of the series; however, each series is comprised of observations along an irregular time scale. [For scientific reasons], the comb time series is typically observed more regularly than any individual clock shift series. Thus the comb data represent a high-frequency series and the clock shift data are low-frequency in comparison. 
+The culmination of the previous data processing steps yields several independent sub-series that begin and end at the same time points but that may be observed with very different frequencies. At this stage, there is no missing data in any of the sub-series; however, because each series is comprised of observations along an irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates. 
 
-To derive a ratio time series for any two clocks, the time points of observations for each clock must be in alignment with those of the comb. There are several methodological approaches one may take to align all three series. Without loss of generality, suppose clock A is observed with either the same or a lower frequency compared to clock B and suppose that clock B and the comb data are observed with similar frequencies. 
+Without loss of generality and for the sake of illustration, let us suppose that we are constructing a target series from a comb sub-series and two clock sub-series. Suppose further that Clock 1 is observed with either a similar or lower frequency than Clock 2 and Clock 2 is observed with a similar frequency as the comb sub-series. To derive a ratio time series for any two clocks, the time points of observations for sub-series must be in alignment with one another. Here we give an overview of several methodological approaches one may take to align all three series.
 
-**Method 1**: Align clock A with the observations of the comb. Then align clock B with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series.  
+**Method 1**: Align Clock 1 with the observations of the comb. Then align Clock 2 with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series.  
 
-**Method 2**: Align clock A with the observations of clock B. Then align the new series for clock A with the comb. Finally, align clock B with the comb and proceed to derive the ratio time series for analysis. This approach may be reasonable if clock A is observed with a much lower frequency compared to clock B. As with Method 1, the result will be a time series with the same irregular observation pattern as the comb data.  
+**Method 2**: Align Clock 1 with the observations of Clock 2. Then align the new series for Clock 1 with the comb. Finally, align Clock 2 with the comb and proceed to derive the ratio time series for analysis. This approach may be reasonable if Clock 1 is observed with a much lower frequency compared to Clock 2. As with Method 1, the result will be a time series with the same irregular observation pattern as the comb data.  
 
-**Method 3**: Realign the comb time series so that the observations are regularly sampled along the time interval of interest. Align clock A with the new, regularly observed comb series. Align clock B with the new, regularly observed comb series. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.  
+**Method 3**: Realign the comb time series so that the observations are regularly sampled along the time interval of interest. Align Clock 1 with the new, regularly observed comb series. Align Clock 2 with the new, regularly observed comb series. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.  
 
 **Method 4**: Align clock A with the observations of clock B. Then align the comb with clock B. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the series of observations from clock B. This approach essentially disregards or masks comb data for the sake of matching the observational time points of clock B. 
 
