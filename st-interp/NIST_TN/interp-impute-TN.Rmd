@@ -45,6 +45,8 @@ The application that motivates this article is the analysis of atomic clock rati
 
 [Background on existing work on irregularly samples time series.] @shukla2019 @nieto2015 @erdogan2005
 
+modeling clock data @percival [create bib item and find data and location]
+
 [Mention and reference work on spectral analysis of time series for atomic clock data] In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. 
 
 <!-------------------------------------------------------------->
@@ -167,6 +169,14 @@ Within the context of this example where the target series is a ratio of data fr
 ## Interpolation techniques 
 
 Once a method for alignment is determined, the implementation of the alignment will occur through time series interpolation. There are many different techniques for interpolating time series data. [Cite some sources.]  
+
+@pavia2010
+
+@lepot2017
+
+@nieto-barajas2025 [create bib entry] 
+
+
 
 For the convolution of univariate time series... 
 
