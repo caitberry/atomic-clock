@@ -74,9 +74,9 @@ The treatment of long sequences of missing data is distinct from the treatment o
 
 [Add note of caution about how keeping missing data until end is not advisable.] 
 
+[Add discussion on data deemed poor quality (IS_GOOD variable) vs missing data] 
+
 ## Determine Overlapping Window of Observation 
-
-
 
 An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{i}, t_{j}]$ that includes the largest possible intersection of non-missing observations from each sub-series. 
 
@@ -138,12 +138,11 @@ def ub_extract(target, data):
 <!-------------------------------------------------------------->
 # Interpolation 
 
-
 ## Frequency Alignment
 
 The culmination of the previous data processing steps yields several independent sub-series that begin and end at the same time points but that may be observed with very different frequencies. At this stage, there is no missing data in any of the sub-series; however, because each series is comprised of observations along an irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates. 
 
-Without loss of generality and for the sake of illustration, let us suppose that we are constructing a target series from a comb sub-series and two clock sub-series. Suppose further that Clock 1 is observed with either a similar or lower frequency than Clock 2 and Clock 2 is observed with a similar frequency as the comb sub-series. To derive a ratio time series for any two clocks, the time points of observations for sub-series must be in alignment with one another. Here we give an overview of several methodological approaches one may take to align all three series.
+Without loss of generality and for the sake of illustration, let us suppose that we are constructing a target series from a comb sub-series and two clock sub-series. Suppose further that Clock 1 is observed with either a similar or lower frequency than Clock 2 and that Clock 2 is observed with a similar frequency as the comb sub-series. To derive a ratio time series for any two clocks, the time points of observations for the sub-series must be in alignment with one another. Here we give an overview of several methodological approaches one may take to align all three series.
 
 **Method 1**: Align Clock 1 with the observations of the comb. Then align Clock 2 with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series.  
 
@@ -155,15 +154,16 @@ Without loss of generality and for the sake of illustration, let us suppose that
 
 **Method 5**: Realign the time series from clock B so that the observations are regularly sampled along the time interval of interest. Align clock A with the new, regularly observed series from clock B. Align the comb with the new, regularly observed series from clock B. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series. 
 
-Note that none of the methods listed above suggest realigning a high frequency series to match a low frequency series. This is because such an approach would sacrifice valuable information contained in the higher frequency series and is generally not advisable. Although it is listed above for the sake of completeness, Method 2 is inferior to the other methods because it results in an irregularly sampled time series and it requires three separate interpolation steps. In comparison, Methods 1 and 2 only require two separate interpolation steps. The drawback of these two methods however is that the resulting time series is still irregularly observed. Methods 3 and 5 on the other hand, each require three separate interpolation steps, but the result is a regularly sampled time series. 
+Note that none of the methods listed above suggest realigning a high frequency series to match a low frequency series. This is because such an approach would sacrifice valuable information contained in the higher frequency series and so is generally not advisable. Although it is listed above for the sake of completeness, Method 2 is inferior to the other methods because it results in an irregularly sampled time series and it requires three separate interpolation steps. In comparison, Methods 1 and 4 only require two separate interpolation steps. The drawback of these two methods however is that the resulting time series is still irregularly observed. Methods 3 and 5 on the other hand, each require three separate interpolation steps, but the result is a regularly sampled time series. 
 
 Depending on the type of analysis, having an irregularly sampled time series may or may not be of concern. For example, if the analysis is based upon a multitaper spectral approach such as that in [cite clock paper], then the sampling irregularities do not present an issue. [cite sources as to why not]. However, if the analysis is to proceed in [the time domain?], irregularities in the observational frequency of the time series will bias common estimates of interest such as the mean and AVAR. [cite sources] 
 
+
 ## Interpolation techniques 
 
-
-
 Once a method for alignment is determined, the implementation of the alignment will occur through time series interpolation. There are many different techniques for interpolating time series data. [Cite some sources.]  
+
+
 
 <!-------------------------------------------------------------->
 # Conclusion 
