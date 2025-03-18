@@ -35,11 +35,13 @@ The next section presents some background information and an example to provide 
 
 The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Each sub-series is independent of the other(s) but each may contain missing values and is irregularly sampled, possibly at very different frequencies. Furthermore, the sub-series may have slightly or dramatically different start and end times. 
 
-The application that motivates this article is the analysis of atomic clock ratio data. In this context, there are at least four sub-series involved in deriving the target series; two independent clock time series consisting of shift values together with an indicator variable representing the quality of each observation and, for each clock, there is another time-series that is observed in accordance with the readings from a comb processing experiment. The comb experiment produces several time series, two of which match the two clock types used in the target series, the others of which may be used in the calculation of target series based on experimental settings.   
+The application that motivates this article is the analysis of atomic clock ratio data. In this context, there are at least four sub-series involved in deriving the target series; two independent clock time series consisting of shift values together with an indicator variable representing the quality of each observation and, for each clock, there is another time-series that is observed in accordance with the readings from a comb processing experiment. The comb experiment produces several time series, two of which match the two clock types used in the target series, the others of which may be used in the calculation of target series based on experimental settings.  
+
+@pavia2010 provides a thorough review of interpolation techniques with an emphasis on temporal disaggregation and benchmarking. @pavia2010 discusses both a temporal perspective and analysis in the frequency domain. 
 
 [Background on existing approaches for combining time series i.e. convolution of time series]
 
-[Background on existing methods for univariate time series imputation] @howe2021, @pavia2010, @lepot2017
+[Background on existing methods for univariate time series imputation] @howe2021, @pavia2010, @lepot2017, @knotters2010, @eckner2012
 
 [Background on existing work mapping low frequency series to high frequency one. AKA mixed frequency data analysis] 
 
