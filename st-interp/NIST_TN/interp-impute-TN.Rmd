@@ -43,9 +43,11 @@ The application that motivates this article is the analysis of atomic clock rati
 
 [Background on existing work mapping low frequency series to high frequency one. AKA mixed frequency data analysis] 
 
-[Background on existing work on irregularly samples time series.] @shukla2019 @nieto2015 @erdogan2005
+[Background on existing work on irregularly samples time series.] @shukla2019 @nieto2015 @erdogan2005 @eckner2012
 
 modeling clock data @percival [create bib item and find data and location]
+
+@nieto2015 note that the study of unequally spaced time series can broadly be grouped into several different approaches. The first two dominant approaches are to approach the problem by deriving models for the unequally spaced data as is, or to reduce the irregularly sampled data to equally spaced observations first and then apply standard analysis techniques. The former approach.... Yet another perspective is to view the analysis of unequally spaced time series as a problem of missing data. Methods from this perspective may be evaluated by their ability to predict missing observations.@nieto2015 
 
 [Mention and reference work on spectral analysis of time series for atomic clock data] In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. 
 
@@ -174,8 +176,11 @@ Once a method for alignment is determined, the implementation of the alignment w
 
 @lepot2017
 
-@nieto-barajas2025 [create bib entry] 
+@nieto2015  
 
+"A comparative analysis of time series is not feasible if the observation times are different @nieto2015." "Any attempt of comparative or associative analysis between... two time series requires them to have both been measured at the same times @nieto2015."
+
+"The ranking of desirable [interpolation] methods (obtained through a trade-off of criteria) could be strongly dependent on the size of the gaps, and the nature of recorded phenomena and data @lepot2017."
 
 
 For the convolution of univariate time series... 
