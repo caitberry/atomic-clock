@@ -78,7 +78,9 @@ msno.matrix(time_series_data)
 plt.show()
 ```
 
-The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series [cite sources] can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. Large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze in the target series. This is the topic of the next section.   
+The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. Discussed in more detail later, interpolation techniques may be applied to impute individual missing data values. The only distinction between imputation and interpolation in this context is a matter of perspective as @nieto2015 remark that "unevenly spaced time series have also been treated as equally spaced time series with missing observations."
+
+On the other hand, large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze in the target series. This is the topic of the next section.   
 
 [Add note of caution about how keeping missing data until end is not advisable.] 
 
@@ -166,7 +168,8 @@ Note that none of the methods listed above suggest realigning a high frequency s
 <!---Although it is listed above for the sake of completeness, Method 2 is inferior to the other methods because it results in an irregularly sampled time series and it requires three separate interpolation steps. In comparison,--> 
 Methods 1 and 3 only require two separate interpolation steps. The drawback of these two methods, however is that the resulting time series is still irregularly observed. "A comparative analysis of time series is not feasible if the observation times are different @nieto2015." "Any attempt of comparative or associative analysis between... two time series requires them to have both been measured at the same times @nieto2015." However, if the sampling irregularities of the target series are so small that that are practically meaningless, then these approaches are preferable to the others because they require fewer interpolation steps. 
 
-Methods 2 and 4, on the other hand, each require three separate interpolation steps. The advantage of these methods is that they result in a regularly sampled target series. Depending on the type of analysis, having an irregularly sampled time series may or may not be of concern. For example, if the analysis is based upon a multitaper spectral approach such as that in [cite clock paper], then the sampling irregularities do not present an issue. [cite sources as to why not]. However, if the analysis is to proceed in [the time domain?], irregularities in the observational frequency of the time series will bias common estimates of interest such as the mean and AVAR. [cite sources] 
+Methods 2 and 4, on the other hand, each require three separate interpolation steps. The advantage of these methods is that they result in a regularly sampled target series. Although it is possible (and perhaps preferable) to coherently analyse an irregularly sampled time series in the time domain (see e.g. @eckner2012), this is not an approach that is in popular use. @eckner2019 has developed software to implement an analysis on irregularly samples time series in the C library "utsAlgorithms" and the R package "utsOperators". [example implementation included in next subsection]   
+<!---Depending on the type of analysis, having an irregularly sampled time series may or may not be of concern. For example, if the analysis is based upon a multitaper spectral approach such as that in [cite clock paper], then the sampling irregularities do not present an issue. [cite sources as to why not]. However, if the analysis is to proceed in [the time domain?], irregularities in the observational frequency of the time series will bias common estimates of interest such as the mean and AVAR. [cite sources]---> 
 
 Within the context of this example where the target series is a ratio of data from two separate clocks, it is worth considering how variable the values in the comb sub-series are. If these values are relatively constant, with practically negligible variability in the values associated with each clock, then Methods 3 and 4 may be preferable to Methods 1 and 2 because masking the values from the comb sub-series will be of little to no consequence. 
 
@@ -176,18 +179,18 @@ Within the context of this example where the target series is a ratio of data fr
 
 Once a method for alignment is determined, the implementation of the alignment will occur through time series interpolation. There are many different techniques for interpolating time series data. [Cite some sources.]  
 
-"The ranking of desirable [interpolation] methods (obtained through a trade-off of criteria) could be strongly dependent on the size of the gaps, and the nature of recorded phenomena and data [@lepot2017]."
 
 @pavia2010 section 6 on kalman filter method (others don't seem applicable) 
 
-@lepot2017 categorize two general interpolation approaches, deterministic and stochastic. Popular deterministic approaches include nearest-neighbor interpolation, polynomial interpolation, interpolation through distance weighting, and interpolation through signal analysis. Stochastic interpolation techniques include regression methods, autoregressive methods, machine learning methods, methods based on data dynamics and methods based on kriging. Although extensive, these lists of approaches are far from exhaustive as this is an active area of statistical research.     
+@lepot2017 categorize two general interpolation approaches, deterministic and stochastic. Popular deterministic approaches include nearest-neighbor interpolation, polynomial interpolation, interpolation through distance weighting, and interpolation through signal analysis. Stochastic interpolation techniques include regression methods, autoregressive methods, machine learning methods, methods based on data dynamics and methods based on kriging. Although extensive, these lists of approaches are far from exhaustive as this is an active area of statistical research and interpolation is a highly customizable proceedure. "The ranking of desirable \[interpolation\] methods (obtained through a trade-off of criteria) could be strongly dependent on the size of the gaps, and the nature of recorded phenomena and data [@lepot2017]."
+    
 
 @knotters2010
 
 @nieto2015  
 
 
-
+[mention and demonstrate use of python packages] 
 
 For the convolution of univariate time series... 
 
