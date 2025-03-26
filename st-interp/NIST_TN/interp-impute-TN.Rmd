@@ -17,9 +17,9 @@ library(MASS)
 Run Knit Command: Type rmarkdown: Render and select the desired output format (e.g., HTML, PDF).--->
 # Introduction
 
-The purpose of this report is to present a methodological approach for applying imputation and interpolation techniques to clock frequency data. This report is a result of collaborative research into statistical methods for the analysis of high-precision atomic clock data by the Statistical Engineering Division of the Information Technology Laboratory and the Time and Frequency Division of the Physical Measurement Laboratory. 
+The purpose of this report is to present a methodological approach for applying interpolation techniques to clock frequency data. This report is a result of collaborative research into statistical methods for the analysis of high-precision atomic clock data by the Statistical Engineering Division of the Information Technology Laboratory and the Time and Frequency Division of the Physical Measurement Laboratory. 
 
-Because of the high precision in observed data, the reproducible estimation of, say, atomic clock frequency ratios requires careful attention to data processing steps. The idiosyncrasies of processing clock data that we focus on in this report options for the treatment of missing data and for the comparison of low frequency data to high frequency data. We describe the nature of these challenges with supporting examples and we present recommendations for addressing these challenges in a transparent, reproducible manner.      
+Because of the high precision in observed data, the reproducible estimation of, say, atomic clock frequency ratios requires careful attention to data processing steps. The idiosyncrasies of processing clock data that we focus on in this report include options for the treatment of missing data and for the comparison of low frequency data to high frequency data. We describe the nature of these challenges with supporting examples and we present recommendations for addressing these challenges in a transparent, reproducible manner.      
 
 
 ## Audience
@@ -27,7 +27,7 @@ Because of the high precision in observed data, the reproducible estimation of, 
 ## Collaborators  
 
 ## Report Organization 
-The next section presents some background information and an example to provide context for the problem at hand. Section 3 discusses the initial necessary data exploration steps, Section 4 covers interpolation methods for handling multiple, misaligned data sets, and Section 5 concludes by summarizing the steps needed to produce a coherent final data set for estimation and inference. 
+The next section presents some background information and an example to provide context for the problem at hand. Section 3 discusses the initial necessary data exploration steps, Section 4 covers interpolation methods for handling multiple, misaligned data sets, and Section 5 concludes with a summary and by reiterating the steps needed to produce a coherent final data set for estimation and inference of a clock ratio time series. 
 
 
 <!-------------------------------------------------------------->
@@ -37,23 +37,21 @@ The challenge presented here has several layers that complicate a traditional ti
 
 The application that motivates this article is the analysis of atomic clock ratio data. In this context, there are at least four sub-series involved in deriving the target series; two independent clock time series consisting of shift values together with an indicator variable representing the quality of each observation and, for each clock, there is another time-series that is observed in accordance with the readings from an optical frequency comb (OFC). The comb experiment produces several time series, two of which match the two clock types used in the target series, the others of which may be used in the calculation of target series based on experimental settings.  
 
-@pavia2010 provides a thorough review of interpolation techniques with an emphasis on temporal disaggregation and benchmarking. @pavia2010 discusses both a temporal perspective and analysis in the frequency domain. 
+[Background on modeling clock data @percival - create bib item]
+
+[Background on existing work on irregularly sampled time series.] @shukla2019 @nieto2015 @erdogan2005 @eckner2012
+
+@nieto2015 note that the study of unequally spaced time series can broadly be grouped into several different approaches. The first two dominant approaches are to approach the problem by deriving models for the unequally spaced data as is, or to reduce the irregularly sampled data to equally spaced observations first and then apply standard analysis techniques. The former approach.... Yet another perspective is to view the analysis of unequally spaced time series as a problem of missing data. Methods from this perspective may be evaluated by their ability to predict missing observations [@nieto2015]. 
+
+@pavia2010 provide a thorough review of interpolation techniques with an emphasis on temporal disaggregation and benchmarking. @pavia2010 discuss both a temporal perspective and analysis in the frequency domain. In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. In addition to providing a useful overview of common time series interpolation techniques, @lepot2017 also remark upon the assessment of uncertaintites that result from interpolation, noting that the law of propagation of uncertaintites does not apply in this case. In Section 4, we focus our attention on interpolation methods that permit uncertainty quantification since this is of interest to our scientific collaborators. 
+
+[More background on existing methods for univariate time series imputation from @howe2021, @pavia2010, @knotters2010, @eckner2012]
+
+[Background on mixed frequency data analysis] 
 
 [Background on existing approaches for combining time series i.e. convolution of time series]
 
-[Background on existing methods for univariate time series imputation] @howe2021, @pavia2010, @knotters2010, @eckner2012
 
-In  addition to providing a useful overview of common time series interpolation techniques, @lepot2017 also remark upon the assessment of uncertaintites that result from interpolation, noting that the law of propagation of uncertaintites does not apply in this case. 
-
-[Background on existing work mapping low frequency series to high frequency one. AKA mixed frequency data analysis] 
-
-[Background on existing work on irregularly samples time series.] @shukla2019 @nieto2015 @erdogan2005 @eckner2012
-
-modeling clock data @percival [create bib item and find data and location]
-
-@nieto2015 note that the study of unequally spaced time series can broadly be grouped into several different approaches. The first two dominant approaches are to approach the problem by deriving models for the unequally spaced data as is, or to reduce the irregularly sampled data to equally spaced observations first and then apply standard analysis techniques. The former approach.... Yet another perspective is to view the analysis of unequally spaced time series as a problem of missing data. Methods from this perspective may be evaluated by their ability to predict missing observations.@nieto2015 
-
-[Mention and reference work on spectral analysis of time series for atomic clock data] In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. 
 
 <!-------------------------------------------------------------->
 # Data Exploration
@@ -84,7 +82,7 @@ On the other hand, large gaps of missing data must be factored in to the next st
 
 [Add note of caution about how keeping missing data until end is not advisable.] 
 
-[Add discussion on data deemed poor quality (IS_GOOD variable) vs missing data] 
+[Add discussion on data deemed poor quality (IS_GOOD variable)] 
 
 ## Determine Overlapping Window of Observation 
 
@@ -92,7 +90,7 @@ An important characteristic of clock and comb data is that the beginning and end
 
 Consider the figure below which marks the start and end points of observations for each sub-series, a time series of comb data, a time series from two different atomic clocks. If there are no large gaps of missing values in any of these series, the largest window of observation for the target series (which in this case is a ratio of the two clock values) begins at the first time point of the comb series and ends at the last time point of Clock 1's series. Even though there are more observations outside of this range, these observations cannot be used because values from each time series are necessary to construct the target series.  
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, fig.cap="Example start and end times relative to one another for two clock time series and for the observations from an optical frequency comb.", fig.lp="fig:start_end_TS"}
 library(ggplot2) 
 x <- 60535
 comb <- c(x + 0.71, x + 0.92)
@@ -164,7 +162,7 @@ Without loss of generality and for the sake of illustration, let us suppose that
 
 **Method 4**: Realign the time series from Clock 2 so that the observations are regularly sampled along the time interval of interest, i.e so that $(t_{C2, i+1} - t_{C2,i})$ are equal for all $i \in \{2, \dots, n_{C2}\}$. Align Clock 1 with the new series for Clock 2. Align the comb series with the new series for Clock 2. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series. 
 
-Note that none of the methods listed above suggest realigning a high frequency series to match a low frequency series. This is because such an approach would sacrifice valuable information contained in the higher frequency series and thus is generally not advisable. Within the context of this example where the target series is a ratio of data from two separate clocks, it is worth considering how variable the values in the comb sub-series are. If these values are relatively constant, with practically negligible variability in the values associated with each clock, then Methods 3 and 4 may be preferable to Methods 1 and 2 because masking the values from the comb sub-series will be of little to no consequence. 
+Note that none of the methods listed above suggest realigning a high frequency series to match a low frequency series (aggregating). This is because such an approach would sacrifice valuable information contained in the higher frequency series without serving a practical purpose in the context of our example. <!---and thus is generally not advisable. Within the context of this example where---> When the target series is a ratio of data from two separate clocks, it is worth considering how variable the values in the comb sub-series are. If these values are relatively constant, with practically negligible variability in the values associated with each clock, then Methods 3 and 4 may be preferable to Methods 1 and 2 because masking the values from the comb sub-series will be of little to no consequence. 
 <!---Although it is listed above for the sake of completeness, Method 2 is inferior to the other methods because it results in an irregularly sampled time series and it requires three separate interpolation steps. In comparison,--> 
 Methods 1 and 3 only require two separate interpolation steps. The drawback of these two methods, however is that the resulting time series is still irregularly observed. "A comparative analysis of time series is not feasible if the observation times are different @nieto2015." "Any attempt of comparative or associative analysis between... two time series requires them to have both been measured at the same times @nieto2015." However, if the sampling irregularities of the target series are so small that that are practically meaningless, then these approaches are preferable to the others because they require fewer interpolation steps. 
 

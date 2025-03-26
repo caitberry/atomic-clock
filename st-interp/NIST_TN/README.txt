@@ -15,7 +15,7 @@ shift_data_Al_good = shift_data_Al[good_condition_al].reset_index(drop=True)
 
     Due to the nature of the machinery involved in generating clock and comb data, any time series analyzed will be an irregularly observed one. That is, the interval between consecutive measurement times $t_{i}$ and $t_{i+1}$, where $t_{i}$ is a particular MDJ value, is non-constant. This is true even for comb data, though in a much less drastic way. For example, most intervals for data from the ErYb comb are around $t_{i+1} - t_{i} = 0.000012$ however some observational gaps can be almost double that size with, say, $t_{j+1} - t_{j} = 0.000022$. In any case, these discrepancies in the time at which the frequency data is collected result in an irregularly sampled time series which poses its own challenges in analysis. Typically, such irregularities are corrected by interpolation which is the topic of a later section.  
 
-    3) Distinction between missing vs irregular sampling remains ambiguous, especially when taking into consideration filtering and deglitching processes
+    3) Distinction between missing vs irregular sampling is somewhat ambiguous/artificial, especially when taking into consideration filtering and deglitching processes
 
 
  ########Unconfirmed GPT output##############
