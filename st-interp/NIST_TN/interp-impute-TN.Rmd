@@ -2,7 +2,7 @@
 title: "Clock data interpolation TN draft"
 author: "Thornton"
 output:
-  word_document:
+  bookdown::html_document2
 bibliography: References.bib
 ---
 
@@ -76,17 +76,17 @@ msno.matrix(time_series_data)
 plt.show()
 ```
 
-The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. Discussed in more detail later, interpolation techniques may be applied to impute individual missing data values. The only distinction between imputation and interpolation in this context is a matter of perspective as @nieto2015 remark that "unevenly spaced time series have also been treated as equally spaced time series with missing observations."
+The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. This is the topic of the next subsection. Discussed in more detail later, interpolation techniques may be applied to impute individual missing data values. The only distinction between imputation and interpolation in this context is a matter of perspective as @nieto2015 remark that "unevenly spaced time series have also been treated as equally spaced time series with missing observations."
 
 On the other hand, large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze in the target series. This is the topic of the next section.   
 
-[Add note of caution about how keeping missing data until end is not advisable.] 
+[Add note of caution about how keeping missing data until end is not advisable.] <-- re-think this.. 
 
 [Add discussion on data deemed poor quality (IS_GOOD variable)] 
 
 ## Determine Overlapping Window of Observation 
 
-An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{i}, t_{j}]$ that includes the largest possible intersection of non-missing observations from each sub-series. 
+An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. [This may not be what to recommend. Need to think about the scope.] Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{i}, t_{j}]$ that includes the largest possible intersection of non-missing observations from each sub-series. 
 
 Consider the figure below which marks the start and end points of observations for each sub-series, a time series of comb data, a time series from two different atomic clocks. If there are no large gaps of missing values in any of these series, the largest window of observation for the target series (which in this case is a ratio of the two clock values) begins at the first time point of the comb series and ends at the last time point of Clock 1's series. Even though there are more observations outside of this range, these observations cannot be used because values from each time series are necessary to construct the target series.  
 
@@ -148,7 +148,7 @@ def ub_extract(target, data):
 
 ## Frequency Alignment
 
-The culmination of the previous data processing steps yields several independent sub-series that begin and end at the same time points but that may be observed with very different frequencies. At this stage, there is no missing data in any of the sub-series; however, because each series is comprised of observations along an irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates. 
+The culmination of the previous data processing steps yields several independent sub-series that begin and end at the same time points but that may be observed with very different frequencies and have no missing data points. At this stage, there is no missing data in any of the sub-series; however, because each series is comprised of observations along an irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates. 
 
 Without loss of generality and for the sake of illustration, let us suppose that we are constructing a target series from an optical frequency comb sub-series and two clock sub-series. Suppose further that Clock 1 is observed with either a similar or a lower frequency than Clock 2 and that Clock 2 is observed with a similar frequency as the comb sub-series. Symbolically, we are assuming $n_{C1} \leq n_{C2} \approx n_{OFC}$. In this context, the target series is a ratio time series for any two clocks. To derive the target series, the time points of observations for each sub-series must be in alignment with one another. That is, the times of observation for each series, $t_{C1,i} = t_{C2,i} = t_{OFC,i}$ for $i = 1, \dots, n$. Note that this alignment condition can be met even if the series are irregularly sampled; irregular sampling for, say, Clock 1 would simply mean that $(t_{C1, i+1} - t_{C1, i})$ is not equal for all $i \in \{2, \dots, n_{C1}\}$. Here we give an overview of several methodological approaches one may take to align each series.
 
