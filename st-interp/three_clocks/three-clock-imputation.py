@@ -110,7 +110,7 @@ def compute_nuYb_ErYb(data):
 #############################  Load data #######################################
 ################################################################################
  
-path = "/Users/smt3/Documents/test-python/three_clocks/"
+path = "/Users/smt3/Documents/GitHub/atomic-clock/st-interp/three_clocks/"
 
 # load comb data
 data_ErYb = open_ErYb_data(path + "20240813_Deglitched_ErYb_only1.dat")
@@ -139,7 +139,6 @@ compute_nuAl_ErYb(data_ErYb)
 ################################################################################
 ## Visualize gaps in data 
 ################################################################################
-## cd ~/anaconda3/envs/myenv
 ## pip install missingno 
 
 import missingno as msno
@@ -175,6 +174,7 @@ shift_data_Yb_good = shift_data_Yb[good_condition_yb].reset_index(drop=True)
 
 
 ## Find common MDJ values--------------------------------
+#NOTE: the following does not take into account adjustements made based on large chunks of missing data
 
 #Change comb mjd type to float  
 common_mjd = data_ErYb["MJD"].astype(float)
@@ -188,9 +188,9 @@ nuYb = [Decimal(i) for i in nuYb]
 
 # Length of the 'MJD' column
 len_comb = len(common_mjd) 
-len_Al = len(shift_data_Al['MJD'])                  
-len_Sr = len(shift_data_Sr['MJD'])
-len_Yb = len(shift_data_Yb['MJD'])
+len_Al = len(shift_data_Al_good['MJD'])                  
+len_Sr = len(shift_data_Sr_good['MJD'])
+len_Yb = len(shift_data_Yb_good['MJD'])
 
 #function to extract element as close to target as possible w/out going over
 def lb_extract(target, data):
@@ -217,35 +217,39 @@ print("first comb time point: ", common_mjd[0])
 print("first good Al time point: ", shift_data_Al_good["MJD"][0])
 print("first good Sr time point: ", shift_data_Sr_good["MJD"][0])
 print("first good Yb time point: ", shift_data_Yb_good["MJD"][0])
-# print("since Sr starts the latest, start comb observations at index ", lb_extract(target = shift_data_Sr_good["MJD"][0], data = common_mjd), 
-#         ", start Al observations at index ", lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Al_good["MJD"]),
-#         " and start Yb observations at index ", lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Yb_good["MJD"]))
-
+start_times = {common_mjd[0], shift_data_Al_good["MJD"][0], shift_data_Sr_good["MJD"][0], shift_data_Yb_good["MJD"][0]}
+print("----->Latest start time: ", max(start_times)) 
 print("last comb time point: ", common_mjd[len_comb-1])
 print("last good Al time point: ", shift_data_Al_good["MJD"][len_Al-1])
 print("last good Sr time point: ", shift_data_Sr_good["MJD"][len_Sr-1])
 print("last good Yb time point: ", shift_data_Yb_good["MJD"][len_Yb-1])
-# print("since Al ends first, end comb observations at index ", ub_extract(target = shift_data_Al_good["MJD"][len_Al-1], data = common_mjd), 
-#         ", end Sr observations at index ", ub_extract(target = shift_data_Al_good["MJD"][len_Al-1], data = shift_data_Sr_good["MJD"]),
-#         " and end Yb observations at index ", ub_extract(target = shift_data_Al_good["MJD"][len_Al-1], data = shift_data_Yb_good["MJD"]))
+end_times = {common_mjd[len_comb-1], shift_data_Al_good["MJD"][len_Al-1], shift_data_Sr_good["MJD"][len_Sr-1], shift_data_Yb_good["MJD"][len_Yb-1]}
+print("----->Earliest end time: ", min(end_times), "\n")
 
 
-# The following must be edited based on the resuts of the print statements above
+#NOTE: The following must be edited based on the resuts of the print statements above
+print("since Sr starts the latest, start comb observations at index ", lb_extract(target = shift_data_Sr_good["MJD"][0], data = common_mjd), 
+         ", start Al observations at index ", lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Al_good["MJD"]),
+         " and start Yb observations at index ", lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Yb_good["MJD"]))
+print("since Yb ends first, end comb observations at index ", ub_extract(target = shift_data_Yb_good["MJD"][len_Yb-1], data = common_mjd), 
+         ", end Sr observations at index ", ub_extract(target = shift_data_Yb_good["MJD"][len_Yb-1], data = shift_data_Sr_good["MJD"]),
+         " and end Al observations at index ", ub_extract(target = shift_data_Yb_good["MJD"][len_Yb-1], data = shift_data_Al_good["MJD"]), "\n")
+
 #comb MJD index 
 comb = pd.DataFrame()
 comb_init = lb_extract(target = shift_data_Sr_good["MJD"][0], data = common_mjd) #edit
-comb_end = ub_extract(target = shift_data_Al_good["MJD"][len_Al-1], data = common_mjd) #edit
+comb_end = ub_extract(target = shift_data_Yb_good["MJD"][len_Yb-1], data = common_mjd) #edit
 comb["MJD"] = common_mjd[comb_init:comb_end]
 comb["nuAl"] = nuAl[comb_init:comb_end]
 comb["nuYb"] = nuYb[comb_init:comb_end]
 comb["nuSr"] = nuSr[comb_init:comb_end]
 
-#Al MJD index - edit
-shift_data_Al = shift_data_Al_good[lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Al_good["MJD"]):len_Al-1]
-#Sr MJD index - edit
-shift_data_Sr = shift_data_Sr_good[0:ub_extract(target = shift_data_Al_good["MJD"][len_Al-1], data = shift_data_Sr_good["MJD"])]
-#Yb MJD index - edit 
-shift_data_Yb = shift_data_Yb_good[lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Yb_good["MJD"]):ub_extract(target = shift_data_Al_good["MJD"][len_Al-1], data = shift_data_Yb_good["MJD"])]
+#Al MJD index 
+shift_data_Al = shift_data_Al_good[lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Al_good["MJD"]):ub_extract(target = shift_data_Yb_good["MJD"][len_Yb-1], data = shift_data_Al_good["MJD"])]
+#Sr MJD index 
+shift_data_Sr = shift_data_Sr_good[0:ub_extract(target = shift_data_Yb_good["MJD"][len_Yb-1], data = shift_data_Sr_good["MJD"])]
+#Yb MJD index  
+shift_data_Yb = shift_data_Yb_good[lb_extract(target = shift_data_Sr_good["MJD"][0], data = shift_data_Yb_good["MJD"]):len_Yb-1]
 
 
 ################################################################################
