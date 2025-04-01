@@ -129,7 +129,7 @@ shift_data_Yb = open_shiftfile_Yb(path + "20240813_Yb_Freq_Shifts.txt")
  
  
 ################################################################################
-###############  get Sr and Yb optical frequencies #############################
+###############  get Sr and Yb and Al optical frequencies #############################
 ################################################################################
  
 compute_nuSr_ErYb(data_ErYb)
