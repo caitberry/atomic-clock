@@ -1,0 +1,258 @@
+---
+title: "Dry Run Allan Variances"
+author: "Amanda Koepke"
+date: "2024-06-21"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+
+```
+
+
+# AlSr
+
+```{r,fig.height=6,echo=F}
+
+# Set your folder path
+folder <- "/home/aak3/NIST/atomic-clock/Results/ClockComp2025"  
+
+# List all files that contain both "AlSr" and "avarDF"
+files_with_AlSr_avarDF <- list.files(
+  path = folder,
+  pattern = "avarDF.*AlSr.*Apr16",
+  full.names = TRUE
+)
+
+
+allAlSrdat <- files_with_AlSr_avarDF |>
+  lapply(readRDS) |>
+  bind_rows()
+
+allAlSrdat <- allAlSrdat %>%
+  separate(Data, into = c("Ratio", "Month", "Day"), sep = c(4, 6))  %>%
+  mutate(
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+  
+# ggplot(allAlSrdat,aes(tau,avar,color=factor(Date),ymin=avarLower,ymax=avarUpper))+
+#   geom_point()+
+#   ### add true straight line below
+#   # geom_abline(slope = -1,intercept = 0,size=1)+
+#   theme(legend.position = "bottom")+
+#   scale_y_log10()+
+#   scale_x_log10()+
+#   annotation_logticks()+
+#   ylab(expression(sigma^2*(tau)))+
+#   xlab(expression(tau))+
+#   # geom_errorbar()+
+#   facet_wrap(~Method,ncol = 2)
+
+```
+
+
+```{r,fig.height=8.5,echo=F}
+
+ggplot(allAlSrdat,aes(tau,avar,color=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  theme(legend.position = "bottom")+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()+
+  facet_wrap(~Date,ncol = 2)
+
+```
+
+
+```{r,fig.height=8.5,echo=F}
+
+methoddiff = allAlSrdat %>% group_by(Date,tau) %>%  
+  summarise(
+    avar_diff = diff(avar),
+    avar_lower_diff=diff(avarLower), #not exactly right
+    avar_upper_diff=diff(avarUpper),
+    .groups = "drop"
+  )
+
+ggplot(methoddiff,aes(tau,avar_diff,ymin=avar_lower_diff,ymax=avar_upper_diff))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  theme(legend.position = "bottom")+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()+
+  facet_wrap(~Date,ncol = 2)+geom_abline(slope = 0)
+
+```
+
+# AlYb
+
+
+```{r,fig.height=6,echo=F}
+
+# List all files that contain both "AlSr" and "avarDF"
+files_with_AlYb_avarDF <- list.files(
+  path = folder,
+  pattern = "avarDF.*AlYb.*Apr16",
+  full.names = TRUE
+)
+
+
+allAlYbdat <- files_with_AlYb_avarDF |>
+  lapply(readRDS) |>
+  bind_rows()
+
+allAlYbdat <- allAlYbdat %>%
+  separate(Data, into = c("Ratio", "Month", "Day"), sep = c(4, 6))  %>%
+  mutate(
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+  
+# ggplot(allAlYbdat,aes(tau,avar,color=factor(Date),ymin=avarLower,ymax=avarUpper))+
+#   geom_point()+
+#   ### add true straight line below
+#   # geom_abline(slope = -1,intercept = 0,size=1)+
+#   theme(legend.position = "bottom")+
+#   scale_y_log10()+
+#   scale_x_log10()+
+#   annotation_logticks()+
+#   ylab(expression(sigma^2*(tau)))+
+#   xlab(expression(tau))+
+#   # geom_errorbar()+
+#   facet_wrap(~Method,ncol = 2)
+```
+
+```{r,fig.height=8.5,echo=F}
+
+
+ggplot(allAlYbdat,aes(tau,avar,color=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  theme(legend.position = "bottom")+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()+
+  facet_wrap(~Date,ncol = 2)
+
+```
+
+
+```{r,fig.height=8.5,echo=F}
+
+methoddiff = allAlYbdat %>% group_by(Date,tau) %>%  
+  summarise(
+    avar_diff = diff(avar),
+    avar_lower_diff=diff(avarLower), #not exactly right
+    avar_upper_diff=diff(avarUpper),
+    .groups = "drop"
+  )
+
+ggplot(methoddiff,aes(tau,avar_diff,ymin=avar_lower_diff,ymax=avar_upper_diff))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  theme(legend.position = "bottom")+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()+
+  facet_wrap(~Date,ncol = 2)+geom_abline(slope = 0)
+
+```
+
+# YbSr
+
+```{r,fig.height=6,echo=F}
+
+# List all files that contain both "YbSr" and "avarDF"
+files_with_YbSr_avarDF <- list.files(
+  path = folder,
+  pattern = "avarDF.*YbSr.*Apr16",
+  full.names = TRUE
+)
+
+
+allYbSrdat <- files_with_YbSr_avarDF |>
+  lapply(readRDS) |>
+  bind_rows()
+
+allYbSrdat <- allYbSrdat %>%
+  separate(Data, into = c("Ratio", "Month", "Day"), sep = c(4, 6))  %>%
+  mutate(
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+#   
+# ggplot(allYbSrdat,aes(tau,avar,color=factor(Date),ymin=avarLower,ymax=avarUpper))+
+#   geom_point()+
+#   ### add true straight line below
+#   # geom_abline(slope = -1,intercept = 0,size=1)+
+#   theme(legend.position = "bottom")+
+#   scale_y_log10()+
+#   scale_x_log10()+
+#   annotation_logticks()+
+#   ylab(expression(sigma^2*(tau)))+
+#   xlab(expression(tau))+
+#   # geom_errorbar()+
+#   facet_wrap(~Method,ncol = 2)
+
+```
+
+```{r,fig.height=8.5,echo=F}
+
+ggplot(allYbSrdat,aes(tau,avar,color=Method,ymin=avarLower,ymax=avarUpper))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  theme(legend.position = "bottom")+
+  scale_y_log10()+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()+
+  facet_wrap(~Date,ncol = 2)
+
+```
+
+
+```{r,fig.height=8.5,echo=F}
+
+methoddiff = allYbSrdat %>% group_by(Date,tau) %>%  
+  summarise(
+    avar_diff = diff(avar),
+    avar_lower_diff=diff(avarLower), #not exactly right
+    avar_upper_diff=diff(avarUpper),
+    .groups = "drop"
+  )
+
+ggplot(methoddiff,aes(tau,avar_diff,ymin=avar_lower_diff,ymax=avar_upper_diff))+
+  geom_point()+
+  ### add true straight line below
+  # geom_abline(slope = -1,intercept = 0,size=1)+
+  theme(legend.position = "bottom")+
+  scale_x_log10()+
+  annotation_logticks()+
+  ylab(expression(sigma^2*(tau)))+
+  xlab(expression(tau))+
+  geom_errorbar()+
+  facet_wrap(~Date,ncol = 2)+geom_abline(slope = 0)
+
+
+```
