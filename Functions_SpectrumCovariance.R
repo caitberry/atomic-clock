@@ -30,8 +30,7 @@ spectralEstWithUnc <- function(x.t,t.vec,N.fourier,numTapers,calcCov=T,myW,isWhi
   }
   
   return(list(freq=freq,
-              spec.hat=MTSE_full$spectrum,Cov.mat=Cov.mat))
-  
+              spec.hat=MTSE_full$spectrum,Cov.mat=Cov.mat, e.values=V.mat$e.values))
 }
 
 #########################################################
