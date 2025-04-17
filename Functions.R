@@ -100,7 +100,12 @@ get_tapers <- function(t.n, W, K){
 MT_spectralEstimate_fft <- function(X.t, V.mat){
   ##use tapers to generate spectral estimate
   N <- length(X.t)
-  X.t[is.na(X.t)] <- 0 #set NA values in X.t to 0
+  
+  #### Subtract the mean
+  X.t.centered <- X.t-mean(X.t,na.rm=T)
+  ####
+  
+  X.t.centered[is.na(X.t.centered)] <- 0 #set NA values in X.t.centered to 0
   V.mat[is.na(V.mat)] <- 0 #set NA values in V.mat to 0
   N.fourier <- floor(N/2) + 1
   S.x.hat <- rep(NA, times = N.fourier)
@@ -109,7 +114,7 @@ MT_spectralEstimate_fft <- function(X.t, V.mat){
   S.k.mat <- matrix(NA,nrow = K, ncol = N.fourier)
   
   for(k in 1:K){
-    spec.vec <- stats::fft(V.mat[,k]*X.t)[1:N.fourier]
+    spec.vec <- stats::fft(V.mat[,k]*X.t.centered)[1:N.fourier]
     S.k.mat[k,] <- abs(spec.vec)^2
   }
   
