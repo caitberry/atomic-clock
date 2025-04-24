@@ -1,0 +1,335 @@
+---
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(purrr)
+library(stringr)
+
+```
+
+
+# YbSr
+
+```{r,fig.height=3.5,echo=F}
+
+# Set your folder path
+folder <- "/home/aak3/NIST/atomic-clock/Results/ClockComp2025"  
+
+###################################################################################
+###change this stuff
+myK=5
+# List all files 
+files_with_YbSr_spectral <- list.files(
+  path = folder,
+  pattern = "spectral.*YbSr.*Apr15",
+  full.names = TRUE
+)
+####################################################################################
+extract_from_list <- function(x, filename) {
+  df1 <- data.frame(
+    freq = x[[1]],
+    spectrum = x[[2]],
+    File = filename
+  )
+  
+  df2 <- data.frame(
+    eigenval = x[[4]],
+    K=1:myK,
+    File = filename
+  )
+  
+  list(spectrum = df1, eigenvals = df2)
+}
+
+all_data <- lapply(files_with_YbSr_spectral, function(file) {
+  x <- readRDS(file)
+  extract_from_list(x, basename(file))
+})
+
+# Combine all df1s and df2s if desired
+spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
+EVdf <- do.call(rbind, lapply(all_data, `[[`, "eigenvals"))
+
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+EVdf <- EVdf %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+
+ggplot(EVdf,aes(K,eigenval,color=factor(Date)))+
+  geom_point()+
+  guides(color = guide_legend(title = NULL))
+
+# # Loop over unique File names and generate plots
+# plot_list <- map(unique(spectralEstDF$File), function(f) {
+#   specRes <- filter(spectralEstDF, File == f)
+# 
+#   if (nrow(specRes) == 0) return(NULL)
+# 
+#   resDF <- data.frame(
+#     n.fourier = length(specRes$freq),  # assumes list-column
+#     freq = specRes$freq,
+#     spectrum = specRes$spectrum
+#   )
+# 
+#   ggplot(resDF, aes(freq, spectrum, col = factor(n.fourier))) +
+#     geom_line() +
+#     scale_y_log10() +
+#     scale_x_log10() +
+#     labs(title = f)
+# })
+# 
+# # Display each plot
+# walk(plot_list, print)
+```
+
+```{r,fig.height=5,echo=F}
+
+ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
+  geom_line(alpha=.4) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))
+  
+
+```
+
+
+
+
+# AlSr
+
+```{r,fig.height=3.5,echo=F}
+
+# Set your folder path
+folder <- "/home/aak3/NIST/atomic-clock/Results/ClockComp2025"  
+
+###################################################################################
+###change this stuff
+myK=5
+# List all files 
+files_with_AlSr_spectral <- list.files(
+  path = folder,
+  pattern = "spectral.*AlSr.*Apr15",
+  full.names = TRUE
+)
+####################################################################################
+extract_from_list <- function(x, filename) {
+  df1 <- data.frame(
+    freq = x[[1]],
+    spectrum = x[[2]],
+    File = filename
+  )
+  
+  df2 <- data.frame(
+    eigenval = x[[4]],
+    K=1:myK,
+    File = filename
+  )
+  
+  list(spectrum = df1, eigenvals = df2)
+}
+
+all_data <- lapply(files_with_AlSr_spectral, function(file) {
+  x <- readRDS(file)
+  extract_from_list(x, basename(file))
+})
+
+# Combine all df1s and df2s if desired
+spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
+EVdf <- do.call(rbind, lapply(all_data, `[[`, "eigenvals"))
+
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+EVdf <- EVdf %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+
+ggplot(EVdf,aes(K,eigenval,color=factor(Date)))+
+  geom_point()+
+  guides(color = guide_legend(title = NULL))
+
+```
+
+```{r,fig.height=5,echo=F}
+
+ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
+  geom_line(alpha=.4) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))
+  
+
+```
+
+
+
+
+# AlYb
+
+```{r,fig.height=3.5,echo=F}
+
+# Set your folder path
+folder <- "/home/aak3/NIST/atomic-clock/Results/ClockComp2025"  
+
+###################################################################################
+###change this stuff
+myK=5
+# List all files 
+files_with_AlYb_spectral <- list.files(
+  path = folder,
+  pattern = "spectral.*AlYb.*Apr15",
+  full.names = TRUE
+)
+####################################################################################
+extract_from_list <- function(x, filename) {
+  df1 <- data.frame(
+    freq = x[[1]],
+    spectrum = x[[2]],
+    File = filename
+  )
+  
+  df2 <- data.frame(
+    eigenval = x[[4]],
+    K=1:myK,
+    File = filename
+  )
+  
+  list(spectrum = df1, eigenvals = df2)
+}
+
+all_data <- lapply(files_with_AlYb_spectral, function(file) {
+  x <- readRDS(file)
+  extract_from_list(x, basename(file))
+})
+
+# Combine all df1s and df2s if desired
+spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
+EVdf <- do.call(rbind, lapply(all_data, `[[`, "eigenvals"))
+
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+EVdf <- EVdf %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+
+ggplot(EVdf,aes(K,eigenval,color=factor(Date)))+
+  geom_point()+
+  guides(color = guide_legend(title = NULL))
+
+```
+
+```{r,fig.height=5,echo=F}
+
+ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
+  geom_line(alpha=.4) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))
+  
+
+```
+
+
+
+
+<!-- # Weird Yb data -->
+
+<!-- ```{r,fig.height=4,echo=F,message=FALSE, warning=FALSE} -->
+
+<!-- folderLocation="/home/aak3/NIST/atomic-clock/" -->
+
+<!-- source(file = paste(folderLocation,"Code/ComparisonAnalysis2025/0_data_load.R",sep="")) -->
+<!-- source(file = paste(folderLocation,"Code/ComparisonAnalysis2025/1_EDA.R",sep="")) -->
+
+<!-- colnames(YbSr_df)[2:3]=c("MJD","value") -->
+<!-- colnames(AlYb_df)[2:3]=c("MJD","value") -->
+<!-- colnames(AlSr_df)[2:3]=c("MJD","value") -->
+
+<!-- ##### weird Yb data -->
+<!-- ybsr36=filter(YbSr_df,date=="2025-03-06" | date=="2025-03-07"| date=="2025-03-04") -->
+<!-- alyb36=filter(AlYb_df,date=="2025-03-06"| date=="2025-03-07"| date=="2025-03-04") -->
+
+<!-- ggplot(ybsr36,aes(MJD,value,color=factor(date)))+ -->
+<!--   geom_point()+ -->
+<!--   theme(legend.position = "bottom",legend.text = element_text(size = 10)) + -->
+<!--   guides(color = guide_legend(title = NULL))+ -->
+<!--   ylab("YbSr") -->
+
+<!-- ggplot(alyb36,aes(MJD,value,color=factor(date)))+ -->
+<!--   geom_point() -->
+<!-- ``` -->
+
+
+
+
+<!-- # Understand one day -->
+
+<!-- ```{r} -->
+
+<!-- oneDay=filter(AlSr_df,date=="2025-02-27",MJD<60733.8496 & MJD>60733.849) -->
+<!-- oneDay$MJD -->
+
+<!-- ggplot(oneDay,aes(MJD,value))+ -->
+<!--   geom_point() -->
+
+<!-- df=oneDay -->
+
+<!-- oneDay=filter(AlSr_df,date=="2025-02-27") -->
+<!-- table(diff(oneDay$MJD)) -->
+
+
+<!-- ``` -->
+
+
+<!-- # EDA all days -->
+
+<!-- ```{r} -->
+
+<!-- ggplot(AlSr_df,aes(factor(Date),value))+ -->
+<!--   geom_boxplot() -->
+
+<!-- ``` -->
+
+

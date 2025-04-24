@@ -23,7 +23,7 @@ export("get_tapers",
        "avar_fn_vec", "overlapping_avar_fn_vec", "tavar_ARFIMA",
        "lomb_scargle", "transfer.func",
        "AVAR_spec","avar_CI",
-       "spec_cov.mat_slow_WN") #functions to export
+       "spec_cov.mat_slow_WN","lomb_scargle_processedDat") #functions to export
 
 
 # Helper Functions ####################################################################
@@ -100,7 +100,12 @@ get_tapers <- function(t.n, W, K){
 MT_spectralEstimate_fft <- function(X.t, V.mat){
   ##use tapers to generate spectral estimate
   N <- length(X.t)
-  X.t[is.na(X.t)] <- 0 #set NA values in X.t to 0
+  
+  #### Subtract the mean
+  X.t.centered <- X.t-mean(X.t,na.rm=T)
+  ####
+  
+  X.t.centered[is.na(X.t.centered)] <- 0 #set NA values in X.t.centered to 0
   V.mat[is.na(V.mat)] <- 0 #set NA values in V.mat to 0
   N.fourier <- floor(N/2) + 1
   S.x.hat <- rep(NA, times = N.fourier)
@@ -109,7 +114,7 @@ MT_spectralEstimate_fft <- function(X.t, V.mat){
   S.k.mat <- matrix(NA,nrow = K, ncol = N.fourier)
   
   for(k in 1:K){
-    spec.vec <- stats::fft(V.mat[,k]*X.t)[1:N.fourier]
+    spec.vec <- stats::fft(V.mat[,k]*X.t.centered)[1:N.fourier]
     S.k.mat[k,] <- abs(spec.vec)^2
   }
   
@@ -256,6 +261,32 @@ lomb_scargle <- function(x.t,f){
 }
 
 
+#lomb-scargle function for processed data
+# in this one, x.t and t.vec already have na excluded
+lomb_scargle_processedDat <- function(x.t,t.vec,f){
+  
+  ## calculates the Lomb-Scargle Periodogram for data x.t at frequencies f##
+  
+  L <- length(f)
+
+  x.missing <- x.t
+  t.missing <- t.vec
+  
+  lsperio <- rep(NA, times = L)
+  
+  for(i in 1:L){
+    x.centered <- x.missing - mean(x.missing)
+    x.var <- stats::var(x.missing)
+    tau.value <- tau.shift(f[i], t.missing)
+    c.vec <- cos(2*pi*(f[i]*(t.missing - tau.value)))
+    s.vec <- sin(2*pi*(f[i]*(t.missing - tau.value)))
+    
+    lsperio[i] <- (1/(2))*((x.centered%*%c.vec)^2/sum(c.vec^2) +
+                                   (x.centered%*%s.vec)^2/sum(s.vec^2))
+  }
+  
+  return(lsperio)
+}
 #tau function (local function needed for lomb_scargle())
 
 #inputs:  (->) f = frequencies at which we calculate the lomb-scargle periodogram

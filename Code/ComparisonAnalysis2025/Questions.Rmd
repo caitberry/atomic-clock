@@ -1,0 +1,150 @@
+---
+title: "Clock Comparison Questions"
+date: "2025-04-11"
+output: beamer_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(purrr)
+library(stringr)
+library(scales)
+
+folderLocation="/home/aak3/NIST/atomic-clock/"
+
+source(file = paste(folderLocation,"Code/ComparisonAnalysis2025/0_data_load.R",sep=""))
+source(file = paste(folderLocation,"Code/ComparisonAnalysis2025/1_EDA.R",sep=""))
+
+colnames(YbSr_df)[2:3]=c("MJD","value")
+colnames(AlYb_df)[2:3]=c("MJD","value")
+colnames(AlSr_df)[2:3]=c("MJD","value")
+
+```
+
+# Gaps
+
+```{r,fig.height=8,echo=F,message=FALSE, warning=FALSE}
+
+alldat=bind_rows(AlSr_df,AlYb_df,YbSr_df)
+
+ggplot(alldat,aes(MJD,value))+
+  geom_point()+
+  # ylab("AlSr")+  
+  scale_y_continuous(labels = label_scientific(digits = 2))+
+  facet_wrap(~ratio,ncol=1)
+```
+
+<!-- # Gaps -->
+
+<!-- ```{r,fig.height=2.5,echo=F,message=FALSE, warning=FALSE} -->
+
+<!-- ggplot(AlSr_df,aes(MJD,value))+ -->
+<!--   geom_point()+ -->
+<!--   ylab("AlSr")+   -->
+<!--   scale_y_continuous(labels = label_scientific(digits = 2)) -->
+
+<!-- ggplot(AlYb_df,aes(MJD,value))+ -->
+<!--   geom_point()+ -->
+<!--   ylab("AlYb")+   -->
+<!--   scale_y_continuous(labels = label_scientific(digits = 2)) -->
+
+<!-- ggplot(YbSr_df,aes(MJD,value))+ -->
+<!--   geom_point()+ -->
+<!--   ylab("YbSr")+   -->
+<!--   scale_y_continuous(labels = label_scientific(digits = 2)) -->
+
+<!-- ``` -->
+
+
+# EDA all days
+
+```{r,fig.height=2.5,echo=F,message=FALSE, warning=FALSE}
+
+ggplot(AlSr_df,aes(factor(date),value))+
+  geom_boxplot()+
+  ylab("AlSr")+ 
+  xlab(NULL)+
+  scale_y_continuous(labels = label_scientific(digits = 2))+
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+ggplot(AlYb_df,aes(factor(date),value))+
+  geom_boxplot()+
+  ylab("AlYb")+  
+  xlab(NULL)+
+  scale_y_continuous(labels = label_scientific(digits = 2))+
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+ggplot(YbSr_df,aes(factor(date),value))+
+  geom_boxplot()+
+  ylab("YbSr")+  
+  xlab(NULL)+
+  scale_y_continuous(labels = label_scientific(digits = 2))+
+  theme(axis.text.x = element_text(angle = 20, hjust = 1))
+```
+
+# What happened with Yb measurements on 3/6?
+
+```{r,fig.height=4,echo=F,message=FALSE, warning=FALSE}
+
+##### weird Yb data
+ybsr36=filter(YbSr_df,date=="2025-03-06" | date=="2025-03-07"| date=="2025-03-04")
+alyb36=filter(AlYb_df,date=="2025-03-06"| date=="2025-03-07"| date=="2025-03-04")
+
+ggplot(ybsr36,aes(MJD,value,color=factor(date)))+
+  geom_point()+
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  scale_y_continuous(labels = label_scientific(digits = 2))+
+  ylab("YbSr")
+
+ggplot(alyb36,aes(MJD,value,color=factor(date)))+
+  geom_point()+
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  scale_y_continuous(labels = label_scientific(digits = 2))+
+  ylab("AlYb")
+
+# ggplot(alyb36,aes(MJD,value,color=factor(date)))+
+  # geom_point()+
+```
+
+
+
+
+# Interpolation
+
+```{r,fig.height=4,echo=F,message=FALSE, warning=FALSE}
+
+oneDayAlSr=filter(AlSr_df,date=="2025-02-27",MJD<60733.85 & MJD>60733.849)
+oneDayAlYb=filter(AlYb_df,date=="2025-02-27",MJD<60733.85 & MJD>60733.849)
+oneDayYbSr=filter(YbSr_df,date=="2025-02-27",MJD<60733.85 & MJD>60733.849)
+
+ggplot(bind_rows(oneDayAlSr,oneDayAlYb,oneDayYbSr),aes(MJD,value,color=ratio))+
+  geom_point()+
+  scale_y_continuous(labels = label_scientific(digits = 2))
+  # ylab("AlSr on 2025-02-27")
+
+oneDay=filter(AlSr_df,date=="2025-02-27")
+tab=as.data.frame(table(diff(oneDay$MJD)))
+colnames(tab)[1]="MJDdifference"
+
+knitr::kable(tab)
+```
+
+
+
+<!-- # EDA all days -->
+
+<!-- ```{r,fig.height=3,echo=F,message=FALSE, warning=FALSE} -->
+
+<!-- ggplot(AlSr_df,aes(value,color=factor(date)))+ -->
+<!--   geom_density() -->
+<!-- ggplot(AlYb_df,aes(value,color=factor(date)))+ -->
+<!--   geom_density() -->
+<!-- ggplot(YbSr_df,aes(value,color=factor(date)))+ -->
+<!--   geom_density() -->
+
+<!-- ``` -->
+
+
