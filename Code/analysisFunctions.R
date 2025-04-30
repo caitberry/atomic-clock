@@ -77,7 +77,7 @@ formatDat=function(dat){
   t.vec <- cleanedDF$t.vec
   N=length(x.t)
   
-  return(list(x.t=x.t, t.vec=t.vec, N=N))
+  return(list(x.t=x.t, t.vec=t.vec))
 }
 
 ########################################################################################
