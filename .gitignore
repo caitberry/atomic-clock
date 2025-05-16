@@ -58,3 +58,15 @@ st-interp/NIST_TN/main.lot
 st-interp/NIST_TN/main.out
 st-interp/NIST_TN/main.synctex.gz
 st-interp/NIST_TN/main.toc
+
+
+
+# produced result files
+Results/*.Rds
+Results/ClockComp2025/*.Rds
+
+# Amanda's temp test code
+Code/TEST*
+Testing/
+
+*.pdf
