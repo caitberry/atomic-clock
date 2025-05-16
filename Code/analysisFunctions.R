@@ -64,21 +64,26 @@ smushSmallGaps=function(dat){
 # t.vec_all <- 1:N_tot
 
 
-formatDat=function(dat){
-  x.t_all=smushSmallGaps(dat)
-  N_tot=length(x.t_all)
+formatDat <- function(dat) {
+  x.t_all <- smushSmallGaps(dat)
+  N_tot <- length(x.t_all)
   t.vec_all <- 1:N_tot
   
-  cleanedDF=data.frame(x.t=x.t_all,t.vec=t.vec_all)
-  cleanedDF=cleanedDF%>%mutate(missing=is.na(x.t))
-  cleanedDF=filter(cleanedDF,missing==F)
+  # Identify first and last non-NA
+  non_na_idx <- which(!is.na(x.t_all))
+  if (length(non_na_idx) == 0) {
+    stop("All values are NA.")
+  }
+  first <- min(non_na_idx)
+  last <- max(non_na_idx)
   
-  x.t=cleanedDF$x.t
-  t.vec <- cleanedDF$t.vec
-  N=length(x.t)
+  # Keep only data between first and last non-NA (inclusive)
+  x.t_trimmed <- x.t_all[first:last]
+  t.vec_trimmed <- t.vec_all[first:last]
   
-  return(list(x.t=x.t, t.vec=t.vec))
+  return(list(x.t = x.t_trimmed, t.vec = t.vec_trimmed))
 }
+
 
 ########################################################################################
 # 3. get spectral estimate
@@ -94,13 +99,13 @@ formatDat=function(dat){
 library(RColorBrewer)
 # Define the number of colors you want
 
-stuffForPlots=function(myK,x.t,t.vec,specRes){
+stuffForPlots=function(myK,x.t,t.vec,specRes,V.mat){
   nb.cols <- myK+1
   mycolors <- colorRampPalette(brewer.pal(8, "Accent"))(nb.cols)
 
   resDF=data.frame(n.fourier=length(specRes$freq),
                    freq=specRes$freq,
-                   spectrum=specRes$spec.hat)
+                   spectrum=specRes$spectrum)
   
   p1=ggplot(resDF,aes(freq,spectrum,col=factor(interaction(n.fourier))))+
     geom_line()
