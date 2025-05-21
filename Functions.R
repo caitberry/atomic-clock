@@ -23,7 +23,8 @@ export("get_tapers",
        "avar_fn_vec", "overlapping_avar_fn_vec", "tavar_ARFIMA",
        "lomb_scargle", "transfer.func",
        "AVAR_spec","avar_CI",
-       "spec_cov.mat_slow_WN","lomb_scargle_processedDat") #functions to export
+       # "spec_cov.mat_slow_WN",
+       "lomb_scargle_processedDat") #functions to export
 
 
 # Helper Functions ####################################################################
@@ -633,11 +634,54 @@ AVAR_spec_CI <- function(CI.level, taus, avar, avar_var){
 #               
 #               
 
+# #### outdated, based on old formula
+# spec_cov.mat_slow_WN <- function(t.vec, N.fourier, taperMat){
+#   K <- dim(taperMat)[2]
+#   
+#   freq <- seq(0, 0.5, length.out = N.fourier)
+#   
+#   C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
+#   
+#   for(i in 1:N.fourier){
+#     if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
+#     j = 1
+#     while(j <= i){
+#       V_star_mat <- Conj(t(taperMat*exp(-1i*2*pi*freq[i]*t.vec)))
+#       V_mat <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+#       
+#       V_star_matOMIT=V_star_mat[,-which(colSums(is.na(V_star_mat))==5)]
+#       V_matOMIT=V_mat[-which(rowSums(is.na(V_mat))==5),]
+#       
+#       C.mat[i,j] <- (1/K)*norm(V_star_matOMIT%*%V_matOMIT, type = "2") 
+#       j = j+1
+#     }
+#   }
+#   C.mat[upper.tri(C.mat)] <- t(C.mat)[upper.tri(C.mat)]
+#   
+#   return(C.mat = C.mat)
+# }
 
-spec_cov.mat_slow_WN <- function(t.vec, N.fourier, taperMat){
-  K <- dim(taperMat)[2]
+
+spec_cov.mat_slow <- function(x.t, t.vec,N.fourier,taperMat,isWhite,
+                              max.lag.acf){
+  
+  N <- length(x.t) #length of data with gaps
+  
+  K <- dim(taperMat)[2] 
   
   freq <- seq(0, 0.5, length.out = N.fourier)
+  
+  s_acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+  
+  # Create a Toeplitz matrix from the autocorrelation values
+  N.noNA=sum(!is.na(t.vec))
+  
+  R_mat <- matrix(0, nrow = N.noNA, ncol = N.noNA)
+  R_mat <- stats::toeplitz(c(s_acf, rep(0, N.noNA - max.lag.acf - 1)))
+  
+  # Calculate variances
+  taperMatOMIT=stats::na.omit(taperMat)
+  t.vecOMIT=stats::na.omit(t.vec)
   
   C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
   
@@ -645,13 +689,13 @@ spec_cov.mat_slow_WN <- function(t.vec, N.fourier, taperMat){
     if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
     j = 1
     while(j <= i){
-      V_star_mat <- Conj(t(taperMat*exp(-1i*2*pi*freq[i]*t.vec)))
-      V_mat <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+      U_star <- t(taperMatOMIT*exp(1i*2*pi*freq[i]*t.vecOMIT))
+      U <- taperMatOMIT*exp(-1i*2*pi*freq[i]*t.vecOMIT)
+      V_star <- t(taperMatOMIT*exp(1i*2*pi*freq[j]*t.vecOMIT))
+      V <- taperMatOMIT*exp(-1i*2*pi*freq[j]*t.vecOMIT)
       
-      V_star_matOMIT=V_star_mat[,-which(colSums(is.na(V_star_mat))==5)]
-      V_matOMIT=V_mat[-which(rowSums(is.na(V_mat))==5),]
+      C.mat[i,j] <- (1/K^2)*2*sum(diag(R_mat %*% V %*% V_star %*%  U %*% U_star %*% R_mat))
       
-      C.mat[i,j] <- (1/K)*norm(V_star_matOMIT%*%V_matOMIT, type = "2") 
       j = j+1
     }
   }
