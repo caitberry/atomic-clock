@@ -111,6 +111,73 @@ ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
 
 ```
 
+```{r,fig.height=5,echo=F}
+
+K=5
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    lower = spectrum * qchisq(0.025, df = 2 * K) / (2 * K),
+    upper = spectrum * qchisq(0.975, df = 2 * K) / (2 * K)
+  )
+
+# Filter the data
+plot_data <- filter(spectralEstDF, Date == "2025-01-16")
+
+# Get the mean spectrum between freq = 0.01 and 0.055
+mean_val <- plot_data %>%
+  filter(freq >= 0.01, freq <= 0.055) %>%
+  summarise(mean_spectrum = mean(spectrum)) %>%
+  pull(mean_spectrum)
+
+# Plot with horizontal line
+ggplot(plot_data, aes(freq, spectrum, col = factor(Date), ymin = lower, ymax = upper)) +
+  geom_line(alpha = 0.4) +
+  geom_errorbar() +
+  geom_hline(yintercept = mean_val, linetype = "dashed", color = "black") +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))  
+
+
+library(segmented)
+fit_data=filter(plot_data,freq>.001, freq<.1)
+
+fit_data <- fit_data %>%
+  mutate(
+    weight = K / spectrum^2
+  )
+
+
+fit_data$lspec=log(fit_data$spectrum)
+fit_data$lfreq=log(fit_data$freq)
+fit <- lm(lspec ~ lfreq, data = fit_data,weights = weight)
+seg_fit <- segmented(fit, seg.Z = ~lfreq, npsi = 5)  # npsi = number of breakpoints
+summary(seg_fit)
+plot(seg_fit)
+
+# Fitted values
+fit_data$fitted_lspec <- fitted(seg_fit)
+
+# Back-transform to original scale
+fit_data$fitted_spec <- exp(fit_data$fitted_lspec)
+
+# Breakpoints (in log space, convert to freq scale)
+breaks <- exp(seg_fit$psi[, "Est."])
+
+ggplot(fit_data, aes(x = freq, y = spectrum)) +
+  geom_point(alpha = 0.5, color = "gray") +
+  geom_line(aes(y = fitted_spec), color = "blue", size = 1) +
+  geom_vline(xintercept = breaks, linetype = "dashed", color = "red") +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = "Segmented Regression on log-log scale",
+       x = "Frequency",
+       y = "Spectrum") +
+  theme_minimal()
+
+
+```
 
 
 
@@ -272,7 +339,72 @@ ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
 ```
 
 
+```{r,fig.height=5,echo=F}
 
+K=5
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    lower = spectrum * qchisq(0.025, df = 2 * K) / (2 * K),
+    upper = spectrum * qchisq(0.975, df = 2 * K) / (2 * K)
+  )
+
+# Filter the data
+plot_data <- filter(spectralEstDF, Date == "2025-02-27")
+
+# Get the mean spectrum between freq = 0.01 and 0.055
+mean_val <- plot_data %>%
+  filter(freq >= 0.01, freq <= 0.055) %>%
+  summarise(mean_spectrum = mean(spectrum)) %>%
+  pull(mean_spectrum)
+
+# Plot with horizontal line
+ggplot(plot_data, aes(freq, spectrum, col = factor(Date), ymin = lower, ymax = upper)) +
+  geom_line(alpha = 0.4) +
+  geom_errorbar() +
+  geom_hline(yintercept = mean_val, linetype = "dashed", color = "black") +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))  
+
+
+library(segmented)
+fit_data=filter(plot_data,freq>.001, freq<.1)
+fit_data <- fit_data %>%
+  mutate(
+    weight = K / spectrum^2
+  )
+
+
+fit_data$lspec=log(fit_data$spectrum)
+fit_data$lfreq=log(fit_data$freq)
+fit <- lm(lspec ~ lfreq, data = fit_data,weights = weight)
+
+seg_fit <- segmented(fit, seg.Z = ~lfreq, npsi = 5)  # npsi = number of breakpoints
+summary(seg_fit)
+plot(seg_fit)
+
+# Fitted values
+fit_data$fitted_lspec <- fitted(seg_fit)
+
+# Back-transform to original scale
+fit_data$fitted_spec <- exp(fit_data$fitted_lspec)
+
+# Breakpoints (in log space, convert to freq scale)
+breaks <- exp(seg_fit$psi[, "Est."])
+
+ggplot(fit_data, aes(x = freq, y = spectrum,ymin=lower,ymax=upper)) +
+  geom_point(alpha = 0.5, color = "gray") +
+  geom_errorbar(alpha=.5)+
+  geom_line(aes(y = fitted_spec), color = "blue", size = 1) +
+  geom_vline(xintercept = breaks, linetype = "dashed", color = "red") +
+  scale_x_log10() +
+  scale_y_log10() +
+  labs(title = "Segmented Regression on log-log scale",
+       x = "Frequency",
+       y = "Spectrum") +
+  theme_minimal()
+```
 
 <!-- # Weird Yb data -->
 

@@ -62,8 +62,12 @@ compute_entry_parallel <- function(ij, taperMat = taperMatrix, setK = K, setN = 
   taperMat=na.omit(taperMat)
   t.vec=na.omit(t.vec)
   
-  V_star <- t(taperMat*exp(1i*2*pi*freq[i]*t.vec))
+  U_star <- t(taperMat*exp(1i*2*pi*freq[i]*t.vec))
+  U <- taperMat*exp(-1i*2*pi*freq[i]*t.vec)
+  V_star <- t(taperMat*exp(1i*2*pi*freq[j]*t.vec))
   V <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+  
+  ### NEW CALC needs to go in est_entry_FFT
   
   return(est_entry_FFT(V_star, V, c, setK, N.noNA))
 }
@@ -178,8 +182,17 @@ spec_cov.mat=function(x.t, t.vec,N.fourier,taperMat,isWhite,
   # Create a Toeplitz matrix from the autocorrelation values
   R_mat <- matrix(0, nrow = N.noNA, ncol = N.noNA)
   R_mat <- stats::toeplitz(c(s_acf, rep(0, N.noNA - max.lag.acf - 1)))
+
+  # Calculate variances
+  taperMat=stats::na.omit(taperMatrix)
+  t.vec=stats::na.omit(t.vec)
   
-  diag(C.mat) <- (1/K)*norm(t(stats::na.omit(taperMatrix))%*%R_mat%*%stats::na.omit(taperMatrix), type = "2")
+  for (j in 1:length(j)){
+    V_star <- t(taperMat*exp(1i*2*pi*freq[j]*t.vec))
+    V <- taperMat*exp(-1i*2*pi*freq[j]*t.vec)
+    
+    diag(C.mat)[j] <- (1/K)*2*tr(R_mat %*% V %*% V_star %*%  V %*% V_star %*% R_mat)
+  } #check if this is different for diff frequencies, if not just calc one
   
   ## look at result ##
   return(C.mat)
