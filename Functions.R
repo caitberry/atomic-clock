@@ -24,6 +24,7 @@ export("get_tapers",
        "lomb_scargle", "transfer.func",
        "AVAR_spec","avar_CI",
        # "spec_cov.mat_slow_WN",
+       "spec_cov.mat_slow",
        "lomb_scargle_processedDat") #functions to export
 
 
@@ -671,34 +672,49 @@ spec_cov.mat_slow <- function(x.t, t.vec,N.fourier,taperMat,isWhite,
   
   freq <- seq(0, 0.5, length.out = N.fourier)
   
-  s_acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+  # s_acf <- stats::acf(x.t, plot=FALSE, lag.max=max.lag.acf,na.action = stats::na.exclude)$acf
+  ar_coeffs <- c(0.5, -0.4, 0.3, -0.2)  # AR(4) coefficients   #############REMOVE
+  s_acf <- stats::ARMAacf(ar = ar_coeffs, ma = numeric(0), lag.max = max.lag.acf)#############REMOVE
   
   # Create a Toeplitz matrix from the autocorrelation values
   N.noNA=sum(!is.na(t.vec))
   
   R_mat <- matrix(0, nrow = N.noNA, ncol = N.noNA)
-  R_mat <- stats::toeplitz(c(s_acf, rep(0, N.noNA - max.lag.acf - 1)))
+  R_mat <- stats::toeplitz(c(s_acf, rep(0, N.noNA - max.lag.acf - 1))) 
   
   # Calculate variances
   taperMatOMIT=stats::na.omit(taperMat)
   t.vecOMIT=stats::na.omit(t.vec)
   
   C.mat <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
+  C.mat.test <- matrix(NA, nrow = N.fourier, ncol = N.fourier)
   
   for(i in 1:N.fourier){
     if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
     j = 1
     while(j <= i){
-      U_star <- t(taperMatOMIT*exp(1i*2*pi*freq[i]*t.vecOMIT))
       U <- taperMatOMIT*exp(-1i*2*pi*freq[i]*t.vecOMIT)
-      V_star <- t(taperMatOMIT*exp(1i*2*pi*freq[j]*t.vecOMIT))
+      U_star <- t(taperMatOMIT*exp(1i*2*pi*freq[i]*t.vecOMIT)) 
       V <- taperMatOMIT*exp(-1i*2*pi*freq[j]*t.vecOMIT)
+      V_star <- t(taperMatOMIT*exp(1i*2*pi*freq[j]*t.vecOMIT))#t(Conj(V))
+
+      C.mat[i,j] <-
+        (1/K^2)*2*sum(diag(R_mat %*% V %*% V_star %*%  U %*% U_star %*% R_mat))
       
-      C.mat[i,j] <- (1/K^2)*2*sum(diag(R_mat %*% V %*% V_star %*%  U %*% U_star %*% R_mat))
+      # #use cyclic property of trace to reorder and simplify calc
+      # RV <- R_mat %*% V          # n x p
+      # R2V <- R_mat %*% RV       # n x p
+      # A <- V_star %*% U     # p x p
+      # B <- U_star %*% R2V       # p x p
+      # 
+      # C.mat.test[i,j] <-(2 / K^2) * sum(diag(A %*% B))
+      # 
       
       j = j+1
     }
   }
+  
+
   C.mat[upper.tri(C.mat)] <- t(C.mat)[upper.tri(C.mat)]
   
   return(C.mat = C.mat)
