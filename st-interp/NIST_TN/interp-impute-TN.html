@@ -6,9 +6,8 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="author" content="Thornton">
 
-<title>Clock data interpolation TN draft</title>
+<title>interp-impute-tn</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -55,27 +54,7 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-/* CSS for citations */
-div.csl-bib-body { }
-div.csl-entry {
-  clear: both;
-  margin-bottom: 0em;
-}
-.hanging-indent div.csl-entry {
-  margin-left:2em;
-  text-indent:-2em;
-}
-div.csl-left-margin {
-  min-width:2em;
-  float:left;
-}
-div.csl-right-inline {
-  margin-left:2em;
-  padding-left:1em;
-}
-div.csl-indent {
-  margin-left: 2em;
-}</style>
+</style>
 
 
 <script src="interp-impute-TN_files/libs/clipboard/clipboard.min.js"></script>
@@ -127,93 +106,84 @@ window.Quarto = {
 
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
-<div class="quarto-title">
-<h1 class="title">Clock data interpolation TN draft</h1>
-</div>
 
 
 
-<div class="quarto-title-meta">
-
-    <div>
-    <div class="quarto-title-meta-heading">Author</div>
-    <div class="quarto-title-meta-contents">
-             <p>Thornton </p>
-          </div>
-  </div>
-    
-  
-    
-  </div>
-  
-
-
-</header>
-
-
+<p>as=hbn— title: “Clock data interpolation TN draft” author: “Thornton” output: bookdown::html_document2 bibliography: References.bib</p>
+<hr>
 <!--- Open Command Palette: Press F1 or Ctrl + Shift + P to open the command palette.
 Run Knit Command: Type rmarkdown: Render and select the desired output format (e.g., HTML, PDF).--->
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
 <p>The purpose of this report is to present a methodological approach for applying interpolation techniques to clock frequency data. This report is a result of collaborative research into statistical methods for the analysis of high-precision atomic clock data by the Statistical Engineering Division of the Information Technology Laboratory and the Time and Frequency Division of the Physical Measurement Laboratory.</p>
-<p>Because of the high precision in observed data, the reproducible estimation of, say, atomic clock frequency ratios requires careful attention to data processing steps. The idiosyncrasies of processing clock data that we focus on in this report include options for the treatment of missing data and for the comparison of low frequency data to high frequency data. We describe the nature of these challenges with supporting examples and we present recommendations for addressing these challenges in a transparent, reproducible manner.</p>
-<section id="audience" class="level2">
-<h2 class="anchored" data-anchor-id="audience">Audience</h2>
-</section>
-<section id="collaborators" class="level2">
-<h2 class="anchored" data-anchor-id="collaborators">Collaborators</h2>
+<p>Because it is such high precision data, the reproducible estimation of atomic clock frequency ratios requires careful attention to data processing steps. The idiosyncrasies of processing clock data that we focus on in this report include options for the treatment of missing data and for the comparison of low frequency data to high frequency data. We describe the nature of these challenges with supporting examples and we present recommendations for addressing these challenges in a transparent, reproducible manner. The example analyses and code in this report are written in Python.</p>
+<section id="data-format" class="level2">
+<h2 class="anchored" data-anchor-id="data-format">Data Format</h2>
+<p>To generate a time series consisting of the ratio (or offset ratio) of two atomic clocks requires the combination of at least four individual time series, two of which are independent of each other and the others. Suppose we are interested in generating a time series for the ratio of an Al+ clock to that of a Yb clock. The two independent series consist of shift data corresponding to each clock. The data files for each clock, Al+ and Yb, contain three variables for each time series, the time stamp (in MJD), the value of the shift (in Hz), and a binary variable, IS_GOOD, denoting whether or not there was a known or suspected issue with the clock readings at that time. The other time series are found in a data file associated with the optical frequency comb. [Are these independent? All output from the same machine?] The columns of the comb data file correspond to frequency readings that can be specific to each clock. Calculating the optical frequencies for each clock based on the ErYb comb, for example, requires time series data corresponding to the three columns labeled fb_Yb_ErYb, fb_Al_ErYb, and SDR:frep_ErYb. [what do these names mean?] The Al+/Yb ratio is then found by adding the clock shift values to the optical frequencies for each clock and then taking the ratio of these sums multiplied by a scalar correction factor.</p>
 </section>
 <section id="report-organization" class="level2">
 <h2 class="anchored" data-anchor-id="report-organization">Report Organization</h2>
-<p>The next section presents some background information and an example to provide context for the problem at hand. Section 3 discusses the initial necessary data exploration steps, Section 4 covers interpolation methods for handling multiple, misaligned data sets, and Section 5 concludes with a summary and by reiterating the steps needed to produce a coherent final data set for estimation and inference of a clock ratio time series.</p>
+<p>The next section presents some background information and intoduces an example data set that will be referenced throughout. Section 3 discusses the initial data processing and exploration steps, Section 4 covers interpolation methods for handling multiple, misaligned data sets, and Section 5 concludes with a summary and by reiterating the steps needed to produce a coherent final data set for estimation and inference of a clock ratio time series.</p>
 <!-------------------------------------------------------------->
 </section>
 </section>
 <section id="background" class="level1">
 <h1>Background</h1>
-<p>The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let’s call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Each sub-series is independent of the other(s) but each may contain missing values and is irregularly sampled, possibly at very different frequencies. Furthermore, the sub-series may have slightly or dramatically different start and end times.</p>
-<p>The application that motivates this article is the analysis of atomic clock ratio data. In this context, there are at least four sub-series involved in deriving the target series; two independent clock time series consisting of shift values together with an indicator variable representing the quality of each observation and, for each clock, there is another time-series that is observed in accordance with the readings from an optical frequency comb (OFC). The comb experiment produces several time series, two of which match the two clock types used in the target series, the others of which may be used in the calculation of target series based on experimental settings.</p>
-<p><span class="citation" data-cites="percival">(Background on modeling clock data <a href="#ref-percival" role="doc-biblioref"><strong>percival?</strong></a> - create bib item)</span></p>
-<p>[Background on existing work on irregularly sampled time series.] <span class="citation" data-cites="shukla2019">Shukla and Marlin (<a href="#ref-shukla2019" role="doc-biblioref">2019</a>)</span> <span class="citation" data-cites="nieto2015">Nieto-Barajas and Sinha (<a href="#ref-nieto2015" role="doc-biblioref">2015</a>)</span> <span class="citation" data-cites="erdogan2005">Erdogan et al. (<a href="#ref-erdogan2005" role="doc-biblioref">2005</a>)</span> <span class="citation" data-cites="eckner2012">Eckner (<a href="#ref-eckner2012" role="doc-biblioref">2012</a>)</span></p>
-<p><span class="citation" data-cites="nieto2015">Nieto-Barajas and Sinha (<a href="#ref-nieto2015" role="doc-biblioref">2015</a>)</span> note that the study of unequally spaced time series can broadly be grouped into several different approaches. The first two dominant approaches are to approach the problem by deriving models for the unequally spaced data as is, or to reduce the irregularly sampled data to equally spaced observations first and then apply standard analysis techniques. The former approach…. Yet another perspective is to view the analysis of unequally spaced time series as a problem of missing data. Methods from this perspective may be evaluated by their ability to predict missing observations <span class="citation" data-cites="nieto2015">(<a href="#ref-nieto2015" role="doc-biblioref">Nieto-Barajas and Sinha 2015</a>)</span>.</p>
-<p><span class="citation" data-cites="pavia2010">Pavı́a-Miralles et al. (<a href="#ref-pavia2010" role="doc-biblioref">2010</a>)</span> provide a thorough review of interpolation techniques with an emphasis on temporal disaggregation and benchmarking. <span class="citation" data-cites="pavia2010">Pavı́a-Miralles et al. (<a href="#ref-pavia2010" role="doc-biblioref">2010</a>)</span> discuss both a temporal perspective and analysis in the frequency domain. In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. In addition to providing a useful overview of common time series interpolation techniques, <span class="citation" data-cites="lepot2017">Lepot, Aubin, and Clemens (<a href="#ref-lepot2017" role="doc-biblioref">2017</a>)</span> also remark upon the assessment of uncertaintites that result from interpolation, noting that the law of propagation of uncertaintites does not apply in this case. In Section 4, we focus our attention on interpolation methods that permit uncertainty quantification since this is of interest to our scientific collaborators.</p>
-<p><span class="citation" data-cites="howe2021">Eckner (<a href="#ref-eckner2012" role="doc-biblioref">2012</a>)</span></p>
+<p>The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let’s call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Some sub-series may be independent of the others, each may contain missing values, and each is an irregularly sampled time series, possibly at very different frequencies. Furthermore, the sub-series may have slightly or dramatically different start and end times.</p>
+<p>The application that motivates this article is the analysis of atomic clock ratio data. In this context, there are at least four sub-series involved in deriving the target series; two independent clock time series consisting of shift values together with an indicator variable representing the quality of each observation and, for each clock, there is another time-series that is observed in accordance with the readings from an optical frequency comb (OFC). The comb experiment produces several time series, two of which match the two clock types used in the ratio target series, the others of which may be used in the calculation of target series based on experimental settings.</p>
+<p><span class="citation" data-cites="percival">[Background on modeling clock data @percival - create bib item]</span></p>
+<p>[Background on existing work on irregularly sampled time series.] <span class="citation" data-cites="shukla2019">@shukla2019</span> <span class="citation" data-cites="nieto2015">@nieto2015</span> <span class="citation" data-cites="erdogan2005">@erdogan2005</span> <span class="citation" data-cites="eckner2012">@eckner2012</span></p>
+<p><span class="citation" data-cites="nieto2015">@nieto2015</span> note that the study of unequally spaced time series can broadly be grouped into several different approaches. The first two dominant approaches are to approach the problem by deriving models for the unequally spaced data as is, or to reduce the irregularly sampled data to equally spaced observations first and then apply standard analysis techniques. The former approach…. Yet another perspective is to view the analysis of unequally spaced time series as a problem of missing data. Methods from this perspective may be evaluated by their ability to predict missing observations <span class="citation" data-cites="nieto2015">[@nieto2015]</span>.</p>
+<p><span class="citation" data-cites="pavia2010">@pavia2010</span> provide a thorough review of interpolation techniques with an emphasis on temporal disaggregation and benchmarking. <span class="citation" data-cites="pavia2010">@pavia2010</span> discuss both a temporal perspective and analysis in the frequency domain. In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. In addition to providing a useful overview of common time series interpolation techniques, <span class="citation" data-cites="lepot2017">@lepot2017</span> also remark upon the assessment of uncertaintites that result from interpolation, noting that the law of propagation of uncertaintites does not apply in this case. In Section 4, we focus our attention on interpolation methods that permit uncertainty quantification since this is of interest to our scientific collaborators.</p>
+<p><span class="citation" data-cites="howe2021">[More background on existing methods for univariate time series imputation from @howe2021, @pavia2010, @knotters2010, @eckner2012]</span></p>
 <p>[Background on mixed frequency data analysis]</p>
 <p>[Background on existing approaches for combining time series i.e.&nbsp;convolution of time series]</p>
 <!-------------------------------------------------------------->
 </section>
-<section id="data-exploration" class="level1">
-<h1>Data Exploration</h1>
+<section id="data-processing-and-exploration" class="level1">
+<h1>Data Processing and Exploration</h1>
+<section id="data-processing" class="level2">
+<h2 class="anchored" data-anchor-id="data-processing">Data Processing</h2>
+<p>There are two main processing steps that must be preformed before the data can be analysed. First, all signal data, including constants for correction factors, must be converted to high precision decimal types in Python. [add sentence or two about this]<br>
+Second, each clock’s shift data must be filtered to remove any data deemed poor quality based on the IS_GOOD variable. [add sentence about this and example code chunk]</p>
+</section>
 <section id="visualize-missing-data" class="level2">
 <h2 class="anchored" data-anchor-id="visualize-missing-data">Visualize Missing Data</h2>
 <p>Data visualization is an important first step to identify any missing data or unexpected patterns. It is crucial that individual time series are visualized before they are combined. This step also helps with the determination of identifying the overlapping window of observations which is the topic of the next section.</p>
-<p>To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e.&nbsp;truly empty or null data values).</p>
+<p>To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e.&nbsp;truly empty or null data values) in <code>myseries</code>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a>missing_index <span class="op">=</span> pd.isnull(time_series_data)</span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(missing_index.<span class="bu">sum</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(myseries.isna().<span class="bu">sum</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>While this numerical summary of missing values is informative, it is not enough to identify any unusual patterns of missingness. For this, there is no substitute for a visual analysis of the data. A useful Python package for visualizing missing data is the package “missingno” which can be implemented as follows.</p>
+<p>Another useful summary is the length of the longest sequence of missing values. The code below calculates the longest sequence (<code>max_streak</code>) of missing values in <code>myseries</code>.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> missingno <span class="im">as</span> msno</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>msno.matrix(time_series_data)</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>is_na <span class="op">=</span> myseries.isna()</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>max_streak <span class="op">=</span> current_streak <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> val <span class="kw">in</span> is_na:</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> val:</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        current_streak <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        max_streak <span class="op">=</span> <span class="bu">max</span>(max_streak, current_streak)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>    <span class="cf">else</span>:</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>        current_streak <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">"Longest sequence of NaNs:"</span>, max_streak, <span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
-<p>The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. This is the topic of the next subsection. Discussed in more detail later, interpolation techniques may be applied to impute individual missing data values. The only distinction between imputation and interpolation in this context is a matter of perspective as <span class="citation" data-cites="nieto2015">Nieto-Barajas and Sinha (<a href="#ref-nieto2015" role="doc-biblioref">2015</a>)</span> remark that “unevenly spaced time series have also been treated as equally spaced time series with missing observations.”</p>
-<p>On the other hand, large gaps of missing data must be factored in to the next step where one decides which window of observations to analyze in the target series. This is the topic of the next section.</p>
-<p>[Add note of caution about how keeping missing data until end is not advisable.] &lt;– re-think this..</p>
-<p>[Add discussion on data deemed poor quality (IS_GOOD variable)]</p>
+<p>While these numerical summaries of missing values are informative, they are not enough to identify any unusual patterns of missingness. For this, there is no substitute for a visual analysis of the data. A useful Python package for visualizing missing data is the package “missingno” which can be implemented on a data frame, <code>time_series_data</code>, as follows.</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> missingno <span class="im">as</span> msno</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>msno.matrix(time_series_data)</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<p>The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. This is the topic of the next subsection. Discussed in more detail later, interpolation techniques may be applied to impute individual missing data values. The only distinction between imputation and interpolation in this context is a matter of perspective as <span class="citation" data-cites="nieto2015">@nieto2015</span> remark that “unevenly spaced time series have also been treated as equally spaced time series with missing observations.”</p>
 </section>
 <section id="determine-overlapping-window-of-observation" class="level2">
 <h2 class="anchored" data-anchor-id="determine-overlapping-window-of-observation">Determine Overlapping Window of Observation</h2>
-<p>An important characteristic of clock and comb data is that the beginning and end point of observations may vary among each sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. [This may not be what to recommend. Need to think about the scope.] Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval <span class="math inline">\([t_{i}, t_{j}]\)</span> that includes the largest possible intersection of non-missing observations from each sub-series.</p>
+<p>An important characteristic of clock and comb data is that the beginning and end point of observations may vary among sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. [This may not be what to recommend. Need to think about the scope.] Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval <span class="math inline">\([t_{i}, t_{j}]\)</span> that includes the largest possible intersection of non-missing observations from each sub-series.</p>
 <p>Consider the figure below which marks the start and end points of observations for each sub-series, a time series of comb data, a time series from two different atomic clocks. If there are no large gaps of missing values in any of these series, the largest window of observation for the target series (which in this case is a ratio of the two clock values) begins at the first time point of the comb series and ends at the last time point of Clock 1’s series. Even though there are more observations outside of this range, these observations cannot be used because values from each time series are necessary to construct the target series.</p>
 <div class="cell">
 <div class="cell-output-display">
 <div class="quarto-figure quarto-figure-center">
 <figure class="figure">
-<p><img src="interp-impute-TN_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="interp-impute-TN_files/figure-html/unnamed-chunk-4-1.png" class="img-fluid figure-img" width="672"></p>
 <figcaption>Example start and end times relative to one another for two clock time series and for the observations from an optical frequency comb.</figcaption>
 </figure>
 </div>
@@ -222,25 +192,25 @@ Run Knit Command: Type rmarkdown: Render and select the desired output format (e
 <p>For this reason, the target time series cannot be computed over any time intervals containing sequentially missing values for one or more of the sub-series. It is more accurate in such cases to consider data before and after a large gap as separate time series with smaller sample sizes. Thus, in the case where a sub-series contains at least one large gap of missing values, the final overlapping window of observation will be considerably smaller as will the target series sample size. [Reiterate note about how keeping missing values until the end is not a valid approach - even if it can be computed with software.]</p>
 <p>In addition to visualizing the sub-series, the follow Python functions may be useful for detecting the overlapping window of observation for the target series.</p>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extracts series element that is as close to the target as possible without going over.</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lb_extract(target, data):</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    inx <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    stopper <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> stopper <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> data[inx] <span class="op">&lt;=</span> target:</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            inx <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> inx  </span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Extracts series element that is as close to target as possible without going under.  </span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ub_extract(target, data):</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    inx <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    stopper <span class="op">=</span> <span class="dv">1</span></span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> stopper <span class="op">==</span> <span class="dv">1</span>:</span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> data[<span class="bu">len</span>(data)<span class="op">-</span>inx] <span class="op">&gt;=</span> target:</span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>            inx <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">len</span>(data)<span class="op">-</span>inx </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Extracts series element that is as close to the target as possible without going over.</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> lb_extract(target, data):</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    inx <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    stopper <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> stopper <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> data[inx] <span class="op">&lt;=</span> target:</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>            inx <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> inx  </span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Extracts series element that is as close to target as possible without going under.  </span></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ub_extract(target, data):</span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>    inx <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>    stopper <span class="op">=</span> <span class="dv">1</span></span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="cf">while</span> stopper <span class="op">==</span> <span class="dv">1</span>:</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> data[<span class="bu">len</span>(data)<span class="op">-</span>inx] <span class="op">&gt;=</span> target:</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>            inx <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>        <span class="cf">else</span>:</span>
+<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>            <span class="cf">return</span> <span class="bu">len</span>(data)<span class="op">-</span>inx </span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 <!-------------------------------------------------------------->
 </section>
@@ -249,26 +219,26 @@ Run Knit Command: Type rmarkdown: Render and select the desired output format (e
 <h1>Interpolation</h1>
 <section id="frequency-alignment" class="level2">
 <h2 class="anchored" data-anchor-id="frequency-alignment">Frequency Alignment</h2>
-<p>The culmination of the previous data processing steps yields several independent sub-series that begin and end at the same time points but that may be observed with very different frequencies and have no missing data points. At this stage, there is no missing data in any of the sub-series; however, because each series is comprised of observations along an irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates.</p>
+<p>The culmination of the previous data processing steps yields several complete sub-series (i.e.&nbsp;that have no missing values) that begin and end at the same time points but that may be observed with very different, and irregular, frequencies. Because each series is comprised of observations along a distinct, irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates.</p>
 <p>Without loss of generality and for the sake of illustration, let us suppose that we are constructing a target series from an optical frequency comb sub-series and two clock sub-series. Suppose further that Clock 1 is observed with either a similar or a lower frequency than Clock 2 and that Clock 2 is observed with a similar frequency as the comb sub-series. Symbolically, we are assuming <span class="math inline">\(n_{C1} \leq n_{C2} \approx n_{OFC}\)</span>. In this context, the target series is a ratio time series for any two clocks. To derive the target series, the time points of observations for each sub-series must be in alignment with one another. That is, the times of observation for each series, <span class="math inline">\(t_{C1,i} = t_{C2,i} = t_{OFC,i}\)</span> for <span class="math inline">\(i = 1, \dots, n\)</span>. Note that this alignment condition can be met even if the series are irregularly sampled; irregular sampling for, say, Clock 1 would simply mean that <span class="math inline">\((t_{C1, i+1} - t_{C1, i})\)</span> is not equal for all <span class="math inline">\(i \in \{2, \dots, n_{C1}\}\)</span>. Here we give an overview of several methodological approaches one may take to align each series.</p>
 <p><strong>Method 1</strong>: Align Clock 1 with the observations of the comb. Then align Clock 2 with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series.</p>
 <!---**Method 2**: Align Clock 1 with the observations of Clock 2. Then align the new series for Clock 1 with the comb. Finally, align Clock 2 with the comb and proceed to derive the ratio time series for analysis. This approach may be reasonable if Clock 1 is observed with a much lower frequency compared to Clock 2. As with Method 1, the result will be a time series with the same irregular observation pattern as the comb data. --->
 <p><strong>Method 2</strong>: Realign the comb time series so that the observations are regularly sampled along the time interval of interest, i.e so that <span class="math inline">\((t_{OFC, i+1} - t_{OFC,i})\)</span> are equal for all <span class="math inline">\(i \in \{2, \dots, n_{OFC}\}\)</span>. Align Clock 1 with the new comb series. Align Clock 2 with the new comb series. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.</p>
 <p><strong>Method 3</strong>: Align Clock 1 with the observations of Clock 2. Then align the comb with Clock 2. Proceed to derive the ratio time series for analysis. The result of this approach will be a target series with the same irregularities in sampling as in Clock 2. This approach essentially disregards (or masks) comb data for the sake of matching the observational time points of Clock 2.</p>
 <p><strong>Method 4</strong>: Realign the time series from Clock 2 so that the observations are regularly sampled along the time interval of interest, i.e so that <span class="math inline">\((t_{C2, i+1} - t_{C2,i})\)</span> are equal for all <span class="math inline">\(i \in \{2, \dots, n_{C2}\}\)</span>. Align Clock 1 with the new series for Clock 2. Align the comb series with the new series for Clock 2. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.</p>
-<p>Note that none of the methods listed above suggest realigning a high frequency series to match a low frequency series (aggregating). This is because such an approach would sacrifice valuable information contained in the higher frequency series without serving a practical purpose in the context of our example. <!---and thus is generally not advisable. Within the context of this example where---> When the target series is a ratio of data from two separate clocks, it is worth considering how variable the values in the comb sub-series are. If these values are relatively constant, with practically negligible variability in the values associated with each clock, then Methods 3 and 4 may be preferable to Methods 1 and 2 because masking the values from the comb sub-series will be of little to no consequence. <!---Although it is listed above for the sake of completeness, Method 2 is inferior to the other methods because it results in an irregularly sampled time series and it requires three separate interpolation steps. In comparison,--> Methods 1 and 3 only require two separate interpolation steps. The drawback of these two methods, however is that the resulting time series is still irregularly observed. “A comparative analysis of time series is not feasible if the observation times are different <span class="citation" data-cites="nieto2015">Nieto-Barajas and Sinha (<a href="#ref-nieto2015" role="doc-biblioref">2015</a>)</span>.” “Any attempt of comparative or associative analysis between… two time series requires them to have both been measured at the same times <span class="citation" data-cites="nieto2015">Nieto-Barajas and Sinha (<a href="#ref-nieto2015" role="doc-biblioref">2015</a>)</span>.” However, if the sampling irregularities of the target series are so small that that are practically meaningless, then these approaches are preferable to the others because they require fewer interpolation steps.</p>
-<p>Methods 2 and 4, on the other hand, each require three separate interpolation steps. The advantage of these methods is that they result in a regularly sampled target series. Although it is possible (and perhaps preferable) to coherently analyse an irregularly sampled time series in the time domain (see e.g. <span class="citation" data-cites="eckner2012">Eckner (<a href="#ref-eckner2012" role="doc-biblioref">2012</a>)</span>), this is not an approach that is in popular use. <span class="citation" data-cites="eckner2019">Eckner (<a href="#ref-eckner2019" role="doc-biblioref">2019</a>)</span> has developed software to implement an analysis on irregularly sampled time series in the C library “utsAlgorithms” and the R package “utsOperators”. Example implementations for each of these four methods are included in next subsection.<br>
+<p>Note that none of the methods listed above suggest realigning a high frequency series to match a low frequency series (aggregating). This is because such an approach would sacrifice valuable information contained in the higher frequency series without serving a practical purpose in the context of our example. <!---and thus is generally not advisable. Within the context of this example where---> When the target series is a ratio of data from two separate clocks, it is worth considering how variable the values in the comb sub-series are. If these values are relatively constant, with practically negligible variability in the values associated with each clock, then Methods 3 and 4 may be preferable to Methods 1 and 2 because masking the values from the comb sub-series will be of little to no consequence. <!---Although it is listed above for the sake of completeness, Method 2 is inferior to the other methods because it results in an irregularly sampled time series and it requires three separate interpolation steps. In comparison,--> Methods 1 and 3 only require two separate interpolation steps. The drawback of these two methods, however is that the resulting time series is still irregularly observed. “A comparative analysis of time series is not feasible if the observation times are different <span class="citation" data-cites="nieto2015">@nieto2015</span>.” “Any attempt of comparative or associative analysis between… two time series requires them to have both been measured at the same times <span class="citation" data-cites="nieto2015">@nieto2015</span>.” However, if the sampling irregularities of the target series are so small that that are practically meaningless, then these approaches are preferable to the others because they require fewer interpolation steps.</p>
+<p>Methods 2 and 4, on the other hand, each require three separate interpolation steps. The advantage of these methods is that they result in a regularly sampled target series. Although it is possible (and perhaps preferable) to coherently analyse an irregularly sampled time series in the time domain (see e.g. <span class="citation" data-cites="eckner2012">@eckner2012</span>), this is not an approach that is in popular use. <span class="citation" data-cites="eckner2019">@eckner2019</span> has developed software to implement an analysis on irregularly sampled time series in the C library “utsAlgorithms” and the R package “utsOperators”. Example implementations for each of these four methods are included in next subsection.<br>
 <!---Depending on the type of analysis, having an irregularly sampled time series may or may not be of concern. For example, if the analysis is based upon a multitaper spectral approach such as that in [cite clock paper], then the sampling irregularities do not present an issue. [cite sources as to why not]. However, if the analysis is to proceed in [the time domain?], irregularities in the observational frequency of the time series will bias common estimates of interest such as the mean and AVAR. [cite sources]---></p>
 </section>
 <section id="interpolation-techniques" class="level2">
 <h2 class="anchored" data-anchor-id="interpolation-techniques">Interpolation techniques</h2>
 <p>Once a method for alignment is determined, the implementation of the alignment will occur through time series interpolation. There are many different techniques for interpolating time series data. [Cite some sources.]</p>
-<p><span class="citation" data-cites="pavia2010">Pavı́a-Miralles et al. (<a href="#ref-pavia2010" role="doc-biblioref">2010</a>)</span> section 6 on kalman filter method (others don’t seem applicable)</p>
-<p><span class="citation" data-cites="lepot2017">Lepot, Aubin, and Clemens (<a href="#ref-lepot2017" role="doc-biblioref">2017</a>)</span> categorize two general interpolation approaches, deterministic and stochastic. Popular deterministic approaches include nearest-neighbor interpolation, polynomial interpolation, interpolation through distance weighting, and interpolation through signal analysis. Stochastic interpolation techniques include regression methods, autoregressive methods, machine learning methods, methods based on data dynamics and methods based on kriging. Although extensive, these lists of approaches are far from exhaustive as this is an active area of statistical research and interpolation is a highly customizable proceedure. “The ranking of desirable [interpolation] methods (obtained through a trade-off of criteria) could be strongly dependent on the size of the gaps, and the nature of recorded phenomena and data <span class="citation" data-cites="lepot2017">(<a href="#ref-lepot2017" role="doc-biblioref">Lepot, Aubin, and Clemens 2017</a>)</span>.”</p>
-<p><span class="citation" data-cites="knotters2010">Knotters and Heuvelink (<a href="#ref-knotters2010" role="doc-biblioref">2010</a>)</span> provide another useful summary of a collection of interpolation techniques, specifically for use in environmental research. In particular, they remark upon the quantification of the accuracy of interpolated values and the incorporation of process knowledge (among other factors) which are relevant in the context of clock data. Importantly, they highlight that validation studies are necessary to assess the quality of interpolation studies.</p>
-<p>For interpolation in time, and for methods that quantify uncertainty without depending on ancillary information, <span class="citation" data-cites="knotters2010">Knotters and Heuvelink (<a href="#ref-knotters2010" role="doc-biblioref">2010</a>)</span> discuss methods based on kriging, ARIMA modelling, a state-space approach and Kalman filtering, and minimum mean absolute error linear interpolation (MMAELI). Model based interpolation approaches (e.g.&nbsp;ARIMA for transfer function-noise models) are appropriate for time series that are regularly observed. Kalman filterning or smoothing however, can be applied to interpolate irregularly observed time series <span class="citation" data-cites="knotters2010">(<a href="#ref-knotters2010" role="doc-biblioref">Knotters and Heuvelink 2010</a>)</span>. Although there are many more interpolation techniques covered in <span class="citation" data-cites="knotters2010">Knotters and Heuvelink (<a href="#ref-knotters2010" role="doc-biblioref">2010</a>)</span>, for the application to clock ratio data, we are not concerned with interpolation in space or space-time nor are we concerned with methods that do not quantify uncertainty about the interpolated values. Furthermore, we do not suppose that ancillary information is available. (see section 3.1.3 and 3.2 as well)</p>
+<p><span class="citation" data-cites="pavia2010">@pavia2010</span> section 6 on kalman filter method (others don’t seem applicable)</p>
+<p><span class="citation" data-cites="lepot2017">@lepot2017</span> categorize two general interpolation approaches, deterministic and stochastic. Popular deterministic approaches include nearest-neighbor interpolation, polynomial interpolation, interpolation through distance weighting, and interpolation through signal analysis. Stochastic interpolation techniques include regression methods, autoregressive methods, machine learning methods, methods based on data dynamics and methods based on kriging. Although extensive, these lists of approaches are far from exhaustive as this is an active area of statistical research and interpolation is a highly customizable proceedure. “The ranking of desirable [interpolation] methods (obtained through a trade-off of criteria) could be strongly dependent on the size of the gaps, and the nature of recorded phenomena and data <span class="citation" data-cites="lepot2017">[@lepot2017]</span>.”</p>
+<p><span class="citation" data-cites="knotters2010">@knotters2010</span> provide another useful summary of a collection of interpolation techniques, specifically for use in environmental research. In particular, they remark upon the quantification of the accuracy of interpolated values and the incorporation of process knowledge (among other factors) which are relevant in the context of clock data. Importantly, they highlight that validation studies are necessary to assess the quality of interpolation studies.</p>
+<p>For interpolation in time, and for methods that quantify uncertainty without depending on ancillary information, <span class="citation" data-cites="knotters2010">@knotters2010</span> discuss methods based on kriging, ARIMA modelling, a state-space approach and Kalman filtering, and minimum mean absolute error linear interpolation (MMAELI). Model based interpolation approaches (e.g.&nbsp;ARIMA for transfer function-noise models) are appropriate for time series that are regularly observed. Kalman filterning or smoothing however, can be applied to interpolate irregularly observed time series <span class="citation" data-cites="knotters2010">[@knotters2010]</span>. Although there are many more interpolation techniques covered in <span class="citation" data-cites="knotters2010">@knotters2010</span>, for the application to clock ratio data, we are not concerned with interpolation in space or space-time nor are we concerned with methods that do not quantify uncertainty about the interpolated values. Furthermore, we do not suppose that ancillary information is available. (see section 3.1.3 and 3.2 as well)</p>
 <p>aggregation (or upscaling) is the process of transferring information from a more detailed scale to a coarser scale. and disaggregation (downscaling) time series (section 6); software in section 7</p>
-<p><span class="citation" data-cites="nieto2015">Nieto-Barajas and Sinha (<a href="#ref-nieto2015" role="doc-biblioref">2015</a>)</span></p>
+<p><span class="citation" data-cites="nieto2015">@nieto2015</span></p>
 <p>[mention and demonstrate use of python packages]</p>
 <p>For the convolution of univariate time series…</p>
 <p><strong>Example implementation of Method 1.</strong> We will compare two analysese of a clock ratio time series in this example. The first analysis (a) ignores the irregular sampling of the time series. The second analysis (b) makes use of the R package “utsOperators” to derive estimators that take into account the irregularies in sampling.</p>
@@ -287,38 +257,9 @@ Run Knit Command: Type rmarkdown: Render and select the desired output format (e
 <p>Step 3) Determine which method of frequency alignment will be used and decide upon an interpolation technique to implement the alignment.</p>
 <p>Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount</p>
 <p>[all of this analysis is occurring within the time domain? not the frequency domain?]</p>
-
 </section>
 
-<div id="quarto-appendix" class="default"><section class="quarto-appendix-contents" role="doc-bibliography" id="quarto-bibliography"><h2 class="anchored quarto-appendix-heading">References</h2><div id="refs" class="references csl-bib-body hanging-indent" data-entry-spacing="0" role="list">
-<div id="ref-eckner2012" class="csl-entry" role="listitem">
-Eckner, Andreas. 2012. <span>“A Framework for the Analysis of Unevenly Spaced Time Series Data.”</span> <em>Preprint. Available at: Http://Www. Eckner. Com/Papers/Unevenly_spaced_time_series_analysis</em>, 93.
-</div>
-<div id="ref-eckner2019" class="csl-entry" role="listitem">
-———. 2019. <span>“Algorithms for Unevenly Spaced Time Series: Moving Averages and Other Rolling Operators.”</span> <em>Preprint. Available at: Http://Www. Eckner. Com/Papers/Unevenly_spaced_time_series_analysis</em>, 14.
-</div>
-<div id="ref-erdogan2005" class="csl-entry" role="listitem">
-Erdogan, Emre, Sheng Ma, Alina Beygelzimer, and Irina Rish. 2005. <span>“Statistical Models for Unequally Spaced Time Series.”</span> In <em>Proceedings of the 2005 SIAM International Conference on Data Mining</em>, 626–30. SIAM.
-</div>
-<div id="ref-howe2021" class="csl-entry" role="listitem">
-Howe, David A., and Chloe Champagne. 2021. <span>“Time-Series Imputation Algorithm.”</span> https://doi.org/<a href="https://doi.org/10.36227/techrxiv.16926694.v1">https://doi.org/10.36227/techrxiv.16926694.v1</a>.
-</div>
-<div id="ref-knotters2010" class="csl-entry" role="listitem">
-Knotters, Martin, and GBM Heuvelink. 2010. <span>“A Disposition of Interpolation Techniques.”</span> Wettelijke Onderzoekstaken Natuur &amp; Milieu.
-</div>
-<div id="ref-lepot2017" class="csl-entry" role="listitem">
-Lepot, Mathieu, Jean-Baptiste Aubin, and François HLR Clemens. 2017. <span>“Interpolation in Time Series: An Introductive Overview of Existing Methods, Their Performance Criteria and Uncertainty Assessment.”</span> <em>Water</em> 9 (10): 796.
-</div>
-<div id="ref-nieto2015" class="csl-entry" role="listitem">
-Nieto-Barajas, Luis E, and Tapen Sinha. 2015. <span>“Bayesian Interpolation of Unequally Spaced Time Series.”</span> <em>Stochastic Environmental Research and Risk Assessment</em> 29 (2): 577–87.
-</div>
-<div id="ref-pavia2010" class="csl-entry" role="listitem">
-Pavı́a-Miralles, Jose Manuel et al. 2010. <span>“A Survey of Methods to Interpolate, Distribute and Extrapolate Time Series.”</span> <em>Journal of Service Science and Management</em> 3 (04): 449.
-</div>
-<div id="ref-shukla2019" class="csl-entry" role="listitem">
-Shukla, Satya Narayan, and Benjamin M Marlin. 2019. <span>“Interpolation-Prediction Networks for Irregularly Sampled Time Series.”</span> <em>arXiv Preprint arXiv:1909.07782</em>.
-</div>
-</div></section></div></main>
+</main>
 <!-- /main column -->
 <script id="quarto-html-after-body" type="application/javascript">
 window.document.addEventListener("DOMContentLoaded", function (event) {
