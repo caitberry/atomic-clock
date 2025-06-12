@@ -32,23 +32,22 @@ The next section presents some background information and intoduces an example d
 <!-------------------------------------------------------------->
 # Background 
 
-The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least three individual time series, we will call these sub-series. Some sub-series may be independent of the others, each may contain missing values, and each is an irregularly sampled time series, possibly at very different frequencies. Furthermore, the sub-series may have slightly or dramatically different start and end times. 
+The challenge presented here has several layers that complicate a traditional time series analysis. Although the ultimate analysis is of a single time series, let's call this the target series, the target series is computed based on calculations involving at least four individual time series, we will call these sub-series. Some sub-series may be independent of the others, each may contain missing values, and each <!--is an irregularly sampled time series, possibly at very different frequencies. Furthermore, the sub-series--> may have slightly or dramatically different start and end times. 
 
-The application that motivates this article is the analysis of atomic clock ratio data. In this context, there are at least four sub-series involved in deriving the target series; two independent clock time series consisting of shift values together with an indicator variable representing the quality of each observation and, for each clock, there is another time-series that is observed in accordance with the readings from an optical frequency comb (OFC). The comb experiment produces several time series, two of which match the two clock types used in the ratio target series, the others of which may be used in the calculation of target series based on experimental settings.  
+The application that motivates this article is the analysis of atomic clock ratio data. In this context, there are at least four sub-series involved in deriving the target series; two independent clock time series consisting of shift values together with an indicator variable representing the quality of each observation and, for each clock, there is another time-series that is observed in accordance with the readings from an optical frequency comb (OFC). The comb experiment produces several time series, two of which will correspond the two clock types used in the ratio target series, the others of which may be used in the calculation of target series based on experimental settings.  
 
 [Background on modeling clock data @percival - create bib item]
 
-[Background on existing work on irregularly sampled time series.] @shukla2019 @nieto2015 @erdogan2005 @eckner2012
+<!--[Background on existing work on irregularly sampled time series.] @shukla2019 @nieto2015 @erdogan2005 @eckner2012-->
 
-@nieto2015 note that the study of unequally spaced time series can broadly be grouped into several different approaches. The first two dominant approaches are to approach the problem by deriving models for the unequally spaced data as is, or to reduce the irregularly sampled data to equally spaced observations first and then apply standard analysis techniques. The former approach.... Yet another perspective is to view the analysis of unequally spaced time series as a problem of missing data. Methods from this perspective may be evaluated by their ability to predict missing observations [@nieto2015]. 
+<!--@nieto2015 note that the study of unequally spaced time series can broadly be grouped into several different approaches. The first two dominant approaches are to approach the problem by deriving models for the unequally spaced data as is, or to reduce the irregularly sampled data to equally spaced observations first and then apply standard analysis techniques. The former approach.... Yet another perspective is to view the analysis of unequally spaced time series as a problem of missing data. Methods from this perspective may be evaluated by their ability to predict missing observations [@nieto2015].--> 
 
 @pavia2010 provide a thorough review of interpolation techniques with an emphasis on temporal disaggregation and benchmarking. @pavia2010 discuss both a temporal perspective and analysis in the frequency domain. In this article, we restrict our focus to analysis in the time domain. In the example application of atomic clock ratio data, the results of interest include estimates of the mean and Allan deviation of the target series. In addition to providing a useful overview of common time series interpolation techniques, @lepot2017 also remark upon the assessment of uncertaintites that result from interpolation, noting that the law of propagation of uncertaintites does not apply in this case. In Section 4, we focus our attention on interpolation methods that permit uncertainty quantification since this is of interest to our scientific collaborators. 
 
 [More background on existing methods for univariate time series imputation from @howe2021, @pavia2010, @knotters2010, @eckner2012]
 
-[Background on mixed frequency data analysis] 
-
-[Background on existing approaches for combining time series i.e. convolution of time series]
+<!--[Background on mixed frequency data analysis] 
+[Background on existing approaches for combining time series i.e. convolution of time series]-->
 
 
 
@@ -57,12 +56,19 @@ The application that motivates this article is the analysis of atomic clock rati
 
 ## Data Processing 
 
-There are two main processing steps that must be preformed before the data can be analysed. First, all signal data, including constants for correction factors, must be converted to high precision decimal types in Python. [add sentence or two about this]  
-Second, each clock's shift data must be filtered to remove any data deemed poor quality based on the IS_GOOD variable. [add sentence about this and example code chunk]  
+There are two main processing steps to preform before the data can be analysed. First, all signal data, including constants used as correction factors, must be converted to high precision decimal types in Python. [add sentence or two about this]  
+
+Second, each clock's shift data must be filtered to remove any data deemed poor quality based on the binary IS_GOOD variable. Suppose the shift data for an Al+ clock is contained in the data frame `shift_data_Al`. The following code extracts only the data points where the signal was deemed to be of good quality. The filtered shift data frame is called `shift_data_Al_good`. The resetting of the indicies is helpful in another processing step discussed later where we select an overlapping window of observations.   
+
+```{python, eval=FALSE, echo=TRUE}
+good_condition_al = shift_data_Al["IS_GOOD"] == 1
+shift_data_Al_good = shift_data_Al[good_condition_al].reset_index(drop=True)
+```
+
 
 ## Visualize Missing Data 
 
-Data visualization is an important first step to identify any missing data or unexpected patterns. It is crucial that individual time series are visualized before they are combined. This step also helps with the determination of identifying the overlapping window of observations which is the topic of the next section. 
+Data visualization is an important step to identify any missing data or unexpected patterns. It is crucial that individual time series are visualized before they are combined. This step also helps with the determination of identifying the overlapping window of observations which is the topic of the next section. 
 
 To understand the magnitude of any missing data issues, one can count the missing observations in each time series. For example, the following Python code reports the total number of missing data points (i.e. truly empty or null data values) in `myseries`. 
 
@@ -93,12 +99,12 @@ msno.matrix(time_series_data)
 plt.show()
 ```
 
-The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. This is the topic of the next subsection. Discussed in more detail later, interpolation techniques may be applied to impute individual missing data values. The only distinction between imputation and interpolation in this context is a matter of perspective as @nieto2015 remark that "unevenly spaced time series have also been treated as equally spaced time series with missing observations."
+The treatment of long sequences of missing data is distinct from the treatment of individual missing data points. While common imputation techniques for univariate time series can be implemented for individual missing values, long sequences of missing values indicate a need to reconsider the start and end times for each sub-series. This is the topic of the next subsection. Discussed in more detail later, interpolation techniques may be applied to impute individual missing data values. <!--The only distinction between imputation and interpolation in this context is a matter of perspective as @nieto2015 remark that "unevenly spaced time series have also been treated as equally spaced time series with missing observations."-->
 
 
 ## Determine Overlapping Window of Observation 
 
-An important characteristic of clock and comb data is that the beginning and end point of observations may vary among sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. [This may not be what to recommend. Need to think about the scope.] Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{i}, t_{j}]$ that includes the largest possible intersection of non-missing observations from each sub-series. 
+An important characteristic of clock and comb data is that the beginning and end point of observations may vary among sub-series. If there are any large gaps of missing data in the clock shift files, this should also be taken into consideration when determining the start and end time points of the data. <!--[This may not be what to recommend. Need to think about the scope.]--> Therefore, a necessary component to preparing the data for analysis is first identifying the overlapping windows of observation for each time series. The goal of this step is to find a time interval $[t_{i}, t_{j}]$ that includes the largest possible intersection of non-missing observations from each sub-series. 
 
 Consider the figure below which marks the start and end points of observations for each sub-series, a time series of comb data, a time series from two different atomic clocks. If there are no large gaps of missing values in any of these series, the largest window of observation for the target series (which in this case is a ratio of the two clock values) begins at the first time point of the comb series and ends at the last time point of Clock 1's series. Even though there are more observations outside of this range, these observations cannot be used because values from each time series are necessary to construct the target series.  
 
@@ -128,9 +134,9 @@ ggplot(df_plot) +
         axis.title = element_blank())
 ```
 
-For this reason, the target time series cannot be computed over any time intervals containing sequentially missing values for one or more of the sub-series. It is more accurate in such cases to consider data before and after a large gap as separate time series with smaller sample sizes. Thus, in the case where a sub-series contains at least one large gap of missing values, the final overlapping window of observation will be considerably smaller as will the target series sample size. [Reiterate note about how keeping missing values until the end is not a valid approach - even if it can be computed with software.]   
+For this reason, the target time series cannot be computed over any time intervals containing sequentially missing values for one or more of the sub-series. It is more accurate in such cases to consider data before and after a large gap as separate time series with smaller sample sizes. Thus, in the case where a sub-series contains at least one large gap of missing values, the final overlapping window of observation will be considerably smaller as will the target series sample size. <!--[Reiterate note about how keeping missing values until the end is not a valid approach - even if it can be computed with software.]-->   
 
-In addition to visualizing the sub-series, the follow Python functions may be useful for detecting the overlapping window of observation for the target series. 
+In addition to visualizing the sub-series, the following Python functions are useful for detecting the overlapping window of observation for the target series. 
 
 ```{python, eval=FALSE, echo=TRUE}
 # Extracts series element that is as close to the target as possible without going over.
@@ -160,32 +166,29 @@ def ub_extract(target, data):
 
 ## Frequency Alignment
 
-The culmination of the previous data processing steps yields several complete sub-series (i.e. that have no missing values) that begin and end at the same time points but that may be observed with very different, and irregular, frequencies. Because each series is comprised of observations along a distinct, irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates. 
+The culmination of the previous data processing steps yields several complete sub-series (i.e. time series with no missing values) that begin and end at the same time points but that may be observed with very different, and irregular, frequencies, especially due to the discarding of poor quality shift values. Because each series is comprised of observations along a distinct, possibly irregular time scale, we are not yet ready to compute the target series. In the context of atomic clock data, the comb time series are typically observed more regularly than any individual clock shift time series. Thus the comb data represent a high-frequency sub-series and the clock shift data are low-frequency sub-series in comparison. Furthermore, it may be the case that each clock sub-series is sampled at very different rates. 
 
 Without loss of generality and for the sake of illustration, let us suppose that we are constructing a target series from an optical frequency comb sub-series and two clock sub-series. Suppose further that Clock 1 is observed with either a similar or a lower frequency than Clock 2 and that Clock 2 is observed with a similar frequency as the comb sub-series. Symbolically, we are assuming $n_{C1} \leq n_{C2} \approx n_{OFC}$. In this context, the target series is a ratio time series for any two clocks. To derive the target series, the time points of observations for each sub-series must be in alignment with one another. That is, the times of observation for each series, $t_{C1,i} = t_{C2,i} = t_{OFC,i}$ for $i = 1, \dots, n$. Note that this alignment condition can be met even if the series are irregularly sampled; irregular sampling for, say, Clock 1 would simply mean that $(t_{C1, i+1} - t_{C1, i})$ is not equal for all $i \in \{2, \dots, n_{C1}\}$. Here we give an overview of several methodological approaches one may take to align each series.
 
-**Method 1**: Align Clock 1 with the observations of the comb. Then align Clock 2 with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling as the comb series.  
+**Method 1**: Align Clock 1 with the observations of the comb. Then align Clock 2 with the observations of the comb. Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling (if there are any) as the comb series.  
 
-<!---**Method 2**: Align Clock 1 with the observations of Clock 2. Then align the new series for Clock 1 with the comb. Finally, align Clock 2 with the comb and proceed to derive the ratio time series for analysis. This approach may be reasonable if Clock 1 is observed with a much lower frequency compared to Clock 2. As with Method 1, the result will be a time series with the same irregular observation pattern as the comb data. --->
 
 **Method 2**: Realign the comb time series so that the observations are regularly sampled along the time interval of interest, i.e so that $(t_{OFC, i+1} - t_{OFC,i})$ are equal for all $i \in \{2, \dots, n_{OFC}\}$. Align Clock 1 with the new comb series. Align Clock 2 with the new comb series. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.  
 
-**Method 3**: Align Clock 1 with the observations of Clock 2. Then align the comb with Clock 2. Proceed to derive the ratio time series for analysis. The result of this approach will be a target series with the same irregularities in sampling as in Clock 2. This approach essentially disregards (or masks) comb data for the sake of matching the observational time points of Clock 2. 
+**Method 3**: Align Clock 1 with the observations of Clock 2. Then align the comb with Clock 2. Proceed to derive the ratio time series for analysis. The result of this approach will be a target series with the same irregularities in sampling (if any) as in Clock 2. This approach essentially disregards (or masks) comb data for the sake of matching the observational time points of Clock 2. 
 
 **Method 4**: Realign the time series from Clock 2 so that the observations are regularly sampled along the time interval of interest, i.e so that $(t_{C2, i+1} - t_{C2,i})$ are equal for all $i \in \{2, \dots, n_{C2}\}$. Align Clock 1 with the new series for Clock 2. Align the comb series with the new series for Clock 2. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series. 
 
 Note that none of the methods listed above suggest realigning a high frequency series to match a low frequency series (aggregating). This is because such an approach would sacrifice valuable information contained in the higher frequency series without serving a practical purpose in the context of our example. <!---and thus is generally not advisable. Within the context of this example where---> When the target series is a ratio of data from two separate clocks, it is worth considering how variable the values in the comb sub-series are. If these values are relatively constant, with practically negligible variability in the values associated with each clock, then Methods 3 and 4 may be preferable to Methods 1 and 2 because masking the values from the comb sub-series will be of little to no consequence. 
-<!---Although it is listed above for the sake of completeness, Method 2 is inferior to the other methods because it results in an irregularly sampled time series and it requires three separate interpolation steps. In comparison,--> 
-Methods 1 and 3 only require two separate interpolation steps. The drawback of these two methods, however is that the resulting time series is still irregularly observed. "A comparative analysis of time series is not feasible if the observation times are different @nieto2015." "Any attempt of comparative or associative analysis between... two time series requires them to have both been measured at the same times @nieto2015." However, if the sampling irregularities of the target series are so small that that are practically meaningless, then these approaches are preferable to the others because they require fewer interpolation steps. 
 
-Methods 2 and 4, on the other hand, each require three separate interpolation steps. The advantage of these methods is that they result in a regularly sampled target series. Although it is possible (and perhaps preferable) to coherently analyse an irregularly sampled time series in the time domain (see e.g. @eckner2012), this is not an approach that is in popular use. @eckner2019 has developed software to implement an analysis on irregularly sampled time series in the C library "utsAlgorithms" and the R package "utsOperators". Example implementations for each of these four methods are included in next subsection.    
-<!---Depending on the type of analysis, having an irregularly sampled time series may or may not be of concern. For example, if the analysis is based upon a multitaper spectral approach such as that in [cite clock paper], then the sampling irregularities do not present an issue. [cite sources as to why not]. However, if the analysis is to proceed in [the time domain?], irregularities in the observational frequency of the time series will bias common estimates of interest such as the mean and AVAR. [cite sources]---> 
+Methods 1 and 3 only require two separate interpolation steps. The drawback of these two methods, however is that the resulting time series is still irregularly observed. "A comparative analysis of time series is not feasible if the observation times are different @nieto2015." "Any attempt of comparative or associative analysis between... two time series requires them to have both been measured at the same times @nieto2015." However, if the sampling irregularities of the target series are so small that that are practically meaningless, then these approaches may be preferable to the others because they require fewer interpolation steps. 
 
+<!--Methods 2 and 4, on the other hand, each require three separate interpolation steps. The advantage of these methods is that they result in a regularly sampled target series. Although it is possible (and perhaps preferable) to coherently analyse an irregularly sampled time series in the time domain (see e.g. @eckner2012), this is not an approach that is in popular use. @eckner2019 has developed software to implement an analysis on irregularly sampled time series in the C library "utsAlgorithms" and the R package "utsOperators". Example implementations for each of these four methods are included in next subsection.-->
 
 
 
 
-## Interpolation techniques 
+## Interpolation Techniques in Python 
 
 Once a method for alignment is determined, the implementation of the alignment will occur through time series interpolation. There are many different techniques for interpolating time series data. [Cite some sources.]  
 
@@ -204,18 +207,15 @@ aggregation (or upscaling) is the process of transferring information from a mor
 @nieto2015  
 
 
-[mention and demonstrate use of python packages] 
-
-For the convolution of univariate time series... 
-
-**Example implementation of Method 1.** We will compare two analysese of a clock ratio time series in this example. The first analysis (a) ignores the irregular sampling of the time series. The second analysis (b) makes use of the R package "utsOperators" to derive estimators that take into account the irregularies in sampling. 
+<!--**Example implementation of Method 1.** We will compare two analysese of a clock ratio time series in this example. The first analysis (a) ignores the irregular sampling of the time series. The second analysis (b) makes use of the R package "utsOperators" to derive estimators that take into account the irregularies in sampling. 
 
 **Example implementation of Method 2.**
 
 **Example implementation of Method 3.** We will compare two analysese of a clock ratio time series in this example. The first analysis (a) ignores the irregular sampling of the time series. The second analysis (b) makes use of the R package "utsOperators" to derive estimators that take into account the irregularies in sampling. 
 
-**Example implementation of Method 4.**
+**Example implementation of Method 4.**-->
 
+# Example Analysis
 
 
 <!-------------------------------------------------------------->
@@ -226,15 +226,13 @@ For the convolution of univariate time series...
 
 The process we have outlined for aligning the observational frequency of clock time series follows these steps: 
 
-Step 1) Process the data for each time series to determine the final window of observation and exclude low-quality data. 
+Step 1) Process the data for each time series to determine the final window of observation, exclude low-quality data, and ensure the signal data type is a high precision decimal. 
 
-Step 2) Determine if there are any missing data and decide whether or not to impute values that are missing. 
+Step 2) Determine if there are any missing data from the OFC and decide whether or not to impute values that are missing. 
 
 Step 3) Determine which method of frequency alignment will be used and decide upon an interpolation technique to implement the alignment. 
 
 Calculate clock frequencies by adding together comb frequencies and shift data, scaled by the total correction amount 
-
-[all of this analysis is occurring within the time domain? not the frequency domain?] 
 
 
 
