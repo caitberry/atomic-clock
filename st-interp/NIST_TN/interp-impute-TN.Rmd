@@ -173,6 +173,8 @@ Without loss of generality and for the sake of illustration, let us suppose that
 **Method 1**: Align Clock 1 with the observations of the comb. Then align Clock 2 with the observations of the comb. <!--Proceed to derive the ratio time series for analysis. The result of this approach will be a time series with the same irregularities in sampling (if there are any) as the comb series.--> 
 
 ```{python, eval=FALSE, echo=TRUE}
+import numpy as np
+
 clock1_aligned = np.interp(comb["MJD"], clock1["MJD"], clock1["shift"])
 clock2_aligned = np.interp(comb["MJD"], clock2["MJD"], clock2["shift"])
 ```
@@ -180,6 +182,8 @@ clock2_aligned = np.interp(comb["MJD"], clock2["MJD"], clock2["shift"])
 **Method 2**: Align Clock 2 with the observations of Clock 1. Then align the comb with the observations of Clock 1. 
 
 ```{python, eval=FALSE, echo=TRUE}
+import numpy as np
+
 clock2_aligned = np.interp(clock1["MJD"], clock2["MJD"], clock2["shift"])
 comb_aligned = np.interp(clock1["MJD"], comb["MJD"], comb["column.value"])
 ```
@@ -187,9 +191,15 @@ comb_aligned = np.interp(clock1["MJD"], comb["MJD"], comb["column.value"])
 **Method 3**: Align Clock 1 with the observations of Clock 2. Then align the comb with the observations of Clock 2. 
 
 ```{python, eval=FALSE, echo=TRUE}
+import numpy as np
+
 clock1_aligned = np.interp(clock2["MJD"], clock1["MJD"], clock1["shift"])
 comb_aligned = np.interp(clock2["MJD"], comb["MJD"], comb["column.value"])
 ```
+
+Preference for any alignment method that results in evenly sampled time series. The `numpy.interp(x, xp, fp)` function performs one-dimensional piecewise linear interpolation where `x` are the x-coordinates of the interpolated values, `xp` are the (increasing) x-coordinates of the data points, and `fp` are the y-coordinates of the data points corresponding to each `xp` value. (source:https://docs.scipy.org/doc//numpy-1.8.0/reference/generated/numpy.interp.html) The drawback of this method is that it can only preform linear interpolation. 
+
+Outer join MJD values 
 
 <!--**Method 2**: Realign the comb time series so that the observations are regularly sampled along the time interval of interest, i.e so that $(t_{OFC, i+1} - t_{OFC,i})$ are equal for all $i \in \{2, \dots, n_{OFC}\}$. Align Clock 1 with the new comb series. Align Clock 2 with the new comb series. Proceed to derive the ratio time series for analysis. The result of this approach will be a regularly sampled time series.  
 
