@@ -48,6 +48,9 @@ po/*~
 # RStudio Connect folder
 rsconnect/
 
+# DS Store files 
+*.DS_Store
+
 # Latex files
 st-interp/NIST_TN/main.aux
 st-interp/NIST_TN/main.fdb_latexmk
