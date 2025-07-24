@@ -15,6 +15,11 @@ unique(AlSr_df$date)
 
 allRatios=bind_rows(AlSr_df,AlYb_df,YbSr_df)
 
+
+### saving for Spectral fit avar comparisons
+# alldatNvals=allRatios %>% group_by(ratio,date) %>% summarise(non_na_meas_count = sum(!is.na(V2)))
+# write.csv(alldatNvals,paste0(folderLocation,"Code/ComparisonAnalysis2025/alldatNvals.csv"),row.names = F)
+
 for(j in 1:3){
   oneRatioDF=filter(allRatios, ratio==unique(allRatios$ratio)[j])
   for (i in 1:length(unique(oneRatioDF$date))){
