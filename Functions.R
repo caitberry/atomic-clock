@@ -693,14 +693,57 @@ spec_cov.mat_slow <- function(x.t, t.vec,N.fourier,taperMat,isWhite,
     if(i %% 100 == 0){print(paste(i," of ",N.fourier))}
     j = 1
     while(j <= i){
-      U <- taperMatOMIT*exp(-1i*2*pi*freq[i]*t.vecOMIT)
-      U_star <- t(taperMatOMIT*exp(1i*2*pi*freq[i]*t.vecOMIT)) 
-      V <- taperMatOMIT*exp(-1i*2*pi*freq[j]*t.vecOMIT)
-      V_star <- t(taperMatOMIT*exp(1i*2*pi*freq[j]*t.vecOMIT))#t(Conj(V))
-
-      C.mat[i,j] <-
-        (1/K^2)*2*sum(diag(R_mat %*% V %*% V_star %*%  U %*% U_star %*% R_mat))
+      # U <- taperMatOMIT*exp(-1i*2*pi*freq[i]*t.vecOMIT)
+      # U_star <- t(taperMatOMIT*exp(1i*2*pi*freq[i]*t.vecOMIT))
+      # V <- taperMatOMIT*exp(-1i*2*pi*freq[j]*t.vecOMIT)
+      # V_star <- t(taperMatOMIT*exp(1i*2*pi*freq[j]*t.vecOMIT))#t(Conj(V))
+      # 
+      # C.mat[i,j] <-
+      #   # (1/K^2)*2*sum(diag(R_mat %*% V %*% V_star %*%  U %*% U_star %*% R_mat))
+      #   (1/K^2)*2*sum(diag(V %*% V_star %*%  U %*% U_star)) #WN
+      # 
+      # 
       
+      # ### for WN
+      
+      E_i <- exp(-1i * 2 * pi * freq[i] * t.vecOMIT)
+      E_j <- exp(-1i * 2 * pi * freq[j] * t.vecOMIT)
+      
+      # Broadcasting the vectors is memory efficient
+      U <- taperMatOMIT * rep(E_i, times = K)
+      V <- taperMatOMIT * rep(E_j, times = K)
+      
+      # 2. Get the conjugate transpose of U (K x N)
+      U_star <- Conj(t(U))
+      
+      # 3. Perform the single most expensive computation.
+      # This operation sums out the large N dimension, resulting in a small KxK matrix.
+      # This is the O(K^2 * N) step.
+      A <- U_star %*% V
+      
+      # 4. Calculate the squared Frobenius norm of the small KxK matrix A.
+      # This operation is very fast (O(K^2)).
+      squared_frobenius_norm <- sum(Mod(A)^2)
+      
+      # 5. Apply the final scaling
+      C.mat[i,j] <- (2 / K^2) * squared_frobenius_norm
+      
+      
+      
+      
+      
+      
+      # C.mat[i,j] <-
+      #   (1/K^2)*sum(diag(U_star %*% V %*% V_star %*%  U ))
+      # (1/K^2)*2*K
+        # 1/K
+# 
+#               i=3
+#       j=5
+#       test=U_star %*% V
+#       dim(test)
+#       test[1:10,1:10]
+#       
       # #use cyclic property of trace to reorder and simplify calc
       # RV <- R_mat %*% V          # n x p
       # R2V <- R_mat %*% RV       # n x p
