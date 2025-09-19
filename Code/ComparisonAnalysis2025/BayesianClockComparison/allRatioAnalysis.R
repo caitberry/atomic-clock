@@ -7,15 +7,9 @@ rstan_options(auto_write = TRUE) # Saves compiled Stan models to disk
 options(mc.cores = parallel::detectCores()) # Use all available cores for parallel sampling
 
 # --- 1. Load Data ---
-# Make sure these CSV files are in your working directory,
-# or provide the full path to them.
-tryCatch({
-  df_AlSr <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_AlSr_data.csv")
-  df_AlYb <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_AlYb_data.csv")
-  df_YbSr <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_YbSr_data.csv")
-}, error = function(e) {
-  stop("Error loading CSV files. Make sure they are in the correct directory and named 'data_AlSr.csv', 'data_AlYb.csv', 'data_YbSr.csv'.\nOriginal error: ", e$message)
-})
+df_AlSr <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_AlSr_data.csv")
+df_AlYb <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_AlYb_data.csv")
+df_YbSr <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_YbSr_data.csv")
 
 
 # --- 2. Prepare Data for Stan ---
@@ -53,8 +47,8 @@ fit <- sampling(
   stan_model,
   data = stan_data,
   chains = 4,         # Number of independent MCMC chains
-  iter = 2000,        # Total iterations per chain (warmup + sampling)
-  warmup = 1000,      # Number of warmup iterations per chain
+  iter = 100000,        # Total iterations per chain (warmup + sampling)
+  warmup = 50000,      # Number of warmup iterations per chain
   thin = 1,           # Thinning interval
   # control = list(adapt_delta = 0.95) # Adjust adapt_delta if you get 'divergent transitions' warnings
   # seed = 1234         # For reproducibility
@@ -67,23 +61,8 @@ print(fit, pars = c("mu_x", "mu_y", "mu_z", "xi_x", "xi_y", "xi_z",
                     "alpha", "beta", "gamma", "eta_x", "eta_y", "eta_z"),
       probs = c(0.025, 0.5, 0.975))
 
-# Plot diagnostics (trace plots, density plots)
-# You can plot specific parameters or all.
-# Example: plot specific parameters
-rstan::traceplot(fit, pars = c("mu_x", "xi_x", "alpha"))
-rstan::stan_dens(fit, pars = c("mu_x", "xi_x", "alpha"))
-# Or plot all parameters
-# plot(fit)
-
 # Extract samples (e.g., for further custom analysis or plotting)
 posterior_samples <- as.data.frame(fit)
-
-# Example: Get mean of a parameter
-mean_mu_x <- mean(posterior_samples$mu_x)
-cat(paste0("\nMean of mu_x: ", mean_mu_x, "\n"))
-
-# Check for warnings/messages from Stan
-check_hmc_diagnostics(fit)
 
 pairs(fit, pars = c("mu_x", "mu_y", "mu_z"))
 

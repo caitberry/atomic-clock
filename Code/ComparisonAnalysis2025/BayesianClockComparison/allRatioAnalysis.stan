@@ -53,10 +53,9 @@ model {
   gamma ~ normal(0, 1);
 
   // Priors for eta parameters
-  eta_x ~ normal(mu_x, sqrt(0.4^2 + 0.3^2));
-  // eta_y ~ normal(mu_y, sqrt(1e-4*0.4^2 + 1e-4*0.3^2));
-  eta_y ~ normal(mu_y, sqrt(0.4^2 + 0.3^2));
-  eta_z ~ normal(mu_z, sqrt(0.4^2 + 0.3^2));
+  eta_x ~ normal(mu_x, sqrt(0.2^2 + 0.4^2));
+  eta_y ~ normal(mu_y, sqrt(0.2^2 + 0.3^2));
+  eta_z ~ normal(mu_z, sqrt(0.2^2 + 0.4^2));
 
   // Likelihood
   for (j in 1:N_AlSr) {
