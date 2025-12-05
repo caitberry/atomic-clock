@@ -1,0 +1,14 @@
+tau is 1, N is 5, endTime is 1.93290469646454
+tau is 1, N is 10, endTime is 1.89675824244817
+tau is 1, N is 5, endTime is 5.47023470401764
+tau is 1, N is 5, endTime is 8.42302972475688
+tau is 1, N is 5, endTime is 2.77054667472839
+tau is 1, N is 10, endTime is 2.91993427276611
+tau is 1, N is 5, endTime is 2.02245129346848
+tau is 1, N is 10, endTime is 2.03039951324463
+tau is 1, N is 5, endTime is 3.86413298447927
+tau is 1, N is 10, endTime is 4.01265182892481
+tau is 3, N is 13, endTime is 3.91234171787898
+tau is 3, N is 33, endTime is 3.81075611511866
+tau is 10, N is 13, endTime is 3.79900242090225
+tau is 10, N is 33, endTime is 2.97476304769516
