@@ -1,0 +1,16 @@
+{
+    "date": 20250313,
+    "lock number": 2,
+    "lattice light shift (Hz)": 0.0006210610132492871,
+    "lattice light shift uncertainty (Hz)": 0.0003200845648968379,
+    "dc stark shift (Hz)": -1.842821659404258e-06,
+    "dc stark shift uncertainty (Hz)": 1.3288399894368278e-06,
+    "bbr shift (Hz)": -2.1383761461858652,
+    "bbr shift uncertainty (Hz)": 0.0004007731499322867,
+    "background gas shift (Hz)": -0.00020258278324070605,
+    "background gas shift uncertainty (Hz)": 2.1728949835256305e-05,
+    "redshift (Hz)": -0.003906476591186088,
+    "redshift uncertainty (Hz)": 0.0011883174301332486,
+    "total shift (Hz)": -2.141865987368702,
+    "total shift uncertainty (Hz)": 0.0012944672549844564
+}
