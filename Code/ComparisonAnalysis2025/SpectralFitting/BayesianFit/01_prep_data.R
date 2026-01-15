@@ -5,44 +5,101 @@
 # source("Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/00_common.R")
 
 # --- OPTION A: LOAD REAL DATA ---
-
-dataName="AlYbApr15"
-files_list <- list.files(path = DATA_RAW_DIR, pattern = "spectral.*AlYb.*Apr15", full.names = TRUE)
-message(paste("Loading", length(files_list), "files..."))
-
-all_data <- lapply(files_list, function(file) {
-  x <- readRDS(file)
-  extract_from_list(x, basename(file))
-})
-
-spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
-
-# Add Metadata & Clean
-spectralEstDF <- spectralEstDF %>%
-  mutate(
-    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
-    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
-    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
-    Date  = as.Date(paste0("2025-", Month, "-", Day)),
-    # Calculate approx SD for weighting
-    sdish = sqrt((1 * spectrum^2)/MY_K)
-  )
+# 
+# dataName="AlYbApr15"
+# files_list <- list.files(path = DATA_RAW_DIR, pattern = "spectral.*AlYb.*Apr15", full.names = TRUE)
+# message(paste("Loading", length(files_list), "files..."))
+# 
+# all_data <- lapply(files_list, function(file) {
+#   x <- readRDS(file)
+#   extract_from_list(x, basename(file))
+# })
+# 
+# spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
+# 
+# ##############plot for sanity
+# ggplot() +
+#   # 1. The Noisy Simulated Data (Black Points)
+#   geom_point(data = filter(spectralEstDF,Date==unique(spectralEstDF$Date)[1], freq<F_MAX), aes(x = freq, y = spectrum), 
+#              color = "black", alpha = 0.5, size = 1)+
+#   # Formatting
+#   scale_x_log10() + 
+#   scale_y_log10() +
+#   labs(
+#     x = "Frequency (Hz)",
+#     y = "Power Spectral Density"
+#   ) +
+#   theme_bw()
+# 
+# 
+# 
+# ############
+# 
+# 
+# # Add Metadata & Clean
+# spectralEstDF <- spectralEstDF %>%
+#   mutate(
+#     Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+#     Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+#     Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+#     Date  = as.Date(paste0("2025-", Month, "-", Day)),
+#     # Calculate approx SD for weighting
+#     sdish = sqrt((1 * spectrum^2)/MY_K)
+#   )
 
 # --- OPTION B: GENERATE SIMULATED DATA ---
-# 
-# dataName="ComplexModelSimDat"
-# f_sim <- exp(seq(log(F_MIN), log(F_MAX), length.out=100))
-# true_params <- list(h0=1e-31, h_m1=1.5e-33, Kp=10, Ki=5, tau=14)
-# psd_true <- model_psd_r(f_sim, true_params$h0, true_params$h_m1, 
-#                         true_params$Kp, true_params$Ki, true_params$tau, TP_VAL)
-# # Add multiplicative noise (Chi-squared like)
-# psd_noisy <- psd_true * rchisq(length(f_sim), df=2*MY_K) / (2*MY_K)
-# 
-# spectralEstDF <- data.frame(
-#   freq = f_sim, spectrum = psd_noisy, 
-#   sdish = psd_noisy/sqrt(MY_K), 
-#   Date = as.Date("2025-01-01"), File = "Simulated"
-# )
+# filter(spectralEstDF,Date==unique(spectralEstDF$Date)[1], freq<F_MAX)
+# test=filter(spectralEstDF,Date==unique(spectralEstDF$Date)[1], freq<F_MAX)
+# table(diff(test$freq))
+# range(test$freq)
+# length(test$freq)
+# # posterior results from fit_AlYbApr15_Date_2025_02_27.rds
+# Parameter         Mean           SD
+# h0          h0 5.191944e-31 1.825889e-32
+# h_m1      h_m1 3.957758e-34 4.278109e-35
+# Kp          Kp 1.736019e-02 1.307403e-02
+# Ki          Ki 1.279804e-01 3.317706e-03
+# tau        tau 2.532619e+00 1.000327e-01
+# starting with these, might want something more different in the future
+#
+dataName="ComplexModelSimDat"
+f_sim <- seq(F_MIN,F_MAX,length.out=1000)#exp(seq(log(F_MIN), log(F_MAX), length.out=100))
+
+true_params <- list(h0=5.191944e-31, h_m1=3.957758e-34, Kp=1.736019e-02, Ki=1.279804e-01, tau=2.5)
+psd_true <- model_psd_r(f_sim, true_params$h0, true_params$h_m1,
+                        true_params$Kp, true_params$Ki, true_params$tau, TP_VAL)
+# Add multiplicative noise (Chi-squared like)
+psd_noisy <- psd_true * rchisq(length(f_sim), df=2*MY_K) / (2*MY_K)
+
+spectralEstDF <- data.frame(
+  freq = f_sim, spectrum = psd_noisy,
+  sdish = psd_noisy/sqrt(MY_K),
+  Date = as.Date("2026-01-14"), File = "Simulated"
+)
+
+df_true <- data.frame(
+  freq = f_sim,
+  psd  = psd_true
+)
+
+ggplot() +
+  # 1. The Noisy Simulated Data (Black Points)
+  geom_point(data = spectralEstDF, aes(x = freq, y = spectrum), 
+             color = "black", alpha = 0.5, size = 1) +
+  
+  # 2. The True Physical Model (Red Line)
+  geom_line(data = df_true, aes(x = freq, y = psd), 
+            color = "red", size = 1, linetype = "solid") +
+  
+  # Formatting
+  scale_x_log10() + 
+  scale_y_log10() +
+  labs(
+    x = "Frequency (Hz)",
+    y = "Power Spectral Density"
+  ) +
+  theme_bw()
+
 
 # --- SAVE ---
 saveRDS(spectralEstDF, file = DATA_PREP_FILE)

@@ -1,9 +1,14 @@
+# source("/home/aak3/NIST/atomic-clock/Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/00_common.R")
+
 # ==============================================================================
 # 00_common.R
 # Shared configuration and utility functions
 # ==============================================================================
+rm(list=ls())
 
 library(rstan)
+options(mc.cores = parallel::detectCores())
+
 library(stringr)
 library(dplyr)
 library(ggplot2)
@@ -17,6 +22,7 @@ BASE_FILEPATH  <- "/home/aak3/NIST/atomic-clock/"
 
 DATA_RAW_DIR   <- paste0(BASE_FILEPATH,"Results/ClockComp2025")
 OUTPUT_FIT_DIR <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/Posteriors/")
+OUTPUT_PLOT_DIR <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/Plots/")
 DATA_PREP_FILE <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/processedData/data_prepared_for_fitting.rds")
 STAN_MODEL     <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/complex_spectrum_model.stan")
 
@@ -28,8 +34,8 @@ F_MAX   <- 0.1
 
 # MCMC Settings
 STAN_CORES  <- 4
-STAN_ITER   <- 2000#4000
-STAN_WARMUP <- 1000#3000
+STAN_ITER   <- 4000
+STAN_WARMUP <- 3000
 
 # # Ensure output dir exists
 # if(!dir.exists(OUTPUT_FIT_DIR)) dir.create(OUTPUT_FIT_DIR, recursive = TRUE)
