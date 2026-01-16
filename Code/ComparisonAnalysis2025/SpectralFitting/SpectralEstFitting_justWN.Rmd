@@ -1,0 +1,710 @@
+---
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(purrr)
+library(stringr)
+
+topFreq=.001
+lowestFreq=0.00001
+
+library(readxl)
+Ratio_rearranged <- read_excel("/home/aak3/NIST/atomic-clock/Data/ClockComparison2025/Ratio_rearranged.xlsx", 
+                               sheet = "NN")
+
+
+alldatNvals=read.csv("/home/aak3/NIST/atomic-clock/Code/ComparisonAnalysis2025/alldatNvals.csv")
+
+df=Ratio_rearranged[c(11:23),c(1,3,7,11)]
+
+library(tidyverse)
+
+AvarStabilities <- df %>%
+  pivot_longer(
+    cols = -date, 
+    names_to = "variable",
+    values_to = "Stability"
+  ) %>%
+  mutate(
+    label = gsub("/", "", sub("_.*", "", variable)),  # extract before "_" and remove "/"
+    VarianceFromAvar=Stability^2
+  )
+
+
+```
+
+
+
+# YbSr
+
+```{r,fig.height=3.5,echo=F}
+
+# Set your folder path
+folder <- "/home/aak3/NIST/atomic-clock/Results/ClockComp2025"  
+
+###################################################################################
+###change this stuff
+myK=5
+# List all files 
+files_with_YbSr_spectral <- list.files(
+  path = folder,
+  pattern = "spectral.*YbSr.*Apr15",
+  full.names = TRUE
+)
+####################################################################################
+extract_from_list <- function(x, filename) {
+  df1 <- data.frame(
+    freq = x[[1]],
+    spectrum = x[[2]],
+    File = filename
+  )
+  
+  df2 <- data.frame(
+    eigenval = x[[4]],
+    K=1:myK,
+    File = filename
+  )
+  
+  list(spectrum = df1, eigenvals = df2)
+}
+
+all_data <- lapply(files_with_YbSr_spectral, function(file) {
+  x <- readRDS(file)
+  extract_from_list(x, basename(file))
+})
+
+# Combine all df1s and df2s if desired
+spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
+EVdf <- do.call(rbind, lapply(all_data, `[[`, "eigenvals"))
+
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+EVdf <- EVdf %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+ggplot(EVdf,aes(K,eigenval,color=factor(Date)))+
+  geom_point()+
+  guides(color = guide_legend(title = NULL))
+
+```
+
+```{r,fig.height=5,echo=F}
+
+ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
+  geom_line(alpha=.4) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))
+  
+
+```
+
+```{r,fig.height=5,echo=F}
+library(dplyr)
+library(ggplot2)
+library(broom)
+
+K <- 5
+
+# Confidence intervals
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    lower = spectrum * qchisq(0.025, df = 2 * K) / (2 * K),
+    upper = spectrum * qchisq(0.975, df = 2 * K) / (2 * K)
+  )
+
+
+# Storage lists
+fit_summaries <- list()
+predictions_list <- list()
+
+# Frequencies for prediction
+freq_seq <- seq(lowestFreq, topFreq, length.out = 200)
+pred_grid <- data.frame(freq = freq_seq)
+
+# Loop over unique Dates
+for (i in 1:length(unique(spectralEstDF$Date))) {
+  d=unique(spectralEstDF$Date)[i]
+  
+  
+  # plot_data <- filter(spectralEstDF, Date == d)
+  # fit_data <- filter(plot_data, freq > lowestFreq, freq < topFreq)
+  # 
+  # # Fit model
+  # # fit <- lm(spectrum ~ freq + I(freq^2), data = fit_data)
+  # fit <- lm(spectrum ~ I(freq^2), data = fit_data)
+  # fit_summary <- summary(fit)
+
+  # Prepare data for fitting on the log scale
+  fit_data <- spectralEstDF %>%
+    filter(Date == d, freq > lowestFreq, freq < topFreq) %>%
+    # NEW: Create log-transformed columns for modeling
+    mutate(
+      log_spectrum = log(spectrum),
+      log_freq = log(freq)
+    )
+
+  # --- MODIFIED: Fit model on the log-log scale ---
+  # This is the core change. The relationship is now linear in log-space.
+  # Because variance is constant on the log scale, we don't need the 'weights' argument.
+  # fit_log <- lm(log_spectrum ~ log_freq, data = fit_data)
+  fit <- lm(log_spectrum ~ 1, data = fit_data)
+  fit_summary <- summary(fit)
+  
+  # Get intercept and its SE
+  intercept_info <- tidy(fit) %>% filter(term == "(Intercept)")
+  
+  intercept_est <- exp(intercept_info$estimate)
+
+  ci_log_scale <- confint(fit, "(Intercept)", level = 0.95)
+  intercept_lower <- exp(ci_log_scale[1])
+  intercept_upper <- exp(ci_log_scale[2])
+  
+  # Predict
+  pred_df <- pred_grid
+  # pred_df$predicted_spectrum <- predict(fit, newdata = pred_df)
+  pred_df$predicted_spectrum <- intercept_est
+  pred_df$Date <- d
+
+  # Store
+  fit_summaries[[as.character(d)]] <- data.frame(
+    Date = as.Date(d),
+    intercept = intercept_est,
+    intercept_lower = intercept_lower,
+    intercept_upper = intercept_upper,  
+    R2 = fit_summary$r.squared
+  )
+
+  predictions_list[[as.character(d)]] <- pred_df
+}
+
+# Combine into data frames
+intercepts_df <- do.call(rbind, fit_summaries)
+all_preds_df <- do.call(rbind, predictions_list)
+
+# Example plot: all curves with spectral estimates
+ggplot(spectralEstDF, aes(x = freq, y = spectrum))+#, col = factor(Date))) +
+  geom_line(alpha = 0.3) +
+  geom_line(data = all_preds_df, aes(x = freq, y = predicted_spectrum),
+            inherit.aes = FALSE, linetype = "solid", linewidth = 0.7) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  facet_wrap(~factor(Date),ncol=3,scales = "free")
+
+ggplot(filter(spectralEstDF,freq<0.006), aes(x = freq, y = spectrum))+#, col = factor(Date))) +
+  geom_line(alpha = 0.3) +
+  geom_line(data = filter(all_preds_df,freq<0.006), aes(x = freq, y = predicted_spectrum),
+            inherit.aes = FALSE, linetype = "solid", linewidth = 0.7) +
+  # scale_y_log10() +
+  # scale_x_log10() +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  facet_wrap(~factor(Date),ncol=3,scales = "free")
+
+### intercepts with avar ests
+
+AvarStabDat=filter(AvarStabilities,label==spectralEstDF$Ratio[1])
+AvarStabDat$Date=as.Date(AvarStabDat$date)
+
+thisRatioN=alldatNvals %>% filter(ratio==spectralEstDF$Ratio[1])
+thisRatioN$Date=as.Date(thisRatioN$date)
+
+intercepts_df <- left_join(intercepts_df, thisRatioN, by = "Date")
+intercepts_df$N=intercepts_df$non_na_meas_count
+
+ggplot(intercepts_df, aes(x = Date, y = sqrt(intercept/N/2))) +
+  geom_point() +
+  # geom_errorbar(aes(ymin = intercept/N/2 - 2*intercept_se/N, ymax = intercept/N/2 + 2*intercept_se/N)) +
+  geom_errorbar(aes(ymin = sqrt(intercept_lower/N/2), ymax = sqrt(intercept_upper/N/2))) +
+  theme_minimal() +
+  ggtitle("Intercept Estimates by Day")+
+  geom_point(data=AvarStabDat,aes(x = Date,y=Stability,color="avar"))
+
+interceptAvarEsts = intercepts_df %>% 
+  mutate(adev=sqrt(intercept/N/2),
+         adev_lower=sqrt(intercept_lower/N/2),
+         adev_upper=sqrt(intercept_upper/N/2),
+         type="Simple Model Intercept") %>% 
+  dplyr::select(Date,ratio,adev,adev_lower,adev_upper,type)
+
+AvarStabDatEsts = AvarStabDat %>% 
+  mutate(adev=Stability,
+         type="Time Domain",
+         adev_lower = NA, 
+         adev_upper = NA,
+         ratio=label) %>%
+  dplyr::select(Date,ratio,adev,adev_lower,adev_upper,type)
+
+write.csv(bind_rows(interceptAvarEsts,AvarStabDatEsts),paste0("/home/aak3/NIST/atomic-clock/Code/ComparisonAnalysis2025/",spectralEstDF$Ratio[1],"avarEsts.csv"),row.names = F)
+
+```
+
+
+
+
+\pagebreak
+
+# AlSr
+
+```{r,fig.height=3.5,echo=F}
+
+# Set your folder path
+folder <- "/home/aak3/NIST/atomic-clock/Results/ClockComp2025"  
+
+###################################################################################
+###change this stuff
+myK=5
+# List all files 
+files_with_AlSr_spectral <- list.files(
+  path = folder,
+  pattern = "spectral.*AlSr.*Apr15",
+  full.names = TRUE
+)
+####################################################################################
+extract_from_list <- function(x, filename) {
+  df1 <- data.frame(
+    freq = x[[1]],
+    spectrum = x[[2]],
+    File = filename
+  )
+  
+  df2 <- data.frame(
+    eigenval = x[[4]],
+    K=1:myK,
+    File = filename
+  )
+  
+  list(spectrum = df1, eigenvals = df2)
+}
+
+all_data <- lapply(files_with_AlSr_spectral, function(file) {
+  x <- readRDS(file)
+  extract_from_list(x, basename(file))
+})
+
+# Combine all df1s and df2s if desired
+spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
+EVdf <- do.call(rbind, lapply(all_data, `[[`, "eigenvals"))
+
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+EVdf <- EVdf %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+
+ggplot(EVdf,aes(K,eigenval,color=factor(Date)))+
+  geom_point()+
+  guides(color = guide_legend(title = NULL))
+
+```
+
+```{r,fig.height=5,echo=F}
+
+ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
+  geom_line(alpha=.4) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))
+  
+
+```
+
+
+
+```{r,fig.height=5,echo=F}
+library(dplyr)
+library(ggplot2)
+library(broom)
+
+K <- 5
+
+# Confidence intervals
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    lower = spectrum * qchisq(0.025, df = 2 * K) / (2 * K),
+    upper = spectrum * qchisq(0.975, df = 2 * K) / (2 * K)
+  )
+
+
+# Storage lists
+fit_summaries <- list()
+predictions_list <- list()
+
+# Frequencies for prediction
+freq_seq <- seq(lowestFreq, topFreq, length.out = 200)
+pred_grid <- data.frame(freq = freq_seq)
+
+# Loop over unique Dates
+for (i in 1:length(unique(spectralEstDF$Date))) {
+  d=unique(spectralEstDF$Date)[i]
+  
+  
+  # plot_data <- filter(spectralEstDF, Date == d)
+  # fit_data <- filter(plot_data, freq > lowestFreq, freq < topFreq)
+  # 
+  # # Fit model
+  # # fit <- lm(spectrum ~ freq + I(freq^2), data = fit_data)
+  # fit <- lm(spectrum ~ I(freq^2), data = fit_data)
+  # fit_summary <- summary(fit)
+
+  # Prepare data for fitting on the log scale
+  fit_data <- spectralEstDF %>%
+    filter(Date == d, freq > lowestFreq, freq < topFreq) %>%
+    # NEW: Create log-transformed columns for modeling
+    mutate(
+      log_spectrum = log(spectrum),
+      log_freq = log(freq)
+    )
+
+  # --- MODIFIED: Fit model on the log-log scale ---
+  # This is the core change. The relationship is now linear in log-space.
+  # Because variance is constant on the log scale, we don't need the 'weights' argument.
+  # fit_log <- lm(log_spectrum ~ log_freq, data = fit_data)
+  fit <- lm(log_spectrum ~ 1, data = fit_data)
+  fit_summary <- summary(fit)
+  
+  # Get intercept and its SE
+  intercept_info <- tidy(fit) %>% filter(term == "(Intercept)")
+  
+  intercept_est <- exp(intercept_info$estimate)
+
+  ci_log_scale <- confint(fit, "(Intercept)", level = 0.95)
+  intercept_lower <- exp(ci_log_scale[1])
+  intercept_upper <- exp(ci_log_scale[2])
+  
+  # Predict
+  pred_df <- pred_grid
+  # pred_df$predicted_spectrum <- predict(fit, newdata = pred_df)
+  pred_df$predicted_spectrum <- intercept_est
+  pred_df$Date <- d
+
+  # Store
+  fit_summaries[[as.character(d)]] <- data.frame(
+    Date = as.Date(d),
+    intercept = intercept_est,
+    intercept_lower = intercept_lower,
+    intercept_upper = intercept_upper,  
+    R2 = fit_summary$r.squared
+  )
+
+  predictions_list[[as.character(d)]] <- pred_df
+}
+
+# Combine into data frames
+intercepts_df <- do.call(rbind, fit_summaries)
+all_preds_df <- do.call(rbind, predictions_list)
+
+# Example plot: all curves with spectral estimates
+ggplot(spectralEstDF, aes(x = freq, y = spectrum))+#, col = factor(Date))) +
+  geom_line(alpha = 0.3) +
+  geom_line(data = all_preds_df, aes(x = freq, y = predicted_spectrum),
+            inherit.aes = FALSE, linetype = "solid", linewidth = 0.7) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  facet_wrap(~factor(Date),ncol=3,scales = "free")
+
+ggplot(filter(spectralEstDF,freq<0.006), aes(x = freq, y = spectrum))+#, col = factor(Date))) +
+  geom_line(alpha = 0.3) +
+  geom_line(data = filter(all_preds_df,freq<0.006), aes(x = freq, y = predicted_spectrum),
+            inherit.aes = FALSE, linetype = "solid", linewidth = 0.7) +
+  # scale_y_log10() +
+  # scale_x_log10() +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  facet_wrap(~factor(Date),ncol=3,scales = "free")
+
+### intercepts with avar ests
+
+AvarStabDat=filter(AvarStabilities,label==spectralEstDF$Ratio[1])
+AvarStabDat$Date=as.Date(AvarStabDat$date)
+
+thisRatioN=alldatNvals %>% filter(ratio==spectralEstDF$Ratio[1])
+thisRatioN$Date=as.Date(thisRatioN$date)
+
+intercepts_df <- left_join(intercepts_df, thisRatioN, by = "Date")
+intercepts_df$N=intercepts_df$non_na_meas_count
+
+ggplot(intercepts_df, aes(x = Date, y = sqrt(intercept/N/2))) +
+  geom_point() +
+  # geom_errorbar(aes(ymin = intercept/N/2 - 2*intercept_se/N, ymax = intercept/N/2 + 2*intercept_se/N)) +
+  geom_errorbar(aes(ymin = sqrt(intercept_lower/N/2), ymax = sqrt(intercept_upper/N/2))) +
+  theme_minimal() +
+  ggtitle("Intercept Estimates by Day")+
+  geom_point(data=AvarStabDat,aes(x = Date,y=Stability,color="avar"))
+
+interceptAvarEsts = intercepts_df %>% 
+  mutate(adev=sqrt(intercept/N/2),
+         adev_lower=sqrt(intercept_lower/N/2),
+         adev_upper=sqrt(intercept_upper/N/2),
+         type="Simple Model Intercept") %>% 
+  dplyr::select(Date,ratio,adev,adev_lower,adev_upper,type)
+
+AvarStabDatEsts = AvarStabDat %>% 
+  mutate(adev=Stability,
+         type="Time Domain",
+         adev_lower = NA, 
+         adev_upper = NA,
+         ratio=label) %>%
+  dplyr::select(Date,ratio,adev,adev_lower,adev_upper,type)
+
+write.csv(bind_rows(interceptAvarEsts,AvarStabDatEsts),paste0("/home/aak3/NIST/atomic-clock/Code/ComparisonAnalysis2025/",spectralEstDF$Ratio[1],"avarEsts.csv"),row.names = F)
+```
+
+\pagebreak
+
+# AlYb
+
+```{r,fig.height=3.5,echo=F}
+
+# Set your folder path
+folder <- "/home/aak3/NIST/atomic-clock/Results/ClockComp2025"  
+
+###################################################################################
+###change this stuff
+myK=5
+# List all files 
+files_with_AlYb_spectral <- list.files(
+  path = folder,
+  pattern = "spectral.*AlYb.*Apr15",
+  full.names = TRUE
+)
+####################################################################################
+extract_from_list <- function(x, filename) {
+  df1 <- data.frame(
+    freq = x[[1]],
+    spectrum = x[[2]],
+    File = filename
+  )
+  
+  df2 <- data.frame(
+    eigenval = x[[4]],
+    K=1:myK,
+    File = filename
+  )
+  
+  list(spectrum = df1, eigenvals = df2)
+}
+
+all_data <- lapply(files_with_AlYb_spectral, function(file) {
+  x <- readRDS(file)
+  extract_from_list(x, basename(file))
+})
+
+# Combine all df1s and df2s if desired
+spectralEstDF <- do.call(rbind, lapply(all_data, `[[`, "spectrum"))
+EVdf <- do.call(rbind, lapply(all_data, `[[`, "eigenvals"))
+
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+EVdf <- EVdf %>%
+  mutate(
+    Ratio = str_extract(File, "(?<=spectralEstFor)[A-Za-z]+"),
+    Month = str_extract(File, "(?<=For[A-Za-z]{4})(\\d{2})"),
+    Day   = str_extract(File, "(?<=For[A-Za-z]{4}\\d{2})(\\d{2})"),
+    Date = as.Date(paste0("2025-", Month, "-", Day))
+  )
+
+
+ggplot(EVdf,aes(K,eigenval,color=factor(Date)))+
+  geom_point()+
+  guides(color = guide_legend(title = NULL))
+
+```
+
+```{r,fig.height=5,echo=F}
+
+ggplot(spectralEstDF,aes(freq, spectrum, col = factor(Date)))+
+  geom_line(alpha=.4) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme(legend.position = "bottom",legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))
+  
+
+```
+
+```{r,fig.height=5,echo=F}
+library(dplyr)
+library(ggplot2)
+library(broom)
+
+K <- 5
+
+# Confidence intervals
+spectralEstDF <- spectralEstDF %>%
+  mutate(
+    lower = spectrum * qchisq(0.025, df = 2 * K) / (2 * K),
+    upper = spectrum * qchisq(0.975, df = 2 * K) / (2 * K)
+  )
+
+
+# Storage lists
+fit_summaries <- list()
+predictions_list <- list()
+
+# Frequencies for prediction
+freq_seq <- seq(lowestFreq, topFreq, length.out = 200)
+pred_grid <- data.frame(freq = freq_seq)
+
+# Loop over unique Dates
+for (i in 1:length(unique(spectralEstDF$Date))) {
+  d=unique(spectralEstDF$Date)[i]
+  
+  
+  # plot_data <- filter(spectralEstDF, Date == d)
+  # fit_data <- filter(plot_data, freq > lowestFreq, freq < topFreq)
+  # 
+  # # Fit model
+  # # fit <- lm(spectrum ~ freq + I(freq^2), data = fit_data)
+  # fit <- lm(spectrum ~ I(freq^2), data = fit_data)
+  # fit_summary <- summary(fit)
+
+  # Prepare data for fitting on the log scale
+  fit_data <- spectralEstDF %>%
+    filter(Date == d, freq > lowestFreq, freq < topFreq) %>%
+    # NEW: Create log-transformed columns for modeling
+    mutate(
+      log_spectrum = log(spectrum),
+      log_freq = log(freq)
+    )
+
+  # --- MODIFIED: Fit model on the log-log scale ---
+  # This is the core change. The relationship is now linear in log-space.
+  # Because variance is constant on the log scale, we don't need the 'weights' argument.
+  # fit_log <- lm(log_spectrum ~ log_freq, data = fit_data)
+  fit <- lm(log_spectrum ~ 1, data = fit_data)
+  fit_summary <- summary(fit)
+  
+  # Get intercept and its SE
+  intercept_info <- tidy(fit) %>% filter(term == "(Intercept)")
+  
+  intercept_est <- exp(intercept_info$estimate)
+
+  ci_log_scale <- confint(fit, "(Intercept)", level = 0.95)
+  intercept_lower <- exp(ci_log_scale[1])
+  intercept_upper <- exp(ci_log_scale[2])
+  
+  # Predict
+  pred_df <- pred_grid
+  # pred_df$predicted_spectrum <- predict(fit, newdata = pred_df)
+  pred_df$predicted_spectrum <- intercept_est
+  pred_df$Date <- d
+
+  # Store
+  fit_summaries[[as.character(d)]] <- data.frame(
+    Date = as.Date(d),
+    intercept = intercept_est,
+    intercept_lower = intercept_lower,
+    intercept_upper = intercept_upper,  
+    R2 = fit_summary$r.squared
+  )
+
+  predictions_list[[as.character(d)]] <- pred_df
+}
+
+# Combine into data frames
+intercepts_df <- do.call(rbind, fit_summaries)
+all_preds_df <- do.call(rbind, predictions_list)
+
+# Example plot: all curves with spectral estimates
+ggplot(spectralEstDF, aes(x = freq, y = spectrum))+#, col = factor(Date))) +
+  geom_line(alpha = 0.3) +
+  geom_line(data = all_preds_df, aes(x = freq, y = predicted_spectrum),
+            inherit.aes = FALSE, linetype = "solid", linewidth = 0.7) +
+  scale_y_log10() +
+  scale_x_log10() +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  facet_wrap(~factor(Date),ncol=3,scales = "free")
+
+ggplot(filter(spectralEstDF,freq<0.006), aes(x = freq, y = spectrum))+#, col = factor(Date))) +
+  geom_line(alpha = 0.3) +
+  geom_line(data = filter(all_preds_df,freq<0.006), aes(x = freq, y = predicted_spectrum),
+            inherit.aes = FALSE, linetype = "solid", linewidth = 0.7) +
+  # scale_y_log10() +
+  # scale_x_log10() +
+  theme_minimal() +
+  theme(legend.position = "bottom", legend.text = element_text(size = 10)) +
+  guides(color = guide_legend(title = NULL))+
+  facet_wrap(~factor(Date),ncol=3,scales = "free")
+
+### intercepts with avar ests
+
+AvarStabDat=filter(AvarStabilities,label==spectralEstDF$Ratio[1])
+AvarStabDat$Date=as.Date(AvarStabDat$date)
+
+thisRatioN=alldatNvals %>% filter(ratio==spectralEstDF$Ratio[1])
+thisRatioN$Date=as.Date(thisRatioN$date)
+
+intercepts_df <- left_join(intercepts_df, thisRatioN, by = "Date")
+intercepts_df$N=intercepts_df$non_na_meas_count
+
+ggplot(intercepts_df, aes(x = Date, y = sqrt(intercept/N/2))) +
+  geom_point() +
+  # geom_errorbar(aes(ymin = intercept/N/2 - 2*intercept_se/N, ymax = intercept/N/2 + 2*intercept_se/N)) +
+  geom_errorbar(aes(ymin = sqrt(intercept_lower/N/2), ymax = sqrt(intercept_upper/N/2))) +
+  theme_minimal() +
+  ggtitle("Intercept Estimates by Day")+
+  geom_point(data=AvarStabDat,aes(x = Date,y=Stability,color="avar"))
+
+interceptAvarEsts = intercepts_df %>% 
+  mutate(adev=sqrt(intercept/N/2),
+         adev_lower=sqrt(intercept_lower/N/2),
+         adev_upper=sqrt(intercept_upper/N/2),
+         type="Simple Model Intercept") %>% 
+  dplyr::select(Date,ratio,adev,adev_lower,adev_upper,type)
+
+AvarStabDatEsts = AvarStabDat %>% 
+  mutate(adev=Stability,
+         type="Time Domain",
+         adev_lower = NA, 
+         adev_upper = NA,
+         ratio=label) %>%
+  dplyr::select(Date,ratio,adev,adev_lower,adev_upper,type)
+
+write.csv(bind_rows(interceptAvarEsts,AvarStabDatEsts),paste0("/home/aak3/NIST/atomic-clock/Code/ComparisonAnalysis2025/",spectralEstDF$Ratio[1],"avarEsts.csv"),row.names = F)
+```

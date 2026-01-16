@@ -69,3 +69,12 @@ pairs(fit, pars = c("mu_x", "mu_y", "mu_z"))
 cor(posterior_samples$mu_x,posterior_samples$mu_y)
 cor(posterior_samples$mu_x,posterior_samples$mu_z)
 cor(posterior_samples$mu_y,posterior_samples$mu_z)
+
+cor(posterior_samples$eta_x,posterior_samples$eta_y)
+cor(posterior_samples$eta_x,posterior_samples$eta_z)
+cor(posterior_samples$eta_y,posterior_samples$eta_z)
+
+
+mean(posterior_samples$alpha)
+mean(posterior_samples$beta)
+mean(posterior_samples$gamma)

@@ -792,3 +792,34 @@ avar_CI <- function(CI.level,noise_type = "white noise", avar_type, avars, taus,
   
   return(CI.limits)
 }
+
+
+
+avar_sd <- function(noise_type = "white noise", avars, taus, N){
+  
+  # 1. Calculate Equivalent Degrees of Freedom (EDF)
+  # Vectorized calculation (no loop needed)
+  if(noise_type == "white noise"){
+    # Assuming taus are the averaging factors (m).
+    m <- taus
+    term1 <- (3 * (N - 1) / (2 * m)) - (2 * (N - 2) / N)
+    term2 <- (4 * m^2) / (4 * m^2 + 5)
+    edf <- term1 * term2
+  } else {
+    warning("Only 'white noise' EDF formula is currently implemented.")
+    edf <- N / taus # Rough approximation fallback
+  }
+  
+  # 2. Calculate the Standard Deviation (Uncertainty) of the Variance
+  # Formula: u(variance) = variance * sqrt(2 / v)
+  sd_variance <- avars * sqrt(2 / edf)
+  
+  # 3. Return Result
+  # Returns the Variance and its calculated Standard Deviation (uncertainty)
+  return(data.frame(
+    tau = taus,
+    avar = avars,     # The Allan Variance value
+    sd = sd_variance, # The uncertainty of the Variance
+    edf = edf         # The degrees of freedom used
+  ))
+}

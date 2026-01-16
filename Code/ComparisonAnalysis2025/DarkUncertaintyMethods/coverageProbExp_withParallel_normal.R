@@ -4,6 +4,7 @@
 rsession=1
 
 library(dplyr)
+library(readr)
 
 mypath="/home/aak3/NIST/atomic-clock/Code/ComparisonAnalysis2025/DarkUncertaintyMethods/"
 
@@ -11,20 +12,27 @@ mypath="/home/aak3/NIST/atomic-clock/Code/ComparisonAnalysis2025/DarkUncertainty
 ### set parameters based on data
 ############################################################################
 
-# df_AlSr <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_AlSr_data.csv")
-# df_AlYb <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_AlYb_data.csv")
-df_YbSr <- read_csv("Data/ClockComparison2025/BayesianAnalysisData/ErYb_YbSr_data.csv")
+# ratiolab="AlSr"
+# ratiolab="AlYb"
+ratiolab="YbSr"
 
-measurements <- df_YbSr$offset#c(1.000005, 1.000012, 0.999990, 1.000025, 0.999980)
-uncertainties <- df_YbSr$statistical_unc#c(0.000005, 0.000005, 0.000004, 0.000006, 0.000005)
+ratiodf <- read_csv(paste("/home/aak3/NIST/atomic-clock/Data/ClockComparison2025/BayesianAnalysisData/ErYb_",ratiolab,"_data.csv",sep=""))
+# df_YbSr <- read_csv(paste("/home/aak3/NIST/atomic-clock/Data/ClockComparison2025/BayesianAnalysisData/ErYb_YbSr_data.csv")
+
+measurements <- ratiodf$offset
+uncertainties <- ratiodf$statistical_unc
 
 N <- length(measurements)
 
 ######
+mu_set=mean(measurements)
 
-numberOfSims_set=10 ### make bigger
+lblabel_set=paste(ratiolab,"_minunc",sep="")
+ublabel_set=paste(ratiolab,"_maxunc",sep="")
+  
+numberOfSims_set=500 ### make bigger
 
-N_set=c(N,N+20)
+N_set=c(N,N+20,100)
 tau_set=c(3,10)
 
 allparams=expand.grid(N_set=N_set,tau_set=tau_set) #want every combo of N and tau
@@ -34,17 +42,17 @@ allparams$ub=max(uncertainties)
 
 myparams=allparams %>%
   mutate(adaptDeltaVals = #########right now, setting these based on N
-           ifelse(N_set == 5, .99,
-                  ifelse(N_set== 10, .95,
-                         ifelse(N_set== 20, .8,
-                                ifelse(N_set== 50, .8,
-                                       NA))))) %>%
+           ifelse(N_set == 9, .99,
+                  ifelse(N_set== 13, .95,
+                         ifelse(N_set== 29, .8,
+                                ifelse(N_set== 33, .8,
+                                       .8))))) %>%
   mutate(maxTreeDepthVals = #########right now, setting these based on N
-           ifelse(N_set== 5, 17, 
-                  ifelse(N_set== 10, 15,
-                         ifelse(N_set== 20, 10,
-                                ifelse(N_set== 50, 10,
-                                       NA))))) %>%
+           ifelse(N_set== 9, 17, 
+                  ifelse(N_set== 13, 15,
+                         ifelse(N_set== 29, 10,
+                                ifelse(N_set== 33, 10,
+                                       10))))) %>%
   mutate(tdf_set =
            ifelse(N_set == 5 & tau_set %in%c(1,2), 2,
                   4)) #set prior sd to 4 for all except small N and small tau case, then too big
@@ -54,7 +62,6 @@ myparams=allparams %>%
 ### don't change this (often)
 ##############################################################################################
 
-mu_set=mean(measurements)
 num.iters_set=5000
 alpha_set=NA
 nu_set=NA
@@ -107,28 +114,46 @@ source(file = paste(mypath,"computeForCSmethods.R",sep = ""))
 ############################################################################
 source(file = paste(mypath,"runAllModels.R",sep = "")) ## will need to move this earlier and check for errors on the first run now
 
-# numberOfSims=numberOfSims_set
-# N=N_set[1]
-# tau=tau_set[1]
-# mu=mu_set
-# num.iters=num.iters_set
-# alpha=alpha_set
-# nu=nu_set
-# howDatSim=howDatSim_set
-# rsession=1
-# rsessionNum=1
-# theadaptdelta=.99
-# thetreedepth=15
-# thetdf=4
-# today=rundate
-# lb=.1
-# ub=1
+# # numberOfSims=numberOfSims_set
+# # N=N_set[1]
+# # tau=tau_set[1]
+# # mu=mu_set
+# # num.iters=num.iters_set
+# # alpha=alpha_set
+# # nu=nu_set
+# # howDatSim=howDatSim_set
+# # # rsession=1
+# # # rsessionNum=1
+# # theadaptdelta=.99
+# # thetreedepth=15
+# # thetdf=4
+# # today=rundate
+# # lb=.1
+# # ub=1
+# # # 
+# 
+# paramSetIndex=1
+# oneParamSet=myparams[paramSetIndex,]
+# numberOfSims = numberOfSims_set
+# N = oneParamSet$N_set
+# tau = oneParamSet$tau_set
+# mu = mu_set
+# num.iters = num.iters_set
+# alpha = alpha_set
+# nu = nu_set
+# howDatSim = howDatSim_set
+# rsessionNum = rsession
+# theadaptdelta = oneParamSet$adaptDeltaVals
+# thetreedepth = oneParamSet$maxTreeDepthVals
+# thetdf = oneParamSet$tdf_set
+# today = rundate
+# lb = oneParamSet$lb
+# ub=oneParamSet$ub
 # 
 
 
-
 runForManyRepeats=function(numberOfSims,N,tau,mu,num.iters,alpha,nu,howDatSim,
-                           rsessionNum,theadaptdelta,thetreedepth,thetdf,today,lb,ub){
+                           rsessionNum,theadaptdelta,thetreedepth,thetdf,today,lb,ub,lblabel,ublabel){
 
   startTime=Sys.time()
 
@@ -169,7 +194,7 @@ runForManyRepeats=function(numberOfSims,N,tau,mu,num.iters,alpha,nu,howDatSim,
     
     saveDatTemp=matrix(c(newSimDat$x,newSimDat$u),nrow = 1)
     saveDat=rbind(saveDat,saveDatTemp)
-    write.csv(saveDat,paste(mypath,"CIouts/",howDatSim,"simulatedData",today,"_tau",tau,"_N",N,"_ub",ub,"_lb",lb,"_",rsession,".csv",sep=""))
+    write.csv(saveDat,paste(mypath,"CIouts/",howDatSim,"simulatedData",today,"_tau",tau,"_N",N,"_ub",ublabel,"_lb",lblabel,"_",rsession,".csv",sep=""))
 
     if(tau<3 && N<30){
       newOut=oneTrial(dat = newSimDat,
@@ -200,7 +225,7 @@ runForManyRepeats=function(numberOfSims,N,tau,mu,num.iters,alpha,nu,howDatSim,
     
     if(i %% 10==0) {
       print(paste("iteration",i,sep=" "))
-      write.csv(CIout,paste(mypath,"CIouts/",howDatSim,"CIout",today,"_tau",tau,"_N",N,"_ub",ub,"_lb",lb,"_",rsession,".csv",sep=""))
+      write.csv(CIout,paste(mypath,"CIouts/",howDatSim,"CIout",today,"_tau",tau,"_N",N,"_ub",ublabel,"_lb",lblabel,"_",rsession,".csv",sep=""))
     }
   }
   
@@ -227,7 +252,9 @@ for(paramSetIndex in 1:dim(myparams)[1]){
                     thetdf = oneParamSet$tdf_set,
                     today = rundate,
                     lb = oneParamSet$lb,
-                    ub=oneParamSet$ub)
+                    ub=oneParamSet$ub,
+                    lblabel = lblabel_set,
+                    ublabel = ublabel_set)
 }
 
 totalTimeEnd=Sys.time()

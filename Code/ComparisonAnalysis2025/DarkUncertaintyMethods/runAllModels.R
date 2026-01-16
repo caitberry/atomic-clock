@@ -6,7 +6,7 @@ oneTrial = function(dat, GGmodel, N,tau,mu,num.iters,alpha,nu,howDatSim,rsession
 
 # FirstDatSim=simulateDataHSSG(N = N,mu = mu,tau = tau,alpha=alpha,nu=nu)
 # 
-dat = FirstDatSim
+# dat = FirstDatSim
 
 # GGmodel = myHGG_noDoF;LGmodel = myHLG_noDoF;
 # N = N;

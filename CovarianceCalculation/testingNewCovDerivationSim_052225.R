@@ -10,7 +10,7 @@ runDate=format(Sys.Date(),"%m%d%y")
 numberOfSimulations=5000
 
 
-N <- 5000  # length of the time series
+N <- 3000  # length of the time series
 ar_coeffs <- c(0.5, -0.4, 0.3, -0.2)  # AR(4) coefficients
 
 t.vec <- 1:N

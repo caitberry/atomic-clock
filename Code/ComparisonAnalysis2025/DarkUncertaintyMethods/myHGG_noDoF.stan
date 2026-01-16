@@ -16,8 +16,9 @@ model {
   
   // priors
   mu ~ normal(0,10^5); // overall mean
-  tau ~ student_t(4,0,tdf); // std dev of true lab means
-  
+  // tau ~ student_t(4,0,tdf); // std dev of true lab means
+  tau ~ normal(500, 1000) T[0, ];
+
   lambda ~ normal(mu,tau); // true lab means
   
   x ~ normal(lambda,u);   
