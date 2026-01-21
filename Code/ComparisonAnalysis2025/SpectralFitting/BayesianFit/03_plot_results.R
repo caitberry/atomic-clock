@@ -84,41 +84,113 @@ for(i in 1:length(unique(spectralEstDF$Date))){
   # Generate Prior Samples (Hardcoded to match Stan file)
   n_p <- 4000
   priors <- data.frame(
-    h0   = rlnorm(n_p, -72.78, 2.49),
-    h_m1 = rlnorm(n_p, -75.79, 0.18),
-    Kp   = abs(rnorm(n_p, 10, 5)),
-    Ki   = rlnorm(n_p, 0, 1.17),
-    tau  = rlnorm(n_p, 2.65, 1.35),
+    h0   = rlnorm(n_p, -72.78, 5),
+    h_m1 = runif(n_p,1e-33,2e-33),
+    tau = runif(n_p,1,200),
+    Kp  = runif(n_p,0, 20),
+    Ki  = runif(n_p,0, 10),
+    # h_m1 = rlnorm(n_p, -75.79, 1),
+    # Kp   = rlnorm(n_p, -1, 2),#abs(rnorm(n_p, 10, 5)),
+    # Ki   = rlnorm(n_p, -1, 2),
+    # tau  = rlnorm(n_p, 1, 1.5),
+    # Kp   = rlnorm(n_p, 0, 5),#abs(rnorm(n_p, 10, 5)),
+    # Ki   = rlnorm(n_p, 0, 5),
+    # tau  = rlnorm(n_p, 0, 5),
     Type = "Prior"
   )
-  
+
   posteriors <- as.data.frame(fit) %>% 
     select(h0, h_m1, Kp, Ki, tau) %>% 
     mutate(Type = "Posterior")
   
   comp_data <- bind_rows(priors, posteriors)
   
-  plot_param <- function(dat, param, log_scale=FALSE) {
-    p <- ggplot(dat, aes_string(x=param, fill="Type")) +
-      geom_density(alpha=0.4) +
+  # 2. Updated Plotting Function
+  plot_param <- function(dat, param, log_scale=F) {
+    
+    # Filter for specific parameter
+    d_sub <- dat %>% filter(!is.na(!!sym(param)))
+    
+    # A. Calculate Prior 95% Interval for the Label
+    prior_vals <- d_sub$prior_vals <- d_sub[d_sub$Type == "Prior", param]
+    prior_CI   <- quantile(prior_vals, probs = c(0.025, 0.975))
+    
+    # Format nicely (scientific notation for small numbers)
+    fmt <- function(x) format(x, digits=2, scientific=TRUE)
+    label_text <- paste0("Prior 95%: [", fmt(prior_CI[1]), ", ", fmt(prior_CI[2]), "]")
+    
+    # B. Determine Plot Limits (Zoom in to avoid long tails)
+    # We use the 0.5% and 99.5% quantiles of the COMBINED data to set limits.
+    # This ignores the extreme <1% outliers that squash the plot.
+    vals_all <- d_sub[[param]]
+    limits   <- quantile(vals_all, probs = c(0.005, 0.995))
+    
+    # Build Plot
+    p <- ggplot(d_sub, aes_string(x=param, fill="Type")) +
+      geom_density(alpha=0.4, size=0.2) +
       scale_fill_manual(values=c("Posterior"="#1f78b4", "Prior"="#b2df8a")) +
+      
+      # Add the 95% range info in the subtitle
+      labs(x = NULL, y = NULL, title = param, subtitle = label_text) +
+      
       theme_minimal() + 
-      theme(legend.position="none", 
-            axis.text.y=element_blank(),
-            axis.title.x = element_text(size=10))
-    if(log_scale) p <- p + scale_x_log10()
+      theme(
+        legend.position="none", 
+        axis.text.y=element_blank(),
+        plot.title = element_text(size=11, face="bold"),
+        plot.subtitle = element_text(size=8, color="gray40")
+      )
+    
+    # Apply Log Scale if requested
+    if(log_scale) {
+      p <- p + scale_x_log10() + annotation_logticks(sides="b")
+    }
+    
+    # Apply Smart Zoom (coord_cartesian keeps the data but zooms the view)
+    p <- p + coord_cartesian(xlim = limits)
+    
     return(p)
   }
   
-  g1 <- plot_param(comp_data, "h0", TRUE)
-  g2 <- plot_param(comp_data, "h_m1", TRUE)
-  g3 <- plot_param(comp_data, "Kp", FALSE)
-  g4 <- plot_param(comp_data, "Ki", FALSE)
-  g5 <- plot_param(comp_data, "tau", FALSE)
+  g1 <- plot_param(comp_data, "h0", F)
+  g2 <- plot_param(comp_data, "h_m1", F)
+  g3 <- plot_param(comp_data, "Kp", F)
+  g4 <- plot_param(comp_data, "Ki", F)
+  g5 <- plot_param(comp_data, "tau",F)
   
-  # SAVE PLOT 2
-  # Use arrangeGrob to create an object suitable for ggsave
-  g_combined <- arrangeGrob(g1, g2, g3, g4, g5, ncol=3, top=paste("Prior vs Post:", target_date))
+  # SAVE PLOT
+  g_combined <- arrangeGrob(g1, g2, g3, g4, g5, ncol=3) 
+                            # top = textGrob(paste("Prior vs Post:", target_date), 
+                                           # gp=gpar(fontsize=14, fontface="bold")))  
+  # posteriors <- as.data.frame(fit) %>% 
+  #   select(h0, h_m1, Kp, Ki, tau) %>% 
+  #   mutate(Type = "Posterior")
+  # 
+  # comp_data <- bind_rows(priors, posteriors)
+  # 
+  # plot_param <- function(dat, param, log_scale=FALSE) {
+  #   p <- ggplot(dat, aes_string(x=param, fill="Type")) +
+  #     geom_density(alpha=0.4) +
+  #     scale_fill_manual(values=c("Posterior"="#1f78b4", "Prior"="#b2df8a")) +
+  #     theme_minimal() + 
+  #     theme(legend.position="none", 
+  #           axis.text.y=element_blank(),
+  #           axis.title.x = element_text(size=10))
+  #   if(log_scale) p <- p + scale_x_log10()
+  #   return(p)
+  # }
+  # 
+  # g1 <- plot_param(comp_data, "h0", TRUE)
+  # g2 <- plot_param(comp_data, "h_m1", TRUE)
+  # g3 <- plot_param(comp_data, "Kp", FALSE)
+  # g4 <- plot_param(comp_data, "Ki", FALSE)
+  # g5 <- plot_param(comp_data, "tau", FALSE)
+  # 
+  # # SAVE PLOT 2
+  # # Use arrangeGrob to create an object suitable for ggsave
+  # g_combined <- arrangeGrob(g1, g2, g3, g4, g5, ncol=3, top=paste("Prior vs Post:", target_date))
+  # 
+  
   
   plot2_filename <- paste0(OUTPUT_PLOT_DIR, "prior_post_", dataName, "_", gsub("-", "_", target_date), ".png")
   ggsave(plot2_filename, plot = g_combined, width = 10, height = 6)

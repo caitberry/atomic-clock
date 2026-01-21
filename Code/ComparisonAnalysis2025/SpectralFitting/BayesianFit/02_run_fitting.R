@@ -20,13 +20,16 @@ for(i in 1:length(unique(spectralEstDF$Date))){
   fit_data <- spectralEstDF %>% 
     filter(Date == d, freq > F_MIN, freq < F_MAX)
   
-  # Prepare Stan Data List
+  # Calculate the bias
+  log_bias_val <- calculate_log_bias(MY_K)
+  
   stan_data <- list(
     N      = length(fit_data$freq),
     freq   = fit_data$freq,
     y_obs  = fit_data$spectrum,
     rel_sd = fit_data$sdish / fit_data$spectrum,
-    tp     = TP_VAL
+    tp     = TP_VAL,
+    bias   = log_bias_val
   )
   
   # Run Sampling

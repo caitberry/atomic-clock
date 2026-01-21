@@ -74,29 +74,66 @@ data {
   vector<lower=0>[N] y_obs;       // observed PSD (per Hz)
   vector<lower=0>[N] rel_sd;      // relative sd
   real<lower=0> tp;               // probe time (s)
+  
+  real bias;
 }
 
 parameters {
   real<lower=0> h0;
-  real<lower=0> h_m1;
-  real<lower=0> Kp;
-  real<lower=0> Ki;
-  real<lower=0> tau;
+  real<lower=1e-33, upper=2e-33> h_m1;
+  real<lower=0,upper = 20> Kp;
+  real<lower=0,upper=10> Ki;
+  real<lower=1, upper =200> tau;
 }
 
 transformed parameters {
   // MODIFIED: Passing 'freq' instead of 'omega'
   vector[N] log_y_hat = model_log_psd(N, freq, h0, h_m1, Kp, Ki, tau, tp);
+  
+  // Shift the model down to match the biased data
+  // The model predicts the "True" log-spectrum.
+  // The likelihood compares it to the "Biased" data.
+  // So we add the negative bias to the prediction here.
+  log_y_hat = log_y_hat + bias;
 }
 
 model {
   // Priors 
-  h0 ~ lognormal(-72.78, 2.49);
-  h_m1 ~ lognormal(-75.79, 0.18);
-  Kp ~ normal(10, 5) T[0,]; 
-  Ki ~ lognormal(0, 1.17);
-  tau ~ lognormal(2.65, 1.35);
+  // h0 ~ lognormal(-72.78, 2.49);
+  // h_m1 ~ lognormal(-75.79, 0.18);
+  // Kp ~ normal(10, 5) T[0,]; 
+  // Ki ~ lognormal(0, 1.17);
+  // tau ~ lognormal(2.65, 1.35);
 
+
+// --- Noise Parameters ---
+  // h0   ~ lognormal(-72.78, 2.49); 
+  h0   ~ lognormal(-72.78, 5); 
+  // h_m1 ~ lognormal(-75.79, 1);
+  h_m1 ~ uniform(1e-33,2e-33);
+  // --- Loop Parameters (THE FIX) ---
+  
+  // 1. Kp: Was normal(10, 5). 
+  // Change to Weakly Informative LogNormal centered near typical values (e.g., 0.1 to 10)
+  // lognormal(-1, 2) covers 0.05 to 7.0 comfortably.
+  // Kp ~ lognormal(-1, 2); 
+
+  // 2. Ki: Was lognormal(0, 1.17) -> median 1.0. 
+  // Your truth is 0.12. This is fine, but maybe widen it.
+  // Ki ~ lognormal(-1, 2);
+
+  // 3. Tau: Was lognormal(2.65, 1.35) -> median 14.
+  // Your truth is 2.5. Let's center it closer to 5s or just make it very wide.
+  // lognormal(1.0, 1.5) -> median 2.7, covers 0.1s to 50s.
+  // tau ~ lognormal(1.0, 1.5);
+  
+  // Kp  ~ lognormal(0, 5);
+  // Ki  ~ lognormal(0, 5);
+  // tau ~ lognormal(0, 5);
+  tau ~ uniform(1,200);
+  Kp  ~ uniform(0, 20);
+  Ki  ~ uniform(0, 10);
+  
   // Likelihood
   y_obs ~ lognormal(log_y_hat, rel_sd);
 }
