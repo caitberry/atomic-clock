@@ -5,7 +5,7 @@
 # source("Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/00_common.R")
 
 # --- OPTION A: LOAD REAL DATA ---
-# 
+
 # dataName="AlYbApr15"
 # files_list <- list.files(path = DATA_RAW_DIR, pattern = "spectral.*AlYb.*Apr15", full.names = TRUE)
 # message(paste("Loading", length(files_list), "files..."))
@@ -80,7 +80,7 @@
 dataName="ComplexModelSimDat"
 f_sim <- seq(F_MIN,F_MAX,length.out=1000)#exp(seq(log(F_MIN), log(F_MAX), length.out=100))
 
-#old # true_params <- list(h0=5.191944e-31, h_m1=1.617518e-33, Kp=1.736019e-02, Ki=1.279804e-01, tau=2.5)
+# #old # true_params <- list(h0=5.191944e-31, h_m1=1.617518e-33, Kp=1.736019e-02, Ki=1.279804e-01, tau=2.5)
 true_params <- list(h0=5.580327e-31,h_m1= 1.013525e-33, Kp= 2.110357e-02, Ki= 1.212464e-01, tau= 3.112662e+00) ##TRY THESE TUESDAY
 psd_true <- model_psd_r(f_sim, true_params$h0, true_params$h_m1,
                         true_params$Kp, true_params$Ki, true_params$tau, TP_VAL)

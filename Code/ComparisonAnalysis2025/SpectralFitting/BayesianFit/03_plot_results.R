@@ -42,7 +42,7 @@ for(i in 1:length(unique(spectralEstDF$Date))){
   # --- PLOT 1: Posterior Predictive Check (Spaghetti Plot) ---
   post_draws <- rstan::extract(fit)
   ndraws <- 100
-  idx_draws <- sample(length(post_draws$h0), ndraws)
+  idx_draws <- sample(length(post_draws$log_h0), ndraws)
   
   # Calculate model lines for random draws
   pred_mat <- matrix(NA, nrow=ndraws, ncol=length(data_obs$freq))
@@ -50,7 +50,7 @@ for(i in 1:length(unique(spectralEstDF$Date))){
     j <- idx_draws[k]
     # Note: Ensure model_psd_r is loaded from 00_common.R
     pred_mat[k,] <- model_psd_r(
-      data_obs$freq, post_draws$h0[j], post_draws$h_m1[j], 
+      data_obs$freq, exp(post_draws$log_h0[j]), exp(post_draws$log_h_m1[j]), 
       post_draws$Kp[j], post_draws$Ki[j], post_draws$tau[j], TP_VAL
     )
   }
@@ -84,8 +84,8 @@ for(i in 1:length(unique(spectralEstDF$Date))){
   # Generate Prior Samples (Hardcoded to match Stan file)
   n_p <- 4000
   priors <- data.frame(
-    h0   = rlnorm(n_p, -72.78, 5),
-    h_m1 = runif(n_p,1e-33,2e-33),
+    log_h0   = rnorm(n_p, -70, 10),
+    log_h_m1 = rnorm(n_p,-75.63, 0.17),
     tau = runif(n_p,1,200),
     Kp  = runif(n_p,0, 20),
     Ki  = runif(n_p,0, 10),
@@ -100,10 +100,17 @@ for(i in 1:length(unique(spectralEstDF$Date))){
   )
 
   posteriors <- as.data.frame(fit) %>% 
-    select(h0, h_m1, Kp, Ki, tau) %>% 
+    select(log_h0, log_h_m1, Kp, Ki, tau) %>% 
     mutate(Type = "Posterior")
   
   comp_data <- bind_rows(priors, posteriors)
+  
+  # limits   <- range(posteriors$h0)
+  # ggplot(posteriors,aes(h0))+
+  #   geom_density()+
+  #   geom_density(data=priors,aes(h0))+
+  #   coord_cartesian(xlim=limits)
+  # 
   
   # 2. Updated Plotting Function
   plot_param <- function(dat, param, log_scale=F) {
@@ -122,8 +129,8 @@ for(i in 1:length(unique(spectralEstDF$Date))){
     # B. Determine Plot Limits (Zoom in to avoid long tails)
     # We use the 0.5% and 99.5% quantiles of the COMBINED data to set limits.
     # This ignores the extreme <1% outliers that squash the plot.
-    vals_all <- d_sub[[param]]
-    limits   <- quantile(vals_all, probs = c(0.005, 0.995))
+    # vals_all <- d_sub[d_sub$Type == "Posterior", param]#d_sub[[param]]
+    # limits   <- range(vals_all)#quantile(vals_all, probs = c(0.005, 0.995))
     
     # Build Plot
     p <- ggplot(d_sub, aes_string(x=param, fill="Type")) +
@@ -147,13 +154,13 @@ for(i in 1:length(unique(spectralEstDF$Date))){
     }
     
     # Apply Smart Zoom (coord_cartesian keeps the data but zooms the view)
-    p <- p + coord_cartesian(xlim = limits)
+    # p <- p + coord_cartesian(xlim = limits)
     
     return(p)
   }
   
-  g1 <- plot_param(comp_data, "h0", F)
-  g2 <- plot_param(comp_data, "h_m1", F)
+  g1 <- plot_param(comp_data, "log_h0", F)
+  g2 <- plot_param(comp_data, "log_h_m1", F)
   g3 <- plot_param(comp_data, "Kp", F)
   g4 <- plot_param(comp_data, "Ki", F)
   g5 <- plot_param(comp_data, "tau",F)

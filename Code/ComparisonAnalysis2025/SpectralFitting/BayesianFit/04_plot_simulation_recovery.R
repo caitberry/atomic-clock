@@ -7,7 +7,7 @@
 # Define the TRUE values used in 01_prep_data.R for simulation
 # (Ensure these match exactly what you used to generate the data!)
 # true_params <- list(h0=5.191944e-31, h_m1=1.617518e-33, Kp=1.736019e-02, Ki=1.279804e-01, tau=2.5)
-true_params <- list(h0=5.580327e-31,h_m1= 1.013525e-33, Kp= 2.110357e-02, Ki= 1.212464e-01, tau= 3.112662e+00) ##TRY THESE TUESDAY
+true_params <- list(log_h0=log(5.580327e-31),log_h_m1= log(1.013525e-33), Kp= 2.110357e-02, Ki= 1.212464e-01, tau= 3.112662e+00) ##TRY THESE TUESDAY
 
 # File path for the simulated fit
 # (Adjust the date/name if you saved your simulation differently)
@@ -25,7 +25,7 @@ fit_sim <- readRDS(FIT_FILE)
 
 # Extract samples
 post_samples <- as.data.frame(fit_sim) %>%
-  select(h0, h_m1, Kp, Ki, tau) %>%
+  select(log_h0, log_h_m1, Kp, Ki, tau) %>%
   pivot_longer(cols = everything(), names_to = "Parameter", values_to = "Value")
 
 # Create a dataframe for True Values to map to the facets

@@ -22,23 +22,40 @@ for(i in 1:length(unique(spectralEstDF$Date))){
   
   # Calculate the bias
   log_bias_val <- calculate_log_bias(MY_K)
+  # New (Correct Variance for Log-Chi-Sq)
+  # The SD of log(PSD) is constant: sqrt(trigamma(K))
+  log_sd_const <- sqrt(trigamma(MY_K))
   
   stan_data <- list(
     N      = length(fit_data$freq),
     freq   = fit_data$freq,
     y_obs  = fit_data$spectrum,
-    rel_sd = fit_data$sdish / fit_data$spectrum,
+    sigma_log = rep(log_sd_const,length(fit_data$freq)),#fit_data$sdish / fit_data$spectrum,
     tp     = TP_VAL,
     bias   = log_bias_val
   )
   
-  # Run Sampling
+  # init_fun <- function() {
+  #   list(
+  #     log_h0   = log(5e-31), 
+  #     log_h_m1 = log(1.5e-33),
+  #     Kp       = 0.5,
+  #     Ki       = 0.5,
+  #     tau      = 10
+  #   )
+  # }
+  # # Run Sampling
   fit <- sampling(
     stan_model_obj,
     data   = stan_data,
     iter   = STAN_ITER,
     warmup = STAN_WARMUP,
-    chains = STAN_CORES
+    chains = STAN_CORES,
+    # init = init_fun
+    control = list(
+      adapt_delta   = 0.98  # INCREASES STEP PRECISION (Fixes Divergences)
+      # max_treedepth = 15    # ALLOWS LONGER PATHS (Fixes low ESS)
+    )
   )
   
   # Save Fit Object

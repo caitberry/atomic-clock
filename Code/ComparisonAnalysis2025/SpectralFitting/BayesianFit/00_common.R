@@ -28,7 +28,7 @@ STAN_MODEL     <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitt
 
 # Processing Constants
 MY_K    <- 5    # Number of tapers
-TP_VAL  <- 1.0  # Probe time (s)
+TP_VAL  <- 1.0  # Probe time (s)  ### CHANGES FOR DIFFERENT CLOCKS
 F_MIN   <- 0.0001
 F_MAX   <- 0.1
 

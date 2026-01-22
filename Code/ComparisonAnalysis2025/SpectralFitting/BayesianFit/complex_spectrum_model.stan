@@ -2,9 +2,11 @@
 
 functions {
   // MODIFIED: Input is now 'vector freq' (Hz) instead of omega
-  vector model_log_psd(int N, vector freq, real h0, real h_m1, 
+  vector model_log_psd(int N, vector freq, real log_h0, real log_h_m1, 
                        real Kp, real Ki, real tau, real tp) {
     vector[N] log_y_model;
+    real h0 = exp(log_h0);
+    real h_m1 = exp(log_h_m1);
     
     real tp_half = tp / 2;
     real two_pi = 2.0 * pi();
@@ -72,15 +74,25 @@ data {
   int<lower=1> N;
   vector<lower=0>[N] freq;        // MODIFIED: frequency in Hz
   vector<lower=0>[N] y_obs;       // observed PSD (per Hz)
-  vector<lower=0>[N] rel_sd;      // relative sd
+  vector<lower=0>[N] sigma_log;      // relative sd
   real<lower=0> tp;               // probe time (s)
   
   real bias;
 }
 
 parameters {
-  real<lower=0> h0;
-  real<lower=1e-33, upper=2e-33> h_m1;
+  // real<lower=0> h0;
+  // real<lower=1e-33, upper=2e-33> h_m1;
+  real log_h0; 
+  // We use log scale for stability. 
+  // We allow a slightly wider range for the sampler to breathe, 
+  // even if we expect it to stay within [1e-33, 2e-33].
+  real<lower=-80, upper=-70> log_h_m1; 
+  
+  //   // We use log-parameters for EVERYTHING to avoid hitting boundaries
+  // real<lower=-76.9, upper=-67.0> log_h0;   // log(4e-34) to log(8e-30)
+  // real<lower=-76.0, upper=-75.3> log_h_m1; // log(1e-33) to log(2e-33)
+  // 
   real<lower=0,upper = 20> Kp;
   real<lower=0,upper=10> Ki;
   real<lower=1, upper =200> tau;
@@ -88,7 +100,8 @@ parameters {
 
 transformed parameters {
   // MODIFIED: Passing 'freq' instead of 'omega'
-  vector[N] log_y_hat = model_log_psd(N, freq, h0, h_m1, Kp, Ki, tau, tp);
+  // vector[N] log_y_hat = model_log_psd(N, freq, h0, h_m1, Kp, Ki, tau, tp);
+  vector[N] log_y_hat = model_log_psd(N, freq, log_h0, log_h_m1, Kp, Ki, tau, tp);
   
   // Shift the model down to match the biased data
   // The model predicts the "True" log-spectrum.
@@ -107,11 +120,15 @@ model {
 
 
 // --- Noise Parameters ---
-  // h0   ~ lognormal(-72.78, 2.49); 
-  h0   ~ lognormal(-72.78, 5); 
-  // h_m1 ~ lognormal(-75.79, 1);
-  h_m1 ~ uniform(1e-33,2e-33);
-  // --- Loop Parameters (THE FIX) ---
+  // // h0   ~ lognormal(-72.78, 2.49); 
+  // h0   ~ lognormal(-72.78, 5); 
+  // // h_m1 ~ lognormal(-75.79, 1);
+  // h_m1 ~ uniform(1e-33,2e-33);
+  log_h0   ~ normal(-72.0, 2.0); 
+  // --- INFORMATIVE PRIOR FOR h_m1 ---
+  // Midpoint of log(1e-33) and log(2e-33) is ~ -75.63
+  // A sigma of 0.17 puts roughly 95% of the mass inside your range.
+  log_h_m1 ~ normal(-75.63, 0.17);
   
   // 1. Kp: Was normal(10, 5). 
   // Change to Weakly Informative LogNormal centered near typical values (e.g., 0.1 to 10)
@@ -131,9 +148,14 @@ model {
   // Ki  ~ lognormal(0, 5);
   // tau ~ lognormal(0, 5);
   tau ~ uniform(1,200);
+  // tau ~ lognormal(log(10), 1.0) T[1, 200];
+
   Kp  ~ uniform(0, 20);
+  // Kp  ~ normal(1.0, 5.0) T[0, 20];
+
   Ki  ~ uniform(0, 10);
-  
+  // Ki  ~ lognormal(log(1.0), 1.0) T[0.1, 10];
+
   // Likelihood
-  y_obs ~ lognormal(log_y_hat, rel_sd);
+  y_obs ~ lognormal(log_y_hat, sigma_log);
 }
