@@ -28,14 +28,14 @@ STAN_MODEL     <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitt
 
 # Processing Constants
 MY_K    <- 5    # Number of tapers
-TP_VAL  <- 1.0  # Probe time (s)
+TP_VAL  <- 1.0  # Probe time (s)  ### CHANGES FOR DIFFERENT CLOCKS
 F_MIN   <- 0.0001
 F_MAX   <- 0.1
 
 # MCMC Settings
 STAN_CORES  <- 4
-STAN_ITER   <- 4000
-STAN_WARMUP <- 3000
+STAN_ITER   <- 10000
+STAN_WARMUP <- 8000
 
 # # Ensure output dir exists
 # if(!dir.exists(OUTPUT_FIT_DIR)) dir.create(OUTPUT_FIT_DIR, recursive = TRUE)
@@ -86,4 +86,9 @@ extract_from_list <- function(x, filename) {
   df1 <- data.frame(freq = x[[1]], spectrum = x[[2]], File = filename)
   df2 <- data.frame(eigenval = x[[4]], K=1:MY_K, File = filename)
   list(spectrum = df1, eigenvals = df2)
+}
+
+calculate_log_bias <- function(K) {
+  # digamma(K) - log(K) is the theoretical bias for log(chi-sq/2K)
+  return(digamma(K) - log(K))
 }
