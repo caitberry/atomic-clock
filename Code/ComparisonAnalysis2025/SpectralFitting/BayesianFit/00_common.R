@@ -43,42 +43,24 @@ STAN_WARMUP <- 8000
 # --- HELPER FUNCTIONS ---
 
 # 1. R implementation of the Physics Model (for posterior plotting)
-model_psd_r <- function(freq, h0, h_m1, Kp, Ki, tau, tp) {
-  omega <- 2 * pi * freq
-  n <- length(omega)
-  y_model <- numeric(n)
+model_psd_r <- function(f, h0, h_m1, Kp, Ki, tau, tp) {
+  # Angular frequency
+  w <- 2 * pi * f
+
+  # 1. Calculate Open Loop Gain G(w)
+  #    Using 1i for imaginary unit
+  s <- 1i * w
+  G <- ( (Kp + Ki/s) / (1 + s*tau) ) * exp(-s * tp / 2)
   
-  for (i in seq_len(n)) {
-    w <- omega[i]
-    angle <- -w * tp / 2
-    c_val <- cos(angle); s_val <- sin(angle)
-    
-    # Numerator G(w)
-    re_num <- Kp * c_val - (-Ki/w) * s_val
-    im_num <- Kp * s_val + (-Ki/w) * c_val
-    
-    # Denominator G(w)
-    re_den <- 1; im_den <- w * tau
-    den_sq <- re_den^2 + im_den^2
-    
-    # G = num/den
-    re_G <- (re_num * re_den + im_num * im_den) / den_sq
-    im_G <- (im_num * re_den - re_num * im_den) / den_sq
-    
-    # 1+G
-    re_1pG <- 1 + re_G; im_1pG <- im_G
-    one_plus_G_sq <- re_1pG^2 + im_1pG^2
-    
-    # Ratios
-    abs_inv_sq <- 1 / one_plus_G_sq
-    re_rat <- (re_G * re_1pG + im_G * im_1pG) / one_plus_G_sq
-    im_rat <- (im_G * re_1pG - re_G * im_1pG) / one_plus_G_sq
-    abs_ratio_sq <- re_rat^2 + im_rat^2
-    
-    # Result (Using cyclic freq logic: h_m1/f)
-    y_model[i] <- abs_ratio_sq * h0 + abs_inv_sq * (h_m1 / freq[i])
-  }
-  return(y_model)
+  # 2. Calculate Closed Loop Shapes
+  #    Mod(z)^2 gives |z|^2
+  noise_transfer_h0   <- Mod(G / (1 + G))^2
+  noise_transfer_hm1  <- Mod(1 / (1 + G))^2
+  
+  # 3. Combine
+  Sy <- noise_transfer_h0 * h0 + noise_transfer_hm1 * (h_m1 / f)
+  
+  return(Sy)
 }
 
 # 2. Extract Data Helper
