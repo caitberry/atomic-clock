@@ -46,11 +46,11 @@ p1=post_samples %>%
              aes(xintercept = TrueValue), color = "red", linetype = "dashed", size = 1) +
   # Formatting
   facet_wrap(~Parameter, scales = "free", ncol = 3) +
-  labs(title = "Loop Parameters (Linear Scale)", y = "Posterior Density", x = "Parameter Value") +
+  labs(y = "Posterior Density", x = "Parameter Value") +
   theme_bw() +
   theme(strip.background = element_rect(fill = "gray90"))
 plot_filename <- paste0(OUTPUT_PLOT_DIR, "postVtruth_", dataName, "_", gsub("-", "_", target_date), ".png")
-ggsave(plot_filename, plot = p1, width = 10, height = 6)
+ggsave(plot_filename, plot = p1, width = 5, height = 4)
 
 
 # --- PRINT NUMERICAL SUMMARY ---

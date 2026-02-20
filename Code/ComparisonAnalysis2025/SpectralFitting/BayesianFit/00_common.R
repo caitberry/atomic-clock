@@ -22,6 +22,7 @@ BASE_FILEPATH  <- "/home/aak3/NIST/atomic-clock/"
 
 DATA_RAW_DIR   <- paste0(BASE_FILEPATH,"Results/ClockComp2025")
 OUTPUT_FIT_DIR <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/Posteriors/")
+Output_SimpleFit_Dir <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/SimpleFits/")
 OUTPUT_PLOT_DIR <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/Plots/")
 DATA_PREP_FILE <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/processedData/data_prepared_for_fitting.rds")
 STAN_MODEL     <- paste0(BASE_FILEPATH,"Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/complex_spectrum_model.stan")

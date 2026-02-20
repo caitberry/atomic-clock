@@ -35,15 +35,6 @@ for(i in 1:length(unique(spectralEstDF$Date))){
     bias   = log_bias_val
   )
   
-  # init_fun <- function() {
-  #   list(
-  #     log_h0   = log(5e-31), 
-  #     log_h_m1 = log(1.5e-33),
-  #     Kp       = 0.5,
-  #     Ki       = 0.5,
-  #     tau      = 10
-  #   )
-  # }
   # # Run Sampling
   fit <- sampling(
     stan_model_obj,
@@ -53,8 +44,8 @@ for(i in 1:length(unique(spectralEstDF$Date))){
     chains = STAN_CORES,
     # init = init_fun
     control = list(
-      adapt_delta   = 0.98  # INCREASES STEP PRECISION (Fixes Divergences)
-      # max_treedepth = 15    # ALLOWS LONGER PATHS (Fixes low ESS)
+      adapt_delta   = 0.98  
+      # max_treedepth = 15    
     )
   )
   
