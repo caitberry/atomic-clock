@@ -447,3 +447,197 @@ ggplot(simres,aes(values,col=type))+
 # # # Standard periodogram for comparison
 # # pgram <- spec.pgram(x.t, plot = FALSE)
 # # lines(pgram$freq, 10 * log10(pgram$spec), col = "gray")
+
+
+
+
+#### is the sum of weighted chi squared a scaled chisquared?
+
+# 1. Define weights and calculate parameters
+weights <- c(0.5, 2, 5, 10)
+n_sim <- 100000
+
+# Theoretical Moments
+mean_Q <- sum(weights)
+var_Q  <- 2 * sum(weights^2)
+
+# Calculate Satterthwaite Parameters
+alpha <- var_Q / (2 * mean_Q)       # Multiplicative factor
+nu    <- (2 * mean_Q^2) / var_Q     # Effective degrees of freedom
+
+# 2. Generate the ACTUAL weighted sum (Q)
+# Each column is a ChiSq(1), multiplied by its corresponding weight
+samples <- matrix(rchisq(n_sim * length(weights), df = 1), ncol = length(weights))
+Q_actual <- samples %*% weights
+
+# 3. Generate the RESCALED Chi-Squared (alpha * ChiSq(nu))
+Q_approx <- alpha * rchisq(n_sim, df = nu)
+
+# 4. Compare Distributions Visually
+par(mfrow=c(1,2)) # Side-by-side plots
+
+# Plot 1: Density Comparison
+plot(density(Q_actual), col="blue", lwd=2, main="Density Comparison", 
+     xlab="Value", ylim=c(0, max(density(Q_actual)$y)))
+lines(density(Q_approx), col="red", lty=2, lwd=2)
+legend("topright", legend=c("Actual Weighted Sum", "Rescaled Chi-Sq"), 
+       col=c("blue", "red"), lty=c(1,2), lwd=2)
+
+# Plot 2: Q-Q Plot (If they match, points will follow the y=x line)
+qqplot(Q_actual, Q_approx, main="Q-Q Plot", 
+       xlab="Actual Weighted Sum Quantiles", 
+       ylab="Rescaled Chi-Sq Quantiles", pch=20, col=rgb(0,0,0,0.1))
+abline(0, 1, col="red", lwd=2)
+
+
+
+
+
+###########
+# 1. Define weights and calculate cumulants (s_j = sum of weights^j)
+weights <- c(0.1, 0.5, 2, 10) # Highly unequal weights show the difference better
+n_sim <- 10^6
+
+s1 <- sum(weights)
+s2 <- sum(weights^2)
+s3 <- sum(weights^3)
+
+# 2. Satterthwaite Parameters (2-moment)
+alpha_s <- s2 / s1
+nu_s    <- s1^2 / s2
+
+# 3. Liu-Tang-Zhang Parameters (3-moment)
+# Formulas derived to match mean, variance, and skewness
+alpha_ltz <- s3 / s2
+nu_ltz    <- s2^3 / s3^2
+delta     <- s1 - (s2^2 / s3)
+
+# 4. Simulations
+actual_Q <- matrix(rchisq(n_sim * length(weights), 1), ncol=length(weights)) %*% weights
+sim_satt <- alpha_s * rchisq(n_sim, df = nu_s)
+sim_ltz  <- alpha_ltz * rchisq(n_sim, df = nu_ltz) + delta
+
+# 5. Compare the "Tail" (95th to 99.9th percentiles)
+probs <- c(0.95, 0.99, 0.999)
+results <- rbind(
+  Actual = quantile(actual_Q, probs),
+  Satterthwaite = quantile(sim_satt, probs),
+  LTZ = quantile(sim_ltz, probs)
+)
+
+print(round(results, 3))
+
+# 6. Visualization: Q-Q Plot comparison
+par(mfrow=c(1,2))
+qqplot(actual_Q, sim_satt, main="Satterthwaite Q-Q", pch=".", col="blue")
+abline(0,1, col="red")
+
+qqplot(actual_Q, sim_ltz, main="Liu-Tang-Zhang Q-Q", pch=".", col="darkgreen")
+abline(0,1, col="red")
+
+
+
+###########################
+
+
+# 1. Define weights and calculate cumulants (s_j = sum of weights^j)
+weights <- c(0.1, 0.5, 2, 10) # Highly unequal weights show the difference better
+n_sim <- 10^6
+
+s1 <- sum(weights)
+s2 <- sum(weights^2)
+s3 <- sum(weights^3)
+
+# 2. Satterthwaite Parameters (2-moment)
+alpha_s <- s2 / s1
+nu_s    <- s1^2 / s2
+
+# 3. Liu-Tang-Zhang Parameters (3-moment)
+# Formulas derived to match mean, variance, and skewness
+alpha_ltz <- s3 / s2
+nu_ltz    <- s2^3 / s3^2
+delta     <- s1 - (s2^2 / s3)
+
+# 4. Simulations
+actual_Q <- matrix(rchisq(n_sim * length(weights), 1), ncol=length(weights)) %*% weights
+sim_satt <- alpha_s * rchisq(n_sim, df = nu_s)
+sim_ltz  <- alpha_ltz * rchisq(n_sim, df = nu_ltz) + delta
+
+
+library(ggplot2)
+library(tidyr)
+
+df <- data.frame(
+  Actual = as.vector(actual_Q),
+  Satterthwaite = as.vector(sim_satt),
+  LTZ = as.vector(sim_ltz)
+)
+
+df_long <- pivot_longer(df, cols = everything(), 
+                        names_to = "Method", 
+                        values_to = "Value")
+
+ggplot(df_long, aes(x = Value, color = Method, fill = Method)) +
+  geom_density(alpha = 0.1, linewidth = 1) +
+  labs(title = "Comparison of Quadratic Form Approximations",
+       subtitle = paste("Weights:", paste(weights, collapse = ", ")),
+       x = "Value of Q",
+       y = "Density") +
+  theme_minimal() +
+  scale_color_manual(values = c("Actual" = "black", 
+                                "Satterthwaite" = "#0072B2", 
+                                "LTZ" = "#D55E00")) +
+  scale_fill_manual(values = c("Actual" = "black", 
+                               "Satterthwaite" = "#0072B2", 
+                               "LTZ" = "#D55E00"))
+
+# 4. Optional: Zoom into the tail to see the LTZ advantage
+# ggplot(df_long, aes(x = Value, color = Method)) +
+#   geom_density(linewidth = 1) +
+#   coord_cartesian(xlim = c(quantile(actual_Q, 0.9), quantile(actual_Q, 0.999))) +
+#   labs(title = "Tail Comparison (90th - 99.9th Percentile)") +
+#   theme_minimal()
+
+# 5. Compare the "Tail" (95th to 99.9th percentiles)
+probs <- c(0.95, 0.99, 0.999)
+results <- rbind(
+  Actual = quantile(actual_Q, probs),
+  Satterthwaite = quantile(sim_satt, probs),
+  LTZ = quantile(sim_ltz, probs)
+)
+
+print(round(results, 3))
+
+# 6. Visualization: Q-Q Plot comparison
+par(mfrow=c(1,2))
+qqplot(actual_Q, sim_satt, main="Satterthwaite Q-Q", pch=".", col="blue")
+abline(0,1, col="red")
+
+qqplot(actual_Q, sim_ltz, main="Liu-Tang-Zhang Q-Q", pch=".", col="darkgreen")
+abline(0,1, col="red")
+
+
+
+# Plot 1: Density Comparison
+plot(density(actual_Q), col="blue", lwd=2, main="Density Comparison", 
+     xlab="Value", ylim=c(0, max(density(Q_actual)$y)))
+lines(density(Q_approx), col="red", lty=2, lwd=2)
+legend("topright", legend=c("Actual Weighted Sum", "Rescaled Chi-Sq"), 
+       col=c("blue", "red"), lty=c(1,2), lwd=2)
+
+
+library("fitdistrplus")
+
+# Fit a Gamma distribution to your actual weighted data
+fit_gamma <- fitdist(as.vector(actual_Q), "gamma")
+
+# Extract the fitted parameters
+fitted_shape <- fit_gamma$estimate["shape"]
+fitted_rate  <- fit_gamma$estimate["rate"]
+
+cat("Fitted Shape:", fitted_shape, "\n")
+cat("Fitted Scale:", 1/fitted_rate, "\n")
+
+# Compare to Satterthwaite nu/2 and 2*alpha
+cat("Satterthwaite Shape (nu/2):", nu_s / 2, "\n")
+cat("Satterthwaite Scale (2*alpha):", 2 * alpha_s, "\n")
