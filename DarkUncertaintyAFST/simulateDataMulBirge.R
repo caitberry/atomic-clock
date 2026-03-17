@@ -1,0 +1,61 @@
+############################################################################
+### 
+### Dark uncertainty for atomic clock data
+### Simulate data assuming conditions necessary for multiplicative birge 
+### 
+### Suzanne Thornton
+### March 2026
+### Code adapted from Amanda Koepke and Angela Folz
+### 
+############################################################################
+
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(metafor)
+
+path = "/Users/smt3/Documents/GitHub/atomic-clock/"
+simdatfolder = "DarkUncertaintyAFST/simulatedData/"
+
+## Assumption: each measurement x_i comes from a N(mu, c^2u_i^2) distribution
+## use Angela's technique for generating u_i values
+
+# read in means and uncertainties for multiple days of BACON2 ratio measurements
+ratiolab = "YbSr"
+ratiodf = read_csv(paste0(path, "Data/ClockComparison2025/BayesianAnalysisData/ErYb_",ratiolab,"_data.csv"))
+bacon_measurements = ratiodf$offset
+bacon_uncertainties = ratiodf$statistical_unc
+N = length(bacon_measurements)
+
+birg_constant = 2
+mu = 0
+##these uncertainties are (likely) std deviations
+uncertainties = runif(N, min(bacon_uncertainties), max(bacon_uncertainties)) # simulate "known" uncertainties for each day from a uniform, 
+                                                         # with the lower and upper bound set to be what was observed 
+                                                         # in the BACON2 data for a particular ratio
+
+norm_gen <- function(sd_term){rnorm(1, mean=mu, sd = sd_term*birg_constant)}
+measurements = sapply(uncertainties, norm_gen)
+
+sim_dat = data.frame(day = 1:N, x = measurements, u = uncertainties)
+
+##TODO: derive mu_hat_B and u(mu_hat_B)
+# Plot consensus mean with uncertainty bars showing k*u, where k=1 and plot true mu
+
+
+# plot real BACON2 data
+ggplot(ratiodf, aes(x=date, y=offset)) +
+  geom_point(size=1) +
+  geom_errorbar(aes(ymin=offset-statistical_unc, ymax=offset+statistical_unc), width=0) +
+  ylim(c(-110,-90)) +
+  theme_bw() +
+  ggtitle("BACON2 data")
+
+# plot for one simulated data set
+ggplot(sim_dat, aes(x=day, y=x)) +
+  geom_point(size=1) +
+  geom_errorbar(aes(ymin=x-u, ymax=x+u), width=0) +
+  ylim(c(-6,6)) +
+  # ylim(c(-110,-90)) + # if use mu=mean(BACON2 data)
+  theme_bw() +
+  ggtitle(paste("Simulated data, N =", N, ", c =", birg_constant))
