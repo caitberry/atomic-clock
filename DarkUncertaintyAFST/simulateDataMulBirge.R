@@ -75,7 +75,7 @@ ggplot(ratiodf, aes(x=as.character(date), y=offset)) +
   ggtitle("BACON2 data")
 
 # plot simulated data set
-# TODO: add to this plot mu_hat with uncertainty bars showing k*u, where k=1 and plot true mu
+# plot includes mu_hat with uncertainty bars showing k*u, where k=1 and true mu (red)
 ggplot(sim_dat, aes(x=day, y=x)) +
   geom_point(size=1) +
   geom_errorbar(aes(ymin=x-u, ymax=x+u), width=0) +
