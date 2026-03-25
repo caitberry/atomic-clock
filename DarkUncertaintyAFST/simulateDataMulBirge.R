@@ -40,7 +40,25 @@ norm_gen <- function(sd_term){rnorm(1, mean=mu, sd = sd_term*birg_constant)}
 measurements = sapply(uncertainties, norm_gen)
 sim_dat = data.frame(day = 1:N, x = measurements, u = uncertainties)
 
-##TODO: derive mu_hat_B and u(mu_hat_B)
+
+std_u <- function(uncertainties){
+    return(sum(1/(uncertainties^2))^(-1/2))
+}
+
+#mu_hat_B
+weighted_mean <- function(measurements, uncertainties){
+    u_all = std_u(uncertainties)
+    return(u_all^2 * sum(measurements/(uncertainties^2)))
+}
+
+#u(mu_hat_B)
+u_MB <- function(measurements, uncertainties){
+    n = length(measurements)
+    ave_WM = weighted_mean(measurements, uncertainties)
+    chi_sq_obs = sum( ((ave_WM - measurements)^2) / ((uncertainties)^2))
+    u = std_u(uncertainties)
+    return(u*sqrt(chi_sq_obs/(n-1))) ##or use n-3 as in Toman 2012
+}
 
 
 # plot real BACON2 data
