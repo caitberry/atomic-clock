@@ -1,0 +1,16 @@
+measurements
+2.6250280,  2.1239796, -4.4063218, -1.2310770,  1.8523271,  0.2012316, -4.7861214,  1.2552456, -0.7941847, -2.3149392,  2.3699458,  0.2066967, -1.0313186
+
+uncertainties
+1.3042374, 0.9499076, 1.3082273, 1.1774363, 1.2400200, 0.9526102, 1.1850341, 1.2976405, 0.9647747, 0.9662365, 1.3006632, 1.2759207, 0.9615250
+
+
+Day1, Day2, Day3, Day4, Day5, Day6, Day7, Day8, Day9, Day10, Day11, Day12, Day13
+
+Linear Pool NICOB
+Default (equal) weights
+sample size = 100000
+
+consensus estimate: -0.303 (1 sig digit is believed to be reliable)
+standard uncertainty: 2.621
+95% coverage interval: -5.836 to 4.007
