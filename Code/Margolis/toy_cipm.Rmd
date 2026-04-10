@@ -1,0 +1,209 @@
+---
+title: "Bayesian Optical Clock Network: Toy Model"
+author: "Clock Comparison Analysis"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+## Introduction
+
+This document outlines a simplified Bayesian model for calculating the optimized absolute frequencies of three optical atomic clocks: Mercury ($^{199}$Hg), Ytterbium ($^{171}$Yb), and Strontium ($^{87}$Sr). These correspond to the reference transitions $\nu_3$, $\nu_8$, and $\nu_{12}$ from the 2021 CIPM update.
+
+Instead of using linear approximations (like Taylor expansions) to solve the non-linear network of frequency ratios, we use a Bayesian Hamiltonian Monte Carlo (HMC) sampler via Stan. 
+
+To ensure numerical stability within standard 64-bit floating-point limits, the model relies on computing **scaled fractional offsets** rather than absolute frequencies in Hertz.
+
+---
+
+## 1. The Raw Data and Anchors
+
+We extract exactly six measurements to form a perfectly closed topological loop (Hg $\leftrightarrow$ Yb $\leftrightarrow$ Sr) anchored to the Cesium (Cs) SI definition. 
+
+### Verifying the Reference Anchors (`nu_0`)
+To compute offsets, we first define our baseline reference frequencies, $\nu_0$. We use the 2017 CIPM recommended values as these fixed anchors.
+
+* **Hg ($\nu_3$)**: 1,128,575,290,808,154 Hz
+* **Yb ($\nu_8$)**: 518,295,836,590,864 Hz
+* **Sr ($\nu_{12}$)**: 429,228,004,229,873 Hz
+
+These integer values serve as our absolute baseline. The model will estimate how far the true frequencies deviate from these anchors.
+
+### The Input Measurements
+We pull three absolute frequency measurements and three direct optical-to-optical ratio measurements from the 2021 CIPM dataset:
+
+1.  **$q_7$ (Absolute Hg):** 1128575290808154.62 $\pm$ 0.41 Hz 
+2.  **$q_{24}$ (Absolute Yb):** 518295836590863.59 $\pm$ 0.31 Hz 
+3.  **$q_{47}$ (Absolute Sr):** 429228004229872.92 $\pm$ 0.12 Hz 
+4.  **$q_{79}$ (Ratio Hg/Yb):** 2.17747319413456507 $\pm$ $1.92 \times 10^{-16}$ 
+5.  **$q_{81}$ (Ratio Yb/Sr):** 1.20750703934333841 $\pm$ $3.40 \times 10^{-16}$ 
+6.  **$q_{59}$ (Ratio Hg/Sr):** 2.62931420989890960 $\pm$ $2.20 \times 10^{-16}$ 
+
+```{r setup, message=FALSE, warning=FALSE}
+library(rstan)
+
+# The 2017 reference anchor frequencies (nu_0) for Hg, Yb, Sr 
+nu_0 <- c(
+  1128575290808154, # 1: Hg (nu3)
+  518295836590864,  # 2: Yb (nu8)
+  429228004229873   # 3: Sr (nu12)
+)
+
+# Our 6 Measurements (Q)
+Q <- c(
+  1128575290808154.62,   # 1. Absolute Hg (q7)
+  518295836590863.59,    # 2. Absolute Yb (q24)
+  429228004229872.92,    # 3. Absolute Sr (q47)
+  2.17747319413456507,   # 4. Ratio Hg / Yb (q79)
+  1.20750703934333841,   # 5. Ratio Yb / Sr (q81)
+  2.62931420989890960    # 6. Ratio Hg / Sr (q59)
+)
+
+# Corrected absolute uncertainties (U)
+U <- c(
+  0.41,       # 1. Hg absolute unc
+  0.31,       # 2. Yb absolute unc
+  0.12,       # 3. Sr absolute unc
+  1.92e-16,   # 4. Hg/Yb unc 
+  3.40e-16,   # 5. Yb/Sr unc 
+  2.20e-16    # 6. Hg/Sr unc 
+)
+
+# Topography: Define what each measurement represents
+# Index 4 represents Cesium
+num_idx <- c(1, 2, 3, 1, 2, 1)
+den_idx <- c(4, 4, 4, 2, 3, 3)
+
+```
+
+## 2. Mathematical Transformation & Scaling
+
+Because standard floating-point architectures fail when computing the difference between extremely large numbers ($10^{15}$) with microscopic variances ($10^{-16}$), we must center our data around 0 and scale it to be near 1.0. We transform every measurement $Q_i$ and its absolute uncertainty $U_i$ into a scaled fractional offset, using a multiplier of $10^{15}$.
+
+Case A: Absolute Frequencies (Compared to Cesium)
+
+When comparing directly to the SI second (where Cesium is the denominator), the measurement is already in Hertz. We find the fractional difference between our measurement $Q_i$ and the baseline anchor $\nu_{0, \text{num}}$:
+$$y_{\text{scaled}} = \left( \frac{Q_i - \nu_{0, \text{num}}}{\nu_{0, \text{num}}} \right) \times 10^{15}$$
+$$u_{\text{scaled}} = \left( \frac{U_i}{\nu_{0, \text{num}}} \right) \times 10^{15}$$
+
+Case B: Optical-to-Optical Ratios
+
+When comparing two optical clocks directly, the measurement $Q_i$ is a dimensionless ratio. We first must calculate what the baseline ratio $R_0$ should be, based on our 2017 anchors:$$R_0 = \frac{\nu_{0, \text{num}}}{\nu_{0, \text{den}}}$$
+
+We then calculate the fractional offset of the measured ratio $Q_i$ against this baseline ratio $R_0$:
+$$y_{\text{scaled}} = \left( \frac{Q_i - R_0}{R_0} \right) \times 10^{15}$$
+$$u_{\text{scaled}} = \left( \frac{U_i}{R_0} \right) \times 10^{15}$$
+
+The Transformation Loop
+
+By running this logic, we convert both absolute frequencies and dimensionless ratios into the exact same currency: parts-per-quadrillion offsets.
+
+```{r}
+
+Q_scaled <- numeric(6)
+U_scaled <- numeric(6)
+
+for (i in 1:6) {
+  num_0 <- nu_0[num_idx[i]]
+  
+  if (den_idx[i] == 4) {
+    # Absolute frequency measurement vs Cesium
+    Q_scaled[i] <- ((Q[i] - num_0) / num_0) * 1e15
+    U_scaled[i] <- (U[i] / num_0) * 1e15
+  } else {
+    # Optical-to-optical ratio
+    den_0 <- nu_0[den_idx[i]]
+    R_0 <- num_0 / den_0
+    
+    Q_scaled[i] <- ((Q[i] - R_0) / R_0) * 1e15
+    U_scaled[i] <- (U[i] / R_0) * 1e15
+  }
+}
+
+# Create a diagonal covariance matrix (ignoring off-diagonal correlations for the toy model)
+V_scaled <- diag(U_scaled^2)
+
+```
+
+
+## 3. Running the Bayesian Model
+
+With our data perfectly scaled, we feed it into Stan. The sampler explores the probability space to find the optimal fractional offsets (x_mean). Once the sampler converges, we un-scale the results to reconstruct the optimized absolute frequencies in Hertz.
+
+
+```{r}
+stan_data <- list(
+  Q_scaled = Q_scaled,
+  V_scaled = V_scaled,
+  num_idx  = num_idx,
+  den_idx  = den_idx
+)
+
+# Run the Hamiltonian Monte Carlo sampler
+fit <- stan(
+  file = "C:/Users/aak3/Documents/atomic-clock/Code/Margolis/toy_cipm.stan",
+  data = stan_data,
+  iter = 5000,
+  warmup = 2500,
+  chains = 4
+)
+
+fit
+
+# Extract the fractional offsets Stan found
+x_mean <- colMeans(rstan::extract(fit)$x)
+
+# Un-scale them to get our optimized absolute frequencies
+optimized_Hg <- nu_0[1] * (1 + x_mean[1] * 1e-15)
+optimized_Yb <- nu_0[2] * (1 + x_mean[2] * 1e-15)
+optimized_Sr <- nu_0[3] * (1 + x_mean[3] * 1e-15)
+
+cat("\n--- TOY MODEL OPTIMIZED FREQUENCIES ---\n")
+cat("Hg:", format(optimized_Hg, digits=16), "Hz\n")
+cat("Yb:", format(optimized_Yb, digits=16), "Hz\n")
+cat("Sr:", format(optimized_Sr, digits=16), "Hz\n")
+```
+
+
+
+
+In this context, "dark uncertainty" represents unrecognized systematic errors or unmodeled correlations.When a laboratory publishes an absolute frequency or a frequency ratio, they provide a comprehensive uncertainty budget. This budget includes known physical effects (like blackbody radiation shifts, Zeeman shifts, and gravitational redshifts) and the statistical noise of the run. However, when you combine measurements from different laboratories into a closed topological loop (like your Hg / Yb / Sr triangle), the measurements sometimes fail to overlap within their stated uncertainties.Because the loop must mathematically close to zero, any leftover tension indicates that the published error bars are too tight. This missing variance is the dark uncertainty. It means there is a physical effect, a systematic offset, or a correlation that the laboratories failed to identify or quantify.How the CIPM Handled ItIn the 2021 update, the Working Group on Frequency Standards (WGFS) acknowledged that "as-yet-unidentified sources of uncertainty or correlation may exist". Because their least-squares method assumes that the probability density is perfectly Gaussian and that all correlations are precisely known, it cannot natively handle this unknown tension.To compensate, the WGFS applied a global, multiplicative expansion factor of two to the final output uncertainties. They essentially declared that everyone's true uncertainty is likely twice as large as reported.What the Additive Stan Model AssumesBy adding an additive sigma_excess variance to the diagonal of your covariance matrix, you are building a Bayesian Random Effects Model.Instead of multiplying the existing uncertainties by a factor like the WGFS did, your additive model assumes the following:Every published measurement campaign contains a hidden, uncorrected systematic offset.These hidden offsets are independent of one another.These hidden offsets are drawn from a normal distribution with a standard deviation of sigma_excess.This implies a baseline "noise floor" of unrecognized physics across the entire global clock network. If sigma_excess resolves to a posterior mean of $1.5 \times 10^{-16}$, the model is stating that regardless of how precise a laboratory claims their specific clock is, the global network topography dictates there is an inherent $1.5 \times 10^{-16}$ systematic blind spot in the data.
+
+
+
+Whether or not the off-diagonal covariances should be adjusted depends entirely on **where you believe the dark uncertainty is coming from**.
+
+When you inject excess variability into the model, you are fundamentally altering the relationship between the measurements. Here is how it breaks down depending on your physical assumptions:
+
+---
+
+### Scenario A: The "Independent Errors" Assumption (Diagonal Only)
+If you add `sigma_excess` strictly to the diagonal (which is what our additive Stan model currently does), you are assuming the dark uncertainty is completely unique and independent for every single measurement. 
+
+* **The Math:** The absolute covariance (the off-diagonal number) stays exactly the same, but the total variance (the diagonal number) increases. 
+* **The Resulting Correlation:** Because correlation is defined as $r = \frac{\text{Covariance}}{\sigma_1 \sigma_2}$, increasing the standard deviations ($\sigma$) while leaving the covariance untouched causes the correlation coefficient ($r$) to **shrink**. 
+* **The Physical Implication:** You are telling the model: *"There are hidden systematic errors, but they are random laboratory flukes."* Because the errors are flukes, they dilute the shared relationships between the measurements. 
+
+### Scenario B: The "Shared Systematics" Assumption (Diagonal + Off-Diagonal)
+What if the dark uncertainty isn't a random lab fluke? What if there is a fundamental, unrecognized shift in the atomic structure of Strontium itself? 
+
+If that were true, *every* measurement involving Strontium would be skewed by that exact same hidden effect. The dark uncertainty would be highly correlated.
+* **The Math:** You would have to add `sigma_excess` to the diagonal variances, but you would *also* have to add it to the off-diagonal covariances for any pair of measurements that both involve Strontium. 
+* **The Resulting Correlation:** The correlation coefficients between Strontium measurements would actually **increase**, because they now share a massive piece of hidden, unmodeled physics. 
+
+### Scenario C: The "Scale Everything" Assumption (Multiplicative)
+[cite_start]This is exactly why the Working Group on Frequency Standards (WGFS) used a global multiplicative expansion factor rather than an additive one [cite: 729-731]. 
+
+When you multiply the entire covariance matrix by an expansion factor ($c^2$):
+* The variances scale up by $c^2$.
+* The covariances scale up by $c^2$.
+* **The Resulting Correlation:** The $c^2$ terms perfectly cancel out in the correlation formula. The correlation coefficients remain **exactly the same**.
+* **The Physical Implication:** You are telling the model: *"We don't know exactly what the hidden errors are, so we are just going to assume every laboratory underestimated both their independent errors and their shared systematics by the exact same proportion."*
+
+---
+
+### Which should you use?
+Unless you have a very specific physical justification for exactly *which* atomic clock or laboratory is secretly generating the dark uncertainty, **Scenario B is almost impossible to code objectively.** You would be guessing at which covariances to inflate.
+
+If you believe the hidden errors are random, isolated measurement flukes, stick with the **Additive (Diagonal-Only)** approach. [cite_start]If you believe the original uncertainty budgets were just proportionally overly optimistic across the board, switch to the **Multiplicative (Expansion Factor)** approach to preserve the WGFS's carefully calculated correlation coefficients [cite: 504, 729-731].
+
+Given that the CIPM data relies heavily on interconnected measurements to close those topological loops, do you think preserving the original correlation ratios via a multiplicative factor makes the most sense for your goals?
