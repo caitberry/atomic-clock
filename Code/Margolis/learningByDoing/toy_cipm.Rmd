@@ -38,7 +38,7 @@ We pull three absolute frequency measurements and three direct optical-to-optica
 5.  **$q_{81}$ (Ratio Yb/Sr):** 1.20750703934333841 $\pm$ $3.40 \times 10^{-16}$ 
 6.  **$q_{59}$ (Ratio Hg/Sr):** 2.62931420989890960 $\pm$ $2.20 \times 10^{-16}$ 
 
-```{r setup, message=FALSE, warning=FALSE}
+```{r setup, message=FALSE, warning=FALSE,include=FALSE}
 library(rstan)
 
 # The 2017 reference anchor frequencies (nu_0) for Hg, Yb, Sr 
@@ -97,7 +97,7 @@ The Transformation Loop
 
 By running this logic, we convert both absolute frequencies and dimensionless ratios into the exact same currency: parts-per-quadrillion offsets.
 
-```{r}
+```{r,include=FALSE}
 
 Q_scaled <- numeric(6)
 U_scaled <- numeric(6)
@@ -130,7 +130,7 @@ V_scaled <- diag(U_scaled^2)
 With our data perfectly scaled, we feed it into Stan. The sampler explores the probability space to find the optimal fractional offsets (x_mean). Once the sampler converges, we un-scale the results to reconstruct the optimized absolute frequencies in Hertz.
 
 
-```{r}
+```{r,include=FALSE}
 stan_data <- list(
   Q_scaled = Q_scaled,
   V_scaled = V_scaled,
