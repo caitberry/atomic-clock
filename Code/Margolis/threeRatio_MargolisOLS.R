@@ -2,12 +2,12 @@
 # 1. DATA PREPARATION & SCALING
 # =====================================================================
 # The 2017 reference anchor frequencies (nu_0)
-# CHECK THESE!!!!!!!!!
 nu_0 <- c(
-  1128575290808154, # 1: Hg (nu3)
-  518295836590864,  # 2: Yb (nu8)
-  429228004229873   # 3: Sr (nu12)
+  1128575290808154.4, # 1: Hg (nu3)
+  518295836590863.6,  # 2: Yb (nu8)
+  429228004229873.0   # 3: Sr (nu12)
 )
+
 
 # Our 6 Measurements (Q)
 # q7	nu3		1128575290808154.62	0.41	[Tyumenev2016]
@@ -64,10 +64,10 @@ u_scaled <- c(
 # Construct Covariance Matrix (V)
 V <- diag(u_scaled^2)
 
-# Insert the 3 explicit off-diagonal correlations
-V[1, 3] <- 0.438 * u_scaled[1] * u_scaled[3]; V[3, 1] <- V[1, 3]
-V[2, 5] <- 0.088 * u_scaled[2] * u_scaled[5]; V[5, 2] <- V[2, 5]
-V[4, 6] <- 0.826 * u_scaled[4] * u_scaled[6]; V[6, 4] <- V[4, 6]
+# # Insert the 3 explicit off-diagonal correlations
+# V[1, 3] <- 0.438 * u_scaled[1] * u_scaled[3]; V[3, 1] <- V[1, 3]
+# V[2, 5] <- 0.088 * u_scaled[2] * u_scaled[5]; V[5, 2] <- V[2, 5]
+# V[4, 6] <- 0.826 * u_scaled[4] * u_scaled[6]; V[6, 4] <- V[4, 6]
 
 # =====================================================================
 # 2. LEAST-SQUARES ADJUSTMENT
@@ -83,15 +83,13 @@ A <- matrix(c(
   1,  0, -1   # 6. d(Hg/Sr)/dx
 ), nrow = 6, byrow = TRUE)
 
+
 # Calculate Least-Squares Solution: X = (A^T V^-1 A)^-1 A^T V^-1 Y
 V_inv <- solve(V)
-At_Vinv <- t(A) %*% V_inv
+X_hat <- solve(t(A) %*% V_inv %*% A) %*% t(A) %*% V_inv %*% Y
 
 # Covariance matrix of the adjusted variables
-cov_X <- solve(At_Vinv %*% A) 
-
-# Optimized scaled fractional offsets
-X_hat <- cov_X %*% At_Vinv %*% Y 
+cov_X <- solve(t(A) %*% V_inv %*% A) 
 
 # =====================================================================
 # 3. SELF-CONSISTENCY CHECKS
