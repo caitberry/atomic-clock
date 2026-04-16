@@ -1,12 +1,17 @@
+library(Rmpfr)
+# Set precision bits (128 bits gives ~38 decimal digits of precision, which is plenty)
+prec <- 128
+
 # =====================================================================
 # 1. DATA PREPARATION & SCALING
 # =====================================================================
 # The 2017 reference anchor frequencies (nu_0)
-nu_0 <- c(
-  1128575290808154.4, # 1: Hg (nu3)
-  518295836590863.6,  # 2: Yb (nu8)
-  429228004229873.0   # 3: Sr (nu12)
-)
+# 1. Define Nu_0 using STRINGS to prevent early truncation
+nu_0 <- mpfr(c(
+  "1128575290808154.4", # 1: Hg (nu3)
+  "518295836590863.6",  # 2: Yb (nu8)
+  "429228004229873.0"   # 3: Sr (nu12)
+), precBits = prec)
 
 
 # Our 6 Measurements (Q)
@@ -18,56 +23,64 @@ nu_0 <- c(
 # q59	nu3_over_nu12	2.62931420989890960	2.2e-16	[Yamanake2015]
 
 
-Q <- c(
-  1128575290808154.62, # 1. Absolute Hg (q7)
-  518295836590863.59,  # 2. Absolute Yb (q24)
-  429228004229872.92,  # 3. Absolute Sr (q47)
-  2.17747319413456507,   # 4. Ratio Hg / Yb (q79)
-  1.20750703934333841,   # 5. Ratio Yb / Sr (q81)
-  2.62931420989890960    # 6. Ratio Hg / Sr (q59)
-)
+Q <- mpfr(c(
+  "1128575290808154.62", # 1. Absolute Hg (q7)
+  "518295836590863.59",  # 2. Absolute Yb (q24)
+  "429228004229872.92",  # 3. Absolute Sr (q47)
+  "2.17747319413456507",   # 4. Ratio Hg / Yb (q79)
+  "1.20750703934333841",   # 5. Ratio Yb / Sr (q81)
+  "2.62931420989890960"    # 6. Ratio Hg / Sr (q59)
+), precBits = prec)
 
-# Their absolute uncertainties (U)
-# Corrected absolute uncertainties (U)
-U <- c(
-  0.41,       # 1. Hg absolute unc
-  0.31,       # 2. Yb absolute unc
-  0.12,       # 3. Sr absolute unc
-  1.92e-16,   # 4. Hg/Yb unc 
-  3.40e-16,   # 5. Yb/Sr unc 
-  2.20e-16    # 6. Hg/Sr unc 
-)
+# uncertainties (U)
+U <- mpfr(c(
+  "0.41",       # 1. Hg absolute unc
+  "0.31",       # 2. Yb absolute unc
+  "0.12",       # 3. Sr absolute unc
+  "1.92e-16",   # 4. Hg/Yb unc 
+  "3.40e-16",   # 5. Yb/Sr unc 
+  "2.20e-16"    # 6. Hg/Sr unc 
+), precBits = prec)
 
 # Reference ratios (R_0) for measurements 4, 5, and 6
+# Because nu_0 is an mpfr object, R_0 automatically becomes an mpfr object
 R_0 <- c(nu_0[1]/nu_0[2], nu_0[2]/nu_0[3], nu_0[1]/nu_0[3])
 
-# Calculate scaled fractional offsets (Y matrix equivalent)
-Y <- c(
-  ((Q[1] - nu_0[1]) / nu_0[1]) * 1e15,
-  ((Q[2] - nu_0[2]) / nu_0[2]) * 1e15,
-  ((Q[3] - nu_0[3]) / nu_0[3]) * 1e15,
-  ((Q[4] - R_0[1]) / R_0[1]) * 1e15,
-  ((Q[5] - R_0[2]) / R_0[2]) * 1e15,
-  ((Q[6] - R_0[3]) / R_0[3]) * 1e15
+# Calculate scaled fractional offsets 
+scale_factor <- mpfr(1e15, precBits = prec)
+
+Y_mpfr <- c(
+  ((Q[1] - nu_0[1]) / nu_0[1]) * scale_factor,
+  ((Q[2] - nu_0[2]) / nu_0[2]) * scale_factor,
+  ((Q[3] - nu_0[3]) / nu_0[3]) * scale_factor,
+  ((Q[4] - R_0[1]) / R_0[1]) * scale_factor,
+  ((Q[5] - R_0[2]) / R_0[2]) * scale_factor,
+  ((Q[6] - R_0[3]) / R_0[3]) * scale_factor
 )
 
 # Calculate scaled fractional uncertainties
-u_scaled <- c(
-  (U[1] / nu_0[1]) * 1e15,
-  (U[2] / nu_0[2]) * 1e15,
-  (U[3] / nu_0[3]) * 1e15,
-  (U[4] / R_0[1]) * 1e15,
-  (U[5] / R_0[2]) * 1e15,
-  (U[6] / R_0[3]) * 1e15
+u_scaled_mpfr <- c(
+  (U[1] / nu_0[1]) * scale_factor,
+  (U[2] / nu_0[2]) * scale_factor,
+  (U[3] / nu_0[3]) * scale_factor,
+  (U[4] / R_0[1]) * scale_factor,
+  (U[5] / R_0[2]) * scale_factor,
+  (U[6] / R_0[3]) * scale_factor
 )
+
+
+# Convert back to standard numeric: Now that the precise subtractions are done and the numbers are scaled to, 
+# it is safe to cast them back to standard double-precision.
+Y <- as.numeric(Y_mpfr)
+u_scaled <- as.numeric(u_scaled_mpfr)
 
 # Construct Covariance Matrix (V)
 V <- diag(u_scaled^2)
 
 # # Insert the 3 explicit off-diagonal correlations
-# V[1, 3] <- 0.438 * u_scaled[1] * u_scaled[3]; V[3, 1] <- V[1, 3]
-# V[2, 5] <- 0.088 * u_scaled[2] * u_scaled[5]; V[5, 2] <- V[2, 5]
-# V[4, 6] <- 0.826 * u_scaled[4] * u_scaled[6]; V[6, 4] <- V[4, 6]
+V[1, 3] <- 0.438 * u_scaled[1] * u_scaled[3]; V[3, 1] <- V[1, 3]
+V[2, 5] <- 0.088 * u_scaled[2] * u_scaled[5]; V[5, 2] <- V[2, 5]
+V[4, 6] <- 0.826 * u_scaled[4] * u_scaled[6]; V[6, 4] <- V[4, 6]
 
 # =====================================================================
 # 2. LEAST-SQUARES ADJUSTMENT
@@ -118,4 +131,11 @@ cat("Sr:", sprintf("%.3f", optimized_freqs[3]), "Hz  (Unc:", sprintf("%.2e", opt
 cat("--- CONSISTENCY METRICS ---\n")
 cat("Chi-squared:", round(chi_squared, 3), "\n")
 cat("Birge Ratio:", round(birge_ratio, 3), "\n")
+
+
+
+
+
+
+
 
