@@ -24,10 +24,10 @@ ratiolab = "YbSr"
 ratiodf = read_csv(paste0(path, "Data/ClockComparison2025/BayesianAnalysisData/ErYb_",ratiolab,"_data.csv"))
 bacon_measurements = ratiodf$offset
 bacon_uncertainties = ratiodf$statistical_unc
-N = length(bacon_measurements)
+N = length(bacon_measurements) #100
 
 ##True parameters
-birg_constant = 2
+birg_constant = 2 #0.5, 1.5
 mu = 0
 
 ##---Supporting functions------------------------------
