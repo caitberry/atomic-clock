@@ -10,7 +10,7 @@
 ### Assumption: each measurement x_i comes from a N(mu, c^2u_i^2) distribution
 ### using Angela's technique for generating u_i values
 ############################################################################
-
+rm(list=ls())
 library(readr)
 library(dplyr)
 library(ggplot2)
@@ -125,7 +125,7 @@ ggsave("DarkUncertaintyAFST/mul_birge_plot.png", plot = p1, width = 6, height = 
 
 
 ##---Investigate coverage------------------------------
-N_cov = 1000  ## select number of runs
+N_cov = 1E4  ## select number of runs
 
 uncertainties_cov = runif(N*N_cov, min(bacon_uncertainties), max(bacon_uncertainties))
 measurements_cov = sapply(uncertainties_cov, norm_gen)
@@ -159,3 +159,28 @@ for (i in 1:N_cov){
 }
 coverage/N_cov
 coverage_corrected/N_cov
+
+#Write CSV that contains: "Day","x","u","k", "lb","ub", "lb_corrected", "ub_corrected"
+k_cov_factor = 1.96 #1.96 for 95% intervals
+birge_CIs = list()
+for(i in 1:N_cov){
+  birge_CIs[[i]] = matrix(rep(
+                    c(k_cov_factor,
+                    birge_res[[i]]$mean_birge - k_cov_factor*birge_res[[i]]$u_birge,
+                    birge_res[[i]]$mean_birge + k_cov_factor*birge_res[[i]]$u_birge,
+                    birge_res[[i]]$mean_birge - k_cov_factor*birge_res[[i]]$u_birge_corrected,
+                    birge_res[[i]]$mean_birge + k_cov_factor*birge_res[[i]]$u_birge_corrected),
+                    N), ncol=5, byrow=TRUE)
+  colnames(birge_CIs[[i]]) = c("k", "lb", "ub", "lb_corrected", "ub_corrected")
+}
+
+dat_to_write = list()
+for(i in 1:N_cov){
+  dat_to_write[[i]] = cbind(sim_dat_list[[i]], birge_CIs[[i]])
+}
+
+library(data.table)
+dat_to_write_fin = rbindlist(lapply(dat_to_write, as.data.frame))
+head(dat_to_write_fin,40)
+
+# write.csv2(dat_to_write_fin, file = "DarkUncertaintyAFST/simulatedData/simDataMulBirge_N13mu0_10000iter_20260420.csv", row.names=FALSE)
