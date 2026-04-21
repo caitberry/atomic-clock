@@ -237,9 +237,9 @@ def getWhiteNoiseFit(t, adev0, weights, tCutoff=10):
 ###### This is how I would call the adev function:
 ####################################################
  
-# get the allan deviation points
-tAlYb,adevAlYb,AlYberror = adev.adev(AlYbOffset, comb.mjd, overlapping=True, tau='other',dx=1.5)
-# fit a white noise line excluding the points below 100 seconds
-whiteNoiseFitAlYb = adev.getWhiteNoiseFit(tAlYb, adevAlYb, AlYberror[1], tCutoff=100)
+## get the allan deviation points
+# tAlYb,adevAlYb,AlYberror = adev.adev(AlYbOffset, comb.mjd, overlapping=True, tau='other',dx=1.5)
+## fit a white noise line excluding the points below 100 seconds
+# whiteNoiseFitAlYb = adev.getWhiteNoiseFit(tAlYb, adevAlYb, AlYberror[1], tCutoff=100)
  
- 
+__all__ = ["prepareData", "adev", "modAdev", "getWhiteNoiseFit"] ##ST added this
