@@ -57,6 +57,13 @@ u_MB <- function(measurements, uncertainties, correction = FALSE){
   }
 }
 
+birge_wrapper <- function(mtx){
+  mean_birge = weighted_mean(mtx[,"x"], mtx[,"u"])
+  u_birge = u_MB(mtx[,"x"], mtx[,"u"])
+  u_birge_corrected = u_MB(mtx[,"x"], mtx[,"u"], correction = TRUE)
+  return(data.frame(mean_birge = mean_birge, u_birge = u_birge, u_birge_corrected = u_birge_corrected))
+}
+
 
 ##---Single simulation----------------------------------
 ##Simulated data
@@ -140,12 +147,6 @@ for(i in 1:N_cov){
   run = run + N 
 }
 
-birge_wrapper <- function(mtx){
-  mean_birge = weighted_mean(mtx[,"x"], mtx[,"u"])
-  u_birge = u_MB(mtx[,"x"], mtx[,"u"])
-  u_birge_corrected = u_MB(mtx[,"x"], mtx[,"u"], correction = TRUE)
-  return(data.frame(mean_birge = mean_birge, u_birge = u_birge, u_birge_corrected = u_birge_corrected))
-}
 birge_res = lapply(sim_dat_list, birge_wrapper)
 
 ##Nominal coverage is for k=1 (68%)
@@ -160,7 +161,8 @@ for (i in 1:N_cov){
 coverage/N_cov
 coverage_corrected/N_cov
 
-#Write CSV that contains: "Day","x","u","k", "lb","ub", "lb_corrected", "ub_corrected"
+##---Write CSV----------------------------------
+## that contains: "Day","x","u","k", "lb","ub", "lb_corrected", "ub_corrected"
 k_cov_factor = 1.96 #1.96 for 95% intervals
 birge_CIs = list()
 for(i in 1:N_cov){
@@ -184,3 +186,25 @@ dat_to_write_fin = rbindlist(lapply(dat_to_write, as.data.frame))
 head(dat_to_write_fin,40)
 
 # write.csv2(dat_to_write_fin, file = "DarkUncertaintyAFST/simulatedData/simDataMulBirge_N13mu0_10000iter_20260420.csv", row.names=FALSE)
+
+
+##---Analyse REM Data----------------------------------
+rem_data = read_csv(paste0(path, "DarkUncertaintyAFST/simulatedData/simDataRandomEffects_N13xi3_10000iter_20260326.csv"))
+rem_mu = rem_data$mu[1]
+
+## Break data into a list of matricies with 13 rows
+chunk_size = rem_data$N[1]
+rem_data_list = split(rem_data, (seq_len(nrow(rem_data)) - 1) %/% chunk_size)
+rem_mtx_list = lapply(rem_data_list, as.matrix)
+rem_birge_res = lapply(rem_mtx_list, birge_wrapper) ##Note input must be a matrix
+
+k_cov_factor = 1.96 #1.96 for 95% intervals
+coverage = 0
+coverage_corrected = 0
+for (i in seq_along(rem_data_list)){
+  tmp = rem_birge_res[[i]]
+  if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= rem_mu)){ coverage = coverage + 1}
+  if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= rem_mu)){ coverage_corrected = coverage_corrected + 1}
+}
+coverage/length(rem_data_list)
+coverage_corrected/length(rem_data_list)
