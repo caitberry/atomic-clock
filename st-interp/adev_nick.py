@@ -242,4 +242,4 @@ def getWhiteNoiseFit(t, adev0, weights, tCutoff=10):
 ## fit a white noise line excluding the points below 100 seconds
 # whiteNoiseFitAlYb = adev.getWhiteNoiseFit(tAlYb, adevAlYb, AlYberror[1], tCutoff=100)
  
-__all__ = ["prepareData", "adev", "modAdev", "getWhiteNoiseFit"] ##ST added this
+__all__ = ["prepareData", "adev", "modAdev", "getWhiteNoiseFit"] ##ST added
