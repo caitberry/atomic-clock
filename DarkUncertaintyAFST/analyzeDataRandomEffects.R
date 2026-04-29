@@ -21,16 +21,25 @@ successmetricsfolder <- "DarkUncertaintyAFST/successMetrics/"
 todayDate <- format(Sys.Date(), "%Y%m%d")
 
 ############################################################################
-### Load simulated data from random effects model
+### Load simulated data
 ############################################################################
 
-simfiles <- list.files(path=paste0(path, simdatfolder), pattern="*.csv") # get file paths
-simdat <- lapply(paste0(path, simdatfolder, simfiles), read.csv)
+# choose data to analyze (which model it was simulated under) (ONE)
+# howDatSim <- "RandomEffects"
+howDatSim <- "MulBirge"
+
+simfiles <- list.files(path=paste0(path, simdatfolder), pattern=c(howDatSim,".csv")) # get file paths
+simdat <- lapply(paste0(path, simdatfolder, simfiles), ifelse(howDatSim=="MulBirge", read.csv2, read.csv))
 names(simdat) <- basename(simfiles) # name the list elements after the files
-# simdat <- read_csv(paste0(path, simdatfolder, simfiles), id="source_file") # read and combine into one large df
 
 n_iter <- 10000 # simdat[[1]][nrow(simdat[[1]]),"iter"] # get number of simulation iterations
-howDatSim <- "RandomEffects"
+
+if(howDatSim=="MulBirge") {
+  simdat[[1]]$N <- 13
+  simdat[[1]]$mu <- 0
+  simdat[[1]]$xi <- NA
+  simdat[[1]]$iter <- rep(1:n_iter, each=simdat[[1]]$N[1])
+}
 
 ############################################################################
 ### Functions
@@ -43,8 +52,7 @@ analyzeREff <- function(simDat, REffmethod, n_iter, showPlot){
   
   for (j in 1:length(names(simDat))) {
     p <- names(simDat)[j]
-    dat <- as.data.frame(simDat[p])
-    names(dat) <- c("Day", "x", "u", "N", "mu", "xi", "lb","ub","seed", "iter") # fix names
+    dat <- as.data.frame(simDat[[p]])
     true.mu <- dat$mu[1]
     true.xi <- dat$xi[1]
     Ndays <- dat$N[1]
@@ -144,16 +152,16 @@ analyzeREff <- function(simDat, REffmethod, n_iter, showPlot){
 ### Analyze simulated data using random effects model
 ############################################################################
 
-# choose method
-analysisMethod <- "PM" # "DL"
+# choose method (ONE)
+analysisMethod <- "DL"
+# analysisMethod <- "PM"
 
 ##########################################
 # # Test whether method works
 # 
 # # choose data set to work with
-# pcombo <- "N13xi3" # choose parameter combination
-# dat <- as.data.frame(simdat[simfiles[6]]) # as.data.frame(simdat[pcombo])
-# names(dat) <- c("Day", "x", "u", "N", "mu", "xi", "lb","ub","seed", "iter") # fix names
+# pcombo <- simfiles[1] # simfiles[6] # choose parameter combination
+# dat <- as.data.frame(simdat[[pcombo]]) # as.data.frame(simdat[pcombo])
 # 
 # # one iteration
 # it <- 1 # choose which iteration
@@ -161,14 +169,18 @@ analysisMethod <- "PM" # "DL"
 # 
 # outN13xi3_1iter <- rma(yi=dat_1iter$x, sei=dat_1iter$u, method=analysisMethod)
 # print(outN13xi3_1iter)
-# mu.est_outN13xi3_1iter <- outN13xi3_1iter$b # TODO: b vs beta?????????
-# mu.ci_outN13xi3_1iter <- c(outN13xi3_1iter$ci.lb, outN13xi3_1iter$ci.ub)
-# xi.est_outN13xi3_1iter <- sqrt(outN13xi3_1iter$tau2)
+# # mu est
+# outN13xi3_1iter$b # TODO: b vs beta?????????
+# # mu ci
+# c(outN13xi3_1iter$ci.lb, outN13xi3_1iter$ci.ub)
+# # xi est
+# sqrt(outN13xi3_1iter$tau2)
+# # xi ci
 # confint(outN13xi3_1iter)
 # # confint(outN13xi3_1iter)$random["tau",]
 # 
 # # multiple iterations, 1 factor combo
-# outN13xi3 <- analyzeREff(simdat[simfiles[6]], analysisMethod, n_iter, showPlot=FALSE)
+# outN13xi3 <- analyzeREff(simdat[pcombo], analysisMethod, n_iter, showPlot=FALSE)
 
 ##########################################
 
