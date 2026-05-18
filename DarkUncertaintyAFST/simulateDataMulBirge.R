@@ -27,7 +27,7 @@ bacon_uncertainties = ratiodf$statistical_unc
 N = length(bacon_measurements) #100
 
 ##True parameters
-birg_constant = 2 #0.5, 1.5
+birg_constant = 2 #1.5, 2, 2.5
 mu = 0
 
 ##---Supporting functions------------------------------
@@ -149,22 +149,34 @@ for(i in 1:N_cov){
 
 birge_res = lapply(sim_dat_list, birge_wrapper)
 
-##Nominal coverage is for k=1 (68%)
 k_cov_factor = 1.96 #1.96 for 95% intervals
 coverage = 0
 coverage_corrected = 0
+mu_hat = NULL
+u_mu_hat_un = NULL 
+u_mu_hat_adj = NULL
 for (i in 1:N_cov){
   tmp = birge_res[[i]]
   if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= mu)){ coverage = coverage + 1}
   if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= mu)){ coverage_corrected = coverage_corrected + 1}
+
+  mu_hat = c(mu_hat, tmp$mean_birge)
+
+  u_mu_hat_un = c(u_mu_hat_un, tmp$u_birge)
+  u_mu_hat_adj = c(u_mu_hat_adj, tmp$u_birge_corrected)
 }
 coverage/N_cov
 coverage_corrected/N_cov
+
+mean(mu_hat)
+mean(u_mu_hat_un)
+mean(u_mu_hat_adj)
 
 ##---Write CSV----------------------------------
 ## that contains: "Day","x","u","k", "lb","ub", "lb_corrected", "ub_corrected"
 k_cov_factor = 1.96 #1.96 for 95% intervals
 birge_CIs = list()
+
 for(i in 1:N_cov){
   birge_CIs[[i]] = matrix(rep(
                     c(k_cov_factor,
@@ -201,10 +213,24 @@ rem_birge_res = lapply(rem_mtx_list, birge_wrapper) ##Note input must be a matri
 k_cov_factor = 1.96 #1.96 for 95% intervals
 coverage = 0
 coverage_corrected = 0
+mu_hat_un = NULL
+mu_hat_adj = NULL
+u_mu_hat_un = NULL 
+u_mu_hat_adj = NULL
 for (i in seq_along(rem_data_list)){
   tmp = rem_birge_res[[i]]
   if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= rem_mu)){ coverage = coverage + 1}
   if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= rem_mu)){ coverage_corrected = coverage_corrected + 1}
+
+  mu_hat_un = c(mu_hat_un, tmp$mean_birge)
+  mu_hat_adj = c(mu_hat_adj, tmp$mean_birge) 
+
+  u_mu_hat_un = c(u_mu_hat_un, tmp$u_birge)
+  u_mu_hat_adj = c(u_mu_hat_adj, tmp$u_birge_corrected)
 }
 coverage/length(rem_data_list)
 coverage_corrected/length(rem_data_list)
+
+mean(mu_hat_un)
+mean(u_mu_hat_un)
+mean(u_mu_hat_adj) 
