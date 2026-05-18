@@ -1,0 +1,325 @@
+---
+title: "Distribution for Quadratic Form Estimators"
+date: "2/27/2026"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(tidyr)
+library(ggplot2)
+library(dplyr)
+library(MASS) # Required for mvrnorm
+
+mtse=modules::use("C:/Users/aak3/Documents/atomic-clock/Functions.R")
+source("C:/Users/aak3/Documents/atomic-clock/Functions_SpectrumCovariance.R")
+
+```
+
+Let $Y = \mathbf{X}^{T} \mathbf{A} \mathbf{X}$ be a quadratic form, where $\mathbf{A}$ is a real $n \times n$ symmetric matrix and $\mathbf{X} \sim N_{n}(\boldsymbol{\mu}, \Sigma)$ with $\Sigma > 0$.
+
+Spectral Decomposition: $\Sigma = \Sigma^{1/2}\Sigma^{1/2}$, where $\Sigma^{1/2}$ is a positive definite $(\Sigma^{1/2} > 0)$ symmetric matrix. Then:
+
+$$\Sigma^{-1/2}\mathbf{X} \sim N_{n}(\Sigma^{-1/2}\boldsymbol{\mu}, I)$$
+
+The quadratic form $Y$ can be rewritten by inserting the identity matrix and applying spectral decomposition:
+
+$$Y = \mathbf{X}^{T} \mathbf{A} \mathbf{X} = \mathbf{X}^{T}\Sigma^{-1/2}\Sigma^{1/2}\mathbf{A}\Sigma^{1/2}\Sigma^{-1/2}\mathbf{X} = (\Sigma^{-1/2}\mathbf{X})^{T}P\Lambda P^{T}(\Sigma^{-1/2}\mathbf{X})$$
+
+* Here, $P\Lambda P^{T}$ represents the spectral decomposition of $\Sigma^{1/2}A\Sigma^{1/2}$.
+* $\Lambda$ is a diagonal matrix of eigenvalues $\lambda_{i}$ and $P$ is orthogonal
+
+So $Y = \mathbf{W}^{T}\Lambda\mathbf{W}$ where
+$$\mathbf{W} = P^{T}\Sigma^{-1/2}\mathbf{X}$$
+
+* $\mathbf{W} \sim N_{n}(\boldsymbol{\nu}, I)$ 
+* $\boldsymbol{\nu} = P^{T}\Sigma^{-1/2}\boldsymbol{\mu}$
+
+
+Finally, $$Y = \sum_{i=1}^{r} \lambda_{i}W_{i}^{2} \quad \text{where} \quad W_{i}^{2} \sim \chi^{2}(1, \nu_{i}^{2})$$
+
+
+* In other words, $Y$ is a weighted sum of $r$ independent non-central chi-square random variables, each with 1 degree of freedom.
+* $r$ is the rank of matrix $A$ ($r = \text{rank}(A)$).
+* The terms $\nu_{i}$ are the components of the vector $\boldsymbol{\nu} = P^{T}\Sigma^{-1/2}\boldsymbol{\mu}$.
+
+
+## Simplification
+
+For $\boldsymbol{\mu}=\mathbf{0}$, as in our case
+
+$$Y = \sum_{i=1}^{r} \lambda_{i}W_{i}^{2} \quad \text{where} \quad W_{i}^{2} \sim \chi^{2}(1)$$
+
+
+* $Y$ is a weighted sum of $r$ independent central chi-square random variables, each with 1 degree of freedom.
+* $r = \text{rank}(A)$ = Number of tapers for MT spectral estimate
+
+## Distributional approximation
+
+To approximate the distribution of the spectral quadratic form, we use a two-moment match to a scaled chi-squared distribution (Satterthwaite, 1946; Box, 1954). These papers show that you can approximate the distribution of the weighted sum of chi-square random variables with 1 degree of freedom, $Y = \sum_{i=1}^{r} \lambda_{i}W_{i}^{2}$, as 
+$$ \alpha \chi^{2}(\nu_{\text{eff}}) $$
+where 
+$$ \alpha = \frac{\sum_{i=1}^{r} \lambda_{i}^2}{\sum_{i=1}^{r} \lambda_{i}}$$
+and the effective degrees of freedom 
+$$ \nu_{\text{eff}} = \frac{(\sum_{i=1}^{r} \lambda_{i})^2}{\sum_{i=1}^{r} \lambda_{i}^2}$$
+
+## Code example 
+
+```{r}
+
+#################################################################
+# Quadratic Form Distribution via Weighted Chi-Squares
+#################################################################
+
+######################################
+# 1. Setup Parameters
+######################################
+
+N <- 100  # length of the time series
+ar_coeffs <- c(0.5, -0.4, 0.3, -0.2)  # AR(4) coefficients
+
+mu=rep(0,N)
+
+t.vec <- 1:N
+
+# # Simulate AR(4) process
+x.t <- arima.sim(model = list(ar = ar_coeffs), n = N)
+x.t=x.t-mean(x.t) #we always demean
+
+max.lag.acf=9
+s_acf <- stats::ARMAacf(ar = ar_coeffs, ma = numeric(0), lag.max = max.lag.acf)
+
+# Create a Toeplitz matrix from the autocorrelation values
+N.noNA=sum(!is.na(t.vec))
+
+R_mat <- matrix(0, nrow = N.noNA, ncol = N.noNA)
+R_mat <- stats::toeplitz(c(s_acf, rep(0, N.noNA - max.lag.acf - 1))) 
+
+Sigma <- R_mat
+
+# Matrix A (Sample Variance Kernel)
+I <- diag(N)
+J <- matrix(1, N, N)
+
+myK=10
+W1factor=12
+V.mat3 <- mtse$get_tapers(t.vec, W = W1factor/N, K = myK)
+taperMat=V.mat3$tapers
+V.mat3$e.values
+
+N.fourier=N/2+1
+
+freq <- seq(0, 0.5, length.out = N.fourier)
+
+#### do for one frequency
+i=2
+U <- taperMat*exp(-1i*2*pi*freq[i]*t.vec)/sqrt(myK)
+U_star <- Conj(t(U))
+A_f <- U %*% U_star
+
+sum(Im(A_f)) #hopefully all 0 so i can just take the real part below
+
+A<-Re(A_f)
+
+# --- 2. Eigen-Decomposition for Weights ---
+# The weights (lambdas) of the quadratic form are the eigenvalues of A %*% Sigma
+# We use the symmetric version: Sigma^(1/2) %*% A %*% Sigma^(1/2)
+eig_Sig <- eigen(Sigma)
+Sigma_half <- eig_Sig$vectors %*% diag(sqrt(eig_Sig$values)) %*% t(eig_Sig$vectors)
+
+M <- Sigma_half %*% A %*% Sigma_half
+lambdas <- eigen(M)$values
+lambdas <- lambdas[lambdas > 1e-10] # Filter numerical noise
+
+# --- 3. Calculate Approximation Parameters ---
+s1 <- sum(lambdas)
+s2 <- sum(lambdas^2)
+s3 <- sum(lambdas^3)
+
+# Satterthwaite (2-moment Gamma)
+alpha_s <- s2 / s1
+nu_s    <- s1^2 / s2
+
+# Another alternative: Liu-Tang-Zhang (3-moment Shifted Gamma)
+alpha_ltz <- s3 / s2
+nu_ltz    <- s2^3 / s3^2
+delta     <- s1 - (s2^2 / s3)
+
+# --- 4. Simulation Comparison ---
+n_sim <- 10000
+
+# A. Ground Truth: Direct Quadratic Form
+sim_direct <- replicate(n_sim, {
+  x <- mvrnorm(1, mu, Sigma)
+  as.numeric(t(x) %*% A %*% x)
+})
+
+# B. Theory: Weighted Sum of Independent Chi-Squares
+# (Since mu=0, NCP is 0)
+sim_weighted <- matrix(rchisq(n_sim * length(lambdas), 1), ncol=length(lambdas)) %*% lambdas
+
+# C. Satterthwaite Approximation (Scaled Chi-Square)
+sim_satt <- alpha_s * rchisq(n_sim, df = nu_s)
+
+# D. Liu-Tang-Zhang (Shifted & Scaled Chi-Square)
+sim_ltz  <- alpha_ltz * rchisq(n_sim, df = nu_ltz) + delta
+
+# --- 5. Final Visualization ---
+simres <- data.frame(
+  values = c(as.vector(sim_direct), as.vector(sim_weighted), 
+             as.vector(sim_satt), as.vector(sim_ltz)),
+  type = rep(c("1. Direct (x'Ax)", "2. Weighted Sum", 
+               "3. Satterthwaite", "4. Liu-Tang-Zhang"), each = n_sim)
+)
+
+ggplot(simres, aes(x = values, color = type)) +
+  geom_density(linewidth = 1) +
+  labs(title = "Quadratic Form Distribution Accuracy",
+       subtitle = "Comparing Direct Simulation vs. Weighted Sum vs. Gamma Approximations",
+       x = "Value", y = "Density", color = "Method") +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+
+# Numerical check of the means
+
+```
+
+```{r,echo=FALSE}
+cat("Theoretical Mean:  ", s1, "\n")
+cat("Direct Mean:       ", mean(sim_direct), "\n")
+cat("Satterthwaite Mean:", mean(sim_satt), "\n")
+cat("LTZ Mean:          ", mean(sim_ltz), "\n")
+
+```
+
+
+## To do
+
+Above shows that this works for a basic example. For larger N, what kind of matrix calculations do I really have to do to get this approximate distribution?
+
+## References
+
+Satterthwaite, F. E. (1946). An Approximate Distribution of Estimates of Variance Components. Biometrics Bulletin, 2(6), 110–114.
+
+Box, G. E. P. (1954). Some theorems on quadratic forms applied in the study of analysis of variance problems, I. Effect of inequality of variance in the one-way classification. The Annals of Mathematical Statistics, 25(2), 290–302.
+
+
+
+
+## Extend to many frequencies
+
+```{r}
+
+######################################
+# 1. Setup Parameters
+######################################
+
+N <- 100  # length of the time series
+ar_coeffs <- c(0.5, -0.4, 0.3, -0.2)  # AR(4) coefficients
+
+mu=rep(0,N)
+
+t.vec <- 1:N
+
+# # Simulate AR(4) process
+x.t <- arima.sim(model = list(ar = ar_coeffs), n = N)
+x.t=x.t-mean(x.t) #we always demean
+
+max.lag.acf=9
+s_acf <- stats::ARMAacf(ar = ar_coeffs, ma = numeric(0), lag.max = max.lag.acf)
+
+# Create a Toeplitz matrix from the autocorrelation values
+N.noNA=sum(!is.na(t.vec))
+
+R_mat <- matrix(0, nrow = N.noNA, ncol = N.noNA)
+R_mat <- stats::toeplitz(c(s_acf, rep(0, N.noNA - max.lag.acf - 1))) 
+
+Sigma <- R_mat
+
+# Matrix A (Sample Variance Kernel)
+I <- diag(N)
+J <- matrix(1, N, N)
+
+myK=10
+W1factor=12
+V.mat3 <- mtse$get_tapers(t.vec, W = W1factor/N, K = myK)
+taperMat=V.mat3$tapers
+V.mat3$e.values
+
+N.fourier=N/2+1
+
+freq <- seq(0, 0.5, length.out = N.fourier)
+
+#### do for one frequency
+i=2
+U <- taperMat*exp(-1i*2*pi*freq[i]*t.vec)/sqrt(myK)
+U_star <- Conj(t(U))
+A_f <- U %*% U_star
+
+sum(Im(A_f)) #hopefully all 0 so i can just take the real part below
+
+A<-Re(A_f)
+
+# --- 2. Eigen-Decomposition for Weights ---
+# The weights (lambdas) of the quadratic form are the eigenvalues of A %*% Sigma
+# We use the symmetric version: Sigma^(1/2) %*% A %*% Sigma^(1/2)
+eig_Sig <- eigen(Sigma)
+Sigma_half <- eig_Sig$vectors %*% diag(sqrt(eig_Sig$values)) %*% t(eig_Sig$vectors)
+
+M <- Sigma_half %*% A %*% Sigma_half
+lambdas <- eigen(M)$values
+lambdas <- lambdas[lambdas > 1e-10] # Filter numerical noise
+
+# --- 3. Calculate Approximation Parameters ---
+s1 <- sum(lambdas)
+s2 <- sum(lambdas^2)
+s3 <- sum(lambdas^3)
+
+# Satterthwaite (2-moment Gamma)
+alpha_s <- s2 / s1
+nu_s    <- s1^2 / s2
+
+# Another alternative: Liu-Tang-Zhang (3-moment Shifted Gamma)
+alpha_ltz <- s3 / s2
+nu_ltz    <- s2^3 / s3^2
+delta     <- s1 - (s2^2 / s3)
+
+# B. Theory: Weighted Sum of Independent Chi-Squares
+# (Since mu=0, NCP is 0)
+sim_weighted <- matrix(rchisq(n_sim * length(lambdas), 1), ncol=length(lambdas)) %*% lambdas
+
+# C. Satterthwaite Approximation (Scaled Chi-Square)
+sim_satt <- alpha_s * rchisq(n_sim, df = nu_s)
+
+# D. Liu-Tang-Zhang (Shifted & Scaled Chi-Square)
+sim_ltz  <- alpha_ltz * rchisq(n_sim, df = nu_ltz) + delta
+
+# --- 5. Final Visualization ---
+simres <- data.frame(
+  values = c(as.vector(sim_weighted), 
+             as.vector(sim_satt), as.vector(sim_ltz)),
+  type = rep(c("Weighted Sum", 
+               "Satterthwaite", "Liu-Tang-Zhang"), each = n_sim)
+)
+
+ggplot(simres, aes(x = values, color = type)) +
+  geom_density(linewidth = 1) +
+  labs(x = "Value", y = "Density", color = "Method") +
+  theme_minimal() +
+  scale_color_brewer(palette = "Set1")
+
+
+```
+
+
+
+## Next direction
+
+What is the distribution of:
+
+\begin{equation}
+    \widehat{\sigma}^2_{\text{SPEC}}(\tau) = \sum_j \Delta_f G_\tau(f_j) \widehat{S}(f_j)=\Delta_f \bG_\tau^T \widehat{\bS},
+\end{equation}
+
+Is a weighted sum of correlated, scaled, shifted chi squared (approximated!) also a scaled shifted chi squared that I can MoM match to approximate? 
