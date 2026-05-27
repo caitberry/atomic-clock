@@ -27,13 +27,16 @@ todayDate <- format(Sys.Date(), "%Y%m%d")
 ### Load simulated data from random effects model
 ############################################################################
 
-simfiles <- list.files(path=paste0(path, simdatfolder), pattern="*.csv") # get file paths
-simdat <- lapply(paste0(path, simdatfolder, simfiles), read.csv)
+# choose data to analyze (which model it was simulated under) (ONE)
+howDatSim <- "RandomEffects"
+# howDatSim <- "MulBirge"
+
+simfiles <- list.files(path=paste0(path, simdatfolder), pattern=c(howDatSim,".csv")) # get file paths
+simdat <- lapply(paste0(path, simdatfolder, simfiles), ifelse(howDatSim=="MulBirge", read.csv2, read.csv))
 names(simdat) <- basename(simfiles) # name the list elements after the files
 # simdat <- read_csv(paste0(path, simdatfolder, simfiles), id="source_file") # read and combine into one large df
 
-n_iter <- 100 #10000 # simdat[[1]][nrow(simdat[[1]]),"iter"] # get number of simulation iterations #!!!!!!!!!!!!!!!!!!!
-howDatSim <- "RandomEffects"
+n_iter <- 10 # 100 #10000 # simdat[[1]][nrow(simdat[[1]]),"iter"] # get number of simulation iterations #!!!!!!!!!!!!!!!!!!!
 
 ############################################################################
 ### Parameters
@@ -41,7 +44,7 @@ howDatSim <- "RandomEffects"
 
 analysisMethod <- "Bayes"
 
-sampling.iter <- 5000 # NOTE: Amanda's numberOfSims = my n_iter; Amanda's num.iters is for iter in fitGaussGauss
+sampling.iter <- 10000 # 5000 # NOTE: Amanda's numberOfSims = my n_iter; Amanda's num.iters is for iter in fitGaussGauss
 
 # every combo of N and xi
 allparams <- expand.grid(N_set = unique(sapply(simdat, function(x) x[["N"]][1])), # get each N from simdat
@@ -74,15 +77,15 @@ nu_set = NA
 ############################################################################
 
 # fitGaussGauss
-source(file = paste(gitpath,"fitBayesianModels.R", sep=""))
+source(file = paste(path,"DarkUncertaintyAFST/fitBayesianModels.R", sep=""))
 
 #################################################################
 
 # wrapper to catch errors and keep going
 oneTrial <- function(dat, GGmodel, N, xi, mu, num.iters, alpha, nu, 
-                     howDatSim, adaptDeltaVal, maxTreeDepthVal, xidf){
+                     howDatSim, adaptDeltaVal, maxTreeDepthVal, xidf, idx){
   tmp_df <- tryCatch(runOneTrial(dat, GGmodel, N, xi, mu, num.iters, alpha, nu, 
-                                 howDatSim, adaptDeltaVal, maxTreeDepthVal, xidf), 
+                                 howDatSim, adaptDeltaVal, maxTreeDepthVal, xidf, idx), 
                      error = function(err){print("err"); return(data.frame("method"=NA))})
   return(tmp_df)
 }
@@ -90,7 +93,7 @@ oneTrial <- function(dat, GGmodel, N, xi, mu, num.iters, alpha, nu,
 #################################################################
 
 runOneTrial <- function(dat, GGmodel, N, xi, mu, num.iters, alpha, nu, 
-                        howDatSim, adaptDeltaVal, maxTreeDepthVal, xidf){
+                        howDatSim, adaptDeltaVal, maxTreeDepthVal, xidf, idx){
   
   stan_data <- list(N = N,
                     x = dat$x,
@@ -98,7 +101,7 @@ runOneTrial <- function(dat, GGmodel, N, xi, mu, num.iters, alpha, nu,
                     tdf = xidf) # note, xi is called tau in fitGaussGauss
   # print(stan_data)
   GGres <- fitGaussGauss(stanDat = stan_data, trueTau = xi, trueMu = mu, model = GGmodel, n.iter = num.iters,
-                         adapt.delta = adaptDeltaVal, tree.depth = maxTreeDepthVal)
+                         adapt.delta = adaptDeltaVal, tree.depth = maxTreeDepthVal, N.obs = N, iter.idx = idx)
   bayesRes <- GGres
   bayesRes[bayesRes$parameter == "tau", "parameter"] <- "xi" # rename tau to xi
   
@@ -132,33 +135,35 @@ runForManyRepeats <- function(dat, numberOfSims, num.iters, alpha, nu, howDatSim
   print(paste("xi =",xi, ", N =",N,", adapt delta =",theadaptdelta,
               ", max tree =",thetreedepth,", ub =",ub,", lb =",lb))
   
-  myHGG_noDoF_reparam <- stan_model(paste0(path, gitpath, "myHGG_noDoF_reparam.stan"))
+  myHGG_noDoF_reparam <- stan_model(paste0(path, "DarkUncertaintyAFST/", "myHGG_noDoF_reparam.stan"))
+  
+  CIout <- list()
   
   for(i in 1:numberOfSims){
-    
-    CIout <- oneTrial(dat = dat[[1]][((i-1)*N+1):(i*N), c("Day", "x", "u")], 
-                         GGmodel = myHGG_noDoF_reparam, 
-                         N = N, xi = xi, mu = mu, num.iters = num.iters, alpha = alpha, nu = nu, 
-                         howDatSim = howDatSim, 
-                         adaptDeltaVal = theadaptdelta, maxTreeDepthVal = thetreedepth, xidf = thexidf)
-    
-    CIout$Iteration <- i
-    CIout$lb <- lb
-    CIout$ub <- ub
-    
-    if(i %% 100==0) {
-      print(paste("iteration", i, sep=" "))
+
+    CIout[[i]] <- oneTrial(dat = dat[[1]][((i-1)*N+1):(i*N), c("Day", "x", "u")],
+                           GGmodel = myHGG_noDoF_reparam,
+                           N = N, xi = xi, mu = mu, num.iters = num.iters, alpha = alpha, nu = nu,
+                           howDatSim = howDatSim,
+                           adaptDeltaVal = theadaptdelta, maxTreeDepthVal = thetreedepth, xidf = thexidf, idx=i)
+
+    CIout[[i]]$Iteration <- i
+    CIout[[i]]$lb <- lb
+    CIout[[i]]$ub <- ub
+
+    if(i %% 10==0) { # save 10 at a time
+      print(paste("iteration", i))
+      saveCIout <- bind_rows(CIout[(i-9):i])
+      write_csv(saveCIout, paste(path, BayesCIfolder, howDatSim, "CIout", today, "_xi",xi, "_N",N, "_",n_iter,"iter",
+                                "_ub",ublabel,"_lb",lblabel, ".csv", sep=""), append=T,
+                col_names=!file.exists(paste(path, BayesCIfolder, howDatSim, "CIout", today, "_xi",xi, "_N",N,
+                                             "_",n_iter,"iter", "_ub",ublabel,"_lb",lblabel, ".csv", sep="")))
     }
-    # orig only saves every 10th, why???????????????????????????????????????????????????
-    write_csv(CIout, paste(path, BayesCIfolder, howDatSim, "CIout", today, "_xi",xi, "_N",N, "_",n_iter,"iter",
-                           "_ub",ublabel,"_lb",lblabel, ".csv", sep=""), append=T, 
-              col_names=!file.exists(paste(path, BayesCIfolder, howDatSim, "CIout", today, "_xi",xi, "_N",N,
-                                           "_",n_iter,"iter", "_ub",ublabel,"_lb",lblabel, ".csv", sep="")))
   }
   
-  endTime=Sys.time()-startTime
-  print(endTime)
-  cat(paste("N = ",N, ", xi = ",xi, ", ",n_iter," iterations: runTime =", endTime, "\n", sep=""), 
+  runTime <- round(difftime(Sys.time(), startTime, units = "mins")[[1]], 3)
+  print(paste("run time =", runTime, "min"))
+  cat(paste("N = ",N, ", xi = ",xi, ", ",n_iter," iterations: run time = ", runTime, " min\n", sep=""),
       file = paste(path, BayesCIfolder, howDatSim, "times", today, ".txt", sep=""), append=T)
   
   return("Done!")
@@ -235,17 +240,18 @@ for(j in 1:dim(myparams)[1]){
                     ublabel = ublabel_set)
 }
 
-totalTimeEnd <- Sys.time()
-print(paste("Total time =", totalTimeEnd-totalTimeStart))
-cat(paste("Total time =", totalTimeEnd-totalTimeStart), 
+totalTime <- round(difftime(Sys.time(), totalTimeStart, units = "mins")[[1]], 3)
+print(paste("Total time =", totalTime, "min"))
+cat(paste("Total time =", totalTime, "min"), 
     file=paste(path, BayesCIfolder, howDatSim, "times", todayDate, ".txt", sep=""), append=T)
+
 
 
 ############################################################################
 ### Load output from Bayesian model
 ############################################################################
 
-runDate <- "20260427" # choose date
+runDate <- "20260521" # choose date
 # howDatSim <- "" # choose simulation scheme if other than Random Effects
 CIfiles <- list.files(path=paste0(path, BayesCIfolder), pattern=paste0(howDatSim,"CIout",runDate)) # get file paths
 CIout <- lapply(paste0(path, BayesCIfolder, CIfiles), read.csv)
@@ -323,11 +329,16 @@ for (j in 1:length(final.CIout)) {
                                     "true.mu" = p.outs$mu[1],
                                     "N" = p.outs$N[1],
                                     "true.xi" = p.outs$xi[1],
-                                    "mu.bias" = mean(p.outs[p.outs$parameter == "mu", "estimate"]) - p.outs$mu[1], # TODO: make proportional?
-                                    "mu.covprob" = sum(p.outs[p.outs$parameter == "mu", "inInt"])/n_iter, # cp's from fitGausGaus
-                                    "xi.bias" = mean(p.outs[p.outs$parameter == "xi", "estimate"]) - p.outs$xi[1],
-                                    "xi.covprob" = sum(p.outs[p.outs$parameter == "xi", "inInt"])/n_iter,
-                                    "method" = analysisMethod)
+                                    "mu.bias" = mean(p.outs[p.outs$parameter=="mu", "estimate"] - p.outs$mu[1]), # avg bias
+                                    "mu.covprob" = sum(p.outs[p.outs$parameter=="mu", "inInt"])/
+                                                   nrow(p.outs[p.outs$parameter=="mu",]), # cp's from fitGaussGauss
+                                    "xi.bias" = mean(p.outs[p.outs$parameter=="xi", "estimate"] - p.outs$xi[1]), # avg bias
+                                    "xi.propbias" = mean((p.outs[p.outs$parameter=="xi", "estimate"] - 
+                                                            p.outs$xi[1])/p.outs$xi[1]*100), # proportional
+                                    "xi.covprob" = sum(p.outs[p.outs$parameter=="xi", "inInt"])/
+                                                   nrow(p.outs[p.outs$parameter=="xi",]),
+                                    "analysis.method" = analysisMethod,
+                                    "sim.method" = howDatSim)
   
   # print(successMetrics[[j]])
 }
