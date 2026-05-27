@@ -1,10 +1,10 @@
-linearOP = function(x,ux,nu=NA,m=1e5){
+linearOP = function(x,u,nu=NA,m=1e4){
   #nu = numbers of degrees of freedom on which the standard uncertainties are based 
   weights = rep(1, length(x))
 
   index = sample(1:length(x), size=m, prob=weights/sum(weights), replace=TRUE)
   mu = x[index]
-  sigma = ux[index]
+  sigma = u[index]
   if (!anyNA(nu) && length(nu)!=0){
 
     nuSample = nu[index]

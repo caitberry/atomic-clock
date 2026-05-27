@@ -246,7 +246,10 @@ mean(u_mu_hat_adj)
 # method = c("unadjusted", "adjusted") (type)
 # true_c = c(1.5, 2, 2.5) (color) 
 
-#remove(list=("N"))
+rm(list=ls())
+library(tidyverse)
+path = "/Users/smt3/Documents/GitHub/atomic-clock/"
+
 N_new = c(5, 13, 33, 100)
 true_c = c(1.5, 2, 2.5)
 mu = 0
