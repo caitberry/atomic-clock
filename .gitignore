@@ -73,3 +73,6 @@ Code/TEST*
 Testing/
 
 *.pdf
+
+# Humongo data files 
+DarkUncertaintyAFST/simulatedData/*.csv

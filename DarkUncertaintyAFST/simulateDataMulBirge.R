@@ -247,7 +247,7 @@ mean(u_mu_hat_adj)
 # true_c = c(1.5, 2, 2.5) (color) 
 
 #remove(list=("N"))
-N_new = c(13, 33, 100)
+N_new = c(5, 13, 33, 100)
 true_c = c(1.5, 2, 2.5)
 mu = 0
 N_cov = 1E4 
