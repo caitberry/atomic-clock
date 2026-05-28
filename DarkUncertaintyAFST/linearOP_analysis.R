@@ -44,10 +44,10 @@ mean(u_mu_hat_rem)
 ##---LP for MB Data----------------------------------
 c_true = 2 #1.5, 2, 2.5
 
-mb_data = read_csv(paste0(path, "simDataMulBirge_N", N, "c", c_true, "_10000iter_20260420.csv"))
-mb_mu = mb_data$mu[1]
+mb_data = read.table(paste0(data_path, "/simDataMulBirge_N", N, "c", c_true, "_10000iter_20260420.csv"), sep = ";", header=TRUE)
+mb_mu = 0
 
-chunk_size = mb_data$N[1]
+chunk_size = N
 mb_data_trim = mb_data %>% select(x, u)
 mb_data_list = split(mb_data_trim, (seq_len(nrow(mb_data_trim)) - 1) %/% chunk_size)
 mb_lop_res = lapply(mb_data_list, function(input) linearOP(x = input$x, u = input$u))
