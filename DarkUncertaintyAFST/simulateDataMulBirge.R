@@ -15,9 +15,12 @@ library(readr)
 library(dplyr)
 library(ggplot2)
 library(metafor)
+library(data.table)
+library(tidyverse)
 
 path = "/Users/smt3/Documents/GitHub/atomic-clock/"
-simdatfolder = "DarkUncertaintyAFST/simulatedData/"
+simdatfolder = "DarkUncertaintyAFST/simulatedData/" #added to gitignore
+figfolder = "DarkUncertaintyAFST/figures/" #added to gitignore
 
 ##BACON data 
 ratiolab = "YbSr"
@@ -26,6 +29,7 @@ bacon_measurements = ratiodf$offset
 bacon_uncertainties = ratiodf$statistical_unc
 
 mu = 0
+k_cov_factor = 1.96 #1.96 for 95% intervals
 
 ##---Supporting functions------------------------------
 norm_gen <- function(sd_term){rnorm(1, mean=mu, sd = sd_term*2)} #mu=0, birg_constant = 2
@@ -61,6 +65,153 @@ birge_wrapper <- function(mtx){
   u_birge_corrected = u_MB(mtx[,"x"], mtx[,"u"], correction = TRUE)
   return(data.frame(mean_birge = mean_birge, u_birge = u_birge, u_birge_corrected = u_birge_corrected))
 }
+
+
+# --- Run multiple scenarios --------------------------
+# --- Write CSV files and produce Bias/Coverage Plots
+# coverage prob (y-axis)
+# bias (y axis)
+# N = c(5, 13, 33, 100) (x-axis) 
+# method = c("unadjusted", "adjusted") (type)
+# true_c = c(1.5, 2, 2.5) (color) 
+
+N_new = c(5, 13, 33, 100)
+true_c = c(1.5, 2, 2.5)
+mu = 0
+N_cov = 1E4 
+
+k = 1 #res_all index for bias/coverage plots 
+res_all = matrix(rep(NA, length(N_new)*length(true_c)*5), ncol = 5)
+colnames(res_all) = c("N", "true_c", "bias", "unadj_coverage", "adj_coverage")
+
+birge_CIs = list()
+
+for(n in N_new){
+  for(c_tmp in true_c){
+    dat_to_write = list()
+    sim_dat_list = list()
+    uncertainties_cov = runif(n*N_cov, min(bacon_uncertainties), max(bacon_uncertainties))
+    measurements_cov = sapply(uncertainties_cov*c_tmp, norm_gen_multiple) 
+    day_cov = rep(1:n, N_cov)
+    sim_dat_long = cbind(day_cov, measurements_cov, uncertainties_cov) 
+
+    run = 1
+    for(i in 1:N_cov){
+      sim_dat_list[[i]] = sim_dat_long[(run):(n+run-1), ]
+      colnames(sim_dat_list[[i]]) = c("day", "x", "u")
+      run = run + n
+    }
+    birge_res = lapply(sim_dat_list, birge_wrapper)
+    
+    for(i in 1:N_cov){
+      birge_CIs[[i]] = matrix(rep(
+                        c(birge_res[[i]]$mean_birge - k_cov_factor*birge_res[[i]]$u_birge,
+                        birge_res[[i]]$mean_birge + k_cov_factor*birge_res[[i]]$u_birge,
+                        birge_res[[i]]$mean_birge - k_cov_factor*birge_res[[i]]$u_birge_corrected,
+                        birge_res[[i]]$mean_birge + k_cov_factor*birge_res[[i]]$u_birge_corrected),
+                        n), ncol=4, byrow=TRUE)
+      colnames(birge_CIs[[i]]) = c("lb", "ub", "lb_corrected", "ub_corrected")
+
+      dat_to_write[[i]] = cbind(sim_dat_list[[i]], birge_CIs[[i]])
+    }
+    ## write csv that contains: "Day","x","u","lb","ub", "lb_corrected", "ub_corrected"
+    dat_to_write_fin = rbindlist(lapply(dat_to_write, as.data.frame))  
+    write.csv(dat_to_write_fin, file = paste0(path, simdatfolder, "simDataMulBirge_N", n, "c", c_tmp, "_", N_cov, "iter_20260528.csv"), row.names=FALSE)
+
+    ## for coverage/bias plots 
+    coverage = 0
+    coverage_corrected = 0
+    mu_hat = NULL
+    u_mu_hat_un = NULL 
+    u_mu_hat_adj = NULL
+    for (i in 1:N_cov){
+      tmp = birge_res[[i]]
+      if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= mu)){ coverage = coverage + 1}
+      if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= mu)){ coverage_corrected = coverage_corrected + 1}
+
+      mu_hat = c(mu_hat, tmp$mean_birge)
+      # u_mu_hat_un = c(u_mu_hat_un, tmp$u_birge)
+      # u_mu_hat_adj = c(u_mu_hat_adj, tmp$u_birge_corrected)
+    }
+
+    res_all[k,] = c(n, c_tmp, mean(mu_hat), coverage/N_cov, coverage_corrected/N_cov)
+    k = k + 1
+  }
+}
+
+
+# plot for mu bias from res_all
+pdf(paste0(path, figfolder, "MBsim_MB_mubias_1E4iter.pdf"), width=8, height=6)
+
+ggplot(data.frame(res_all), aes(x=N, y=bias, color=as.factor(true_c))) +
+  geom_point(size=1) +
+  geom_line() +
+  theme_bw() +
+  labs(color="true c") +
+  ggtitle("MB est mu bias")
+
+dev.off()
+
+
+# plot for mu coverage from res_all
+library(tidyr) 
+res_all_long <- data.frame(res_all) %>%
+  pivot_longer(
+    cols = c(unadj_coverage, adj_coverage),
+    names_to = "method",
+    values_to = "cov_prob"
+  )
+
+pdf(paste0(path, figfolder, "MBsim_MB_mucov_1E4iter.pdf"), width=8, height=6)
+
+ggplot(res_all_long, aes(x=N, y=cov_prob, color=as.factor(true_c), linetype=as.factor(method))) +
+  geom_point(size=1) +
+  geom_line() +
+  geom_hline(yintercept=0.95) +
+  theme_bw() +
+  labs(color="true c", linetype="method") +
+  ggtitle("MB est mu coverage probability")
+
+dev.off()
+
+
+
+##---Analyse REM Data----------------------------------
+rem_data = read_csv(paste0(path, "DarkUncertaintyAFST/simulatedData/simDataRandomEffects_N13xi3_10000iter_20260326.csv"))
+rem_mu = rem_data$mu[1]
+
+## Break data into a list of matricies with 13 rows
+chunk_size = rem_data$N[1]
+rem_data_list = split(rem_data, (seq_len(nrow(rem_data)) - 1) %/% chunk_size)
+rem_mtx_list = lapply(rem_data_list, as.matrix)
+rem_birge_res = lapply(rem_mtx_list, birge_wrapper) ##Note input must be a matrix
+
+k_cov_factor = 1.96 #1.96 for 95% intervals
+coverage = 0
+coverage_corrected = 0
+mu_hat_un = NULL
+mu_hat_adj = NULL
+u_mu_hat_un = NULL 
+u_mu_hat_adj = NULL
+for (i in seq_along(rem_data_list)){
+  tmp = rem_birge_res[[i]]
+  if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= rem_mu)){ coverage = coverage + 1}
+  if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= rem_mu)){ coverage_corrected = coverage_corrected + 1}
+
+  mu_hat_un = c(mu_hat_un, tmp$mean_birge)
+  mu_hat_adj = c(mu_hat_adj, tmp$mean_birge) 
+
+  u_mu_hat_un = c(u_mu_hat_un, tmp$u_birge)
+  u_mu_hat_adj = c(u_mu_hat_adj, tmp$u_birge_corrected)
+}
+coverage/length(rem_data_list)
+coverage_corrected/length(rem_data_list)
+
+mean(mu_hat_un)
+mean(u_mu_hat_un)
+mean(u_mu_hat_adj) 
+
+
 
 
 ##---Single simulation----------------------------------
@@ -175,159 +326,3 @@ coverage_corrected/N_cov
 mean(mu_hat)
 mean(u_mu_hat_un)
 mean(u_mu_hat_adj)
-
-##---Write CSV----------------------------------
-## that contains: "Day","x","u","k", "lb","ub", "lb_corrected", "ub_corrected"
-k_cov_factor = 1.96 #1.96 for 95% intervals
-birge_CIs = list()
-
-for(i in 1:N_cov){
-  birge_CIs[[i]] = matrix(rep(
-                    c(k_cov_factor,
-                    birge_res[[i]]$mean_birge - k_cov_factor*birge_res[[i]]$u_birge,
-                    birge_res[[i]]$mean_birge + k_cov_factor*birge_res[[i]]$u_birge,
-                    birge_res[[i]]$mean_birge - k_cov_factor*birge_res[[i]]$u_birge_corrected,
-                    birge_res[[i]]$mean_birge + k_cov_factor*birge_res[[i]]$u_birge_corrected),
-                    N), ncol=5, byrow=TRUE)
-  colnames(birge_CIs[[i]]) = c("k", "lb", "ub", "lb_corrected", "ub_corrected")
-}
-
-dat_to_write = list()
-for(i in 1:N_cov){
-  dat_to_write[[i]] = cbind(sim_dat_list[[i]], birge_CIs[[i]])
-}
-
-library(data.table)
-dat_to_write_fin = rbindlist(lapply(dat_to_write, as.data.frame))
-head(dat_to_write_fin,40)
-
-# write.csv2(dat_to_write_fin, file = "DarkUncertaintyAFST/simulatedData/simDataMulBirge_N13mu0_10000iter_20260420.csv", row.names=FALSE)
-
-
-##---Analyse REM Data----------------------------------
-rem_data = read_csv(paste0(path, "DarkUncertaintyAFST/simulatedData/simDataRandomEffects_N13xi3_10000iter_20260326.csv"))
-rem_mu = rem_data$mu[1]
-
-## Break data into a list of matricies with 13 rows
-chunk_size = rem_data$N[1]
-rem_data_list = split(rem_data, (seq_len(nrow(rem_data)) - 1) %/% chunk_size)
-rem_mtx_list = lapply(rem_data_list, as.matrix)
-rem_birge_res = lapply(rem_mtx_list, birge_wrapper) ##Note input must be a matrix
-
-k_cov_factor = 1.96 #1.96 for 95% intervals
-coverage = 0
-coverage_corrected = 0
-mu_hat_un = NULL
-mu_hat_adj = NULL
-u_mu_hat_un = NULL 
-u_mu_hat_adj = NULL
-for (i in seq_along(rem_data_list)){
-  tmp = rem_birge_res[[i]]
-  if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= rem_mu)){ coverage = coverage + 1}
-  if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= rem_mu)){ coverage_corrected = coverage_corrected + 1}
-
-  mu_hat_un = c(mu_hat_un, tmp$mean_birge)
-  mu_hat_adj = c(mu_hat_adj, tmp$mean_birge) 
-
-  u_mu_hat_un = c(u_mu_hat_un, tmp$u_birge)
-  u_mu_hat_adj = c(u_mu_hat_adj, tmp$u_birge_corrected)
-}
-coverage/length(rem_data_list)
-coverage_corrected/length(rem_data_list)
-
-mean(mu_hat_un)
-mean(u_mu_hat_un)
-mean(u_mu_hat_adj) 
-
-# --- Large Bias/Coverage Plot --------------------------
-# coverage prob (y-axis)
-# bias (y axis)
-# N = c(13, 33, 100) (x-axis) 
-# method = c("unadjusted", "adjusted") (type)
-# true_c = c(1.5, 2, 2.5) (color) 
-
-rm(list=ls())
-library(tidyverse)
-path = "/Users/smt3/Documents/GitHub/atomic-clock/"
-
-N_new = c(5, 13, 33, 100)
-true_c = c(1.5, 2, 2.5)
-mu = 0
-N_cov = 1E4 
-k = 1
-res_all = matrix(rep(NA, length(N_new)*length(true_c)*5), ncol = 5)
-colnames(res_all) = c("N", "true_c", "bias", "unadj_coverage", "adj_coverage")
-
-for(n in N_new){
-  for(c_tmp in true_c){
-    uncertainties_cov = runif(n*N_cov, min(bacon_uncertainties), max(bacon_uncertainties))
-    measurements_cov = sapply(uncertainties_cov*c_tmp, norm_gen_multiple) 
-    day_cov = rep(1:n, N_cov)
-    sim_dat_long = cbind(day_cov, measurements_cov, uncertainties_cov) 
-
-    sim_dat_list = list()
-    run = 1
-    for(i in 1:N_cov){
-      sim_dat_list[[i]] = sim_dat_long[(run):(n+run-1), ]
-      colnames(sim_dat_list[[i]]) = c("day", "x", "u")
-      run = run + n
-    }
-
-    birge_res = lapply(sim_dat_list, birge_wrapper)
-
-    k_cov_factor = 1.96 #1.96 for 95% intervals
-    coverage = 0
-    coverage_corrected = 0
-    mu_hat = NULL
-    u_mu_hat_un = NULL 
-    u_mu_hat_adj = NULL
-    for (i in 1:N_cov){
-      tmp = birge_res[[i]]
-      if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= mu)){ coverage = coverage + 1}
-      if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= mu)){ coverage_corrected = coverage_corrected + 1}
-
-      mu_hat = c(mu_hat, tmp$mean_birge)
-      # u_mu_hat_un = c(u_mu_hat_un, tmp$u_birge)
-      # u_mu_hat_adj = c(u_mu_hat_adj, tmp$u_birge_corrected)
-    }
-
-    res_all[k,] = c(n, c_tmp, mean(mu_hat), coverage/N_cov, coverage_corrected/N_cov)
-    k = k + 1
-  }
-}
-
-figfolder <- "DarkUncertaintyAFST/figures/"
-
-# plot for mu bias
-pdf(paste0(path, figfolder, "MBsim_MB_mubias_1E4iter.pdf"), width=8, height=6)
-
-ggplot(data.frame(res_all), aes(x=N, y=bias, color=as.factor(true_c))) +
-  geom_point(size=1) +
-  geom_line() +
-  theme_bw() +
-  labs(color="true c") +
-  ggtitle("MB est mu bias")
-
-dev.off()
-
-
-# plot for mu coverage probability
-library(tidyr) 
-res_all_long <- data.frame(res_all) %>%
-  pivot_longer(
-    cols = c(unadj_coverage, adj_coverage),
-    names_to = "method",
-    values_to = "cov_prob"
-  )
-
-pdf(paste0(path, figfolder, "MBsim_MB_mucov_1E4iter.pdf"), width=8, height=6)
-
-ggplot(res_all_long, aes(x=N, y=cov_prob, color=as.factor(true_c), linetype=as.factor(method))) +
-  geom_point(size=1) +
-  geom_line() +
-  geom_hline(yintercept=0.95) +
-  theme_bw() +
-  labs(color="true c", linetype="method") +
-  ggtitle("MB est mu coverage probability")
-
-dev.off()
