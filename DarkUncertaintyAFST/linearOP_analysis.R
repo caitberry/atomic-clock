@@ -6,10 +6,11 @@ setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
 source("MB_functions.R")
 source("linearOP_ST.R")
 
-
-data_path = "/Users/smt3/Documents/GitHub/AFSTDarkUncData"
-N = 13 #5, 13, 33, 100
+data_path = "/Users/smt3/Documents/GitHub/atomic-clock/DarkUncertaintyAFST/simulatedData"
 k_cov_factor = 1.96 
+
+N = 13 #5, 13, 33, 100
+
 
 ##---LP for REM Data----------------------------------
 xi = 3 #1, 3, 10
@@ -44,7 +45,7 @@ mean(u_mu_hat_rem)
 ##---LP for MB Data----------------------------------
 c_true = 2 #1.5, 2, 2.5
 
-mb_data = read.table(paste0(data_path, "/simDataMulBirge_N", N, "c", c_true, "_10000iter_20260420.csv"), sep = ";", header=TRUE)
+mb_data = read.table(paste0(data_path, "/simDataMulBirge_N", N, "c", c_true, "_10000iter_20260528.csv"), sep = ",", header=TRUE)
 mb_mu = 0
 
 chunk_size = N

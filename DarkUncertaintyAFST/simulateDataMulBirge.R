@@ -12,9 +12,6 @@
 ############################################################################
 rm(list=ls())
 library(readr)
-library(dplyr)
-library(ggplot2)
-library(metafor)
 library(data.table)
 library(tidyverse)
 
@@ -116,7 +113,7 @@ for(n in N_new){
     }
     ## write csv that contains: "Day","x","u","lb","ub", "lb_corrected", "ub_corrected"
     dat_to_write_fin = rbindlist(lapply(dat_to_write, as.data.frame))  
-    write.csv(dat_to_write_fin, file = paste0(path, simdatfolder, "simDataMulBirge_N", n, "c", c_tmp, "_", N_cov, "iter_20260528.csv"), row.names=FALSE)
+    fwrite(dat_to_write_fin, file = paste0(path, simdatfolder, "simDataMulBirge_N", n, "c", c_tmp, "_", N_cov, "iter_20260528.csv"))
 
     ## for coverage/bias plots 
     coverage = 0
