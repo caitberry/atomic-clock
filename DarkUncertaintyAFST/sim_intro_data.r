@@ -108,8 +108,13 @@ p2 <- ggplot(data_con) +
     axis.ticks.y = element_blank()
     )
 
-grid.arrange(p1, p2, nrow = 1)
 
+path = "/Users/smt3/Documents/GitHub/atomic-clock/"
+figfolder = "DarkUncertaintyAFST/figures/" 
+
+pdf(paste0(path, figfolder, "intro_fig.pdf"), width=8, height=6)
+grid.arrange(p1, p2, nrow = 1)
+dev.off()
 
 ##Reduced chi-square (Methods section of BACON1)
 ## \chi^{2}_{red} = (1/(N-1))\sum_{i=1}^{N}((x_{i} - \bar{x})^{2}/\sigma_{i}^{2})
