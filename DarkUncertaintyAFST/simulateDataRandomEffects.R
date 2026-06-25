@@ -16,6 +16,7 @@ library(metafor)
 
 path <- "/Users/adf2/OneDrive - NIST/Documents/SpectralAnalysis/atomic-clock/"
 simdatfolder <- "DarkUncertaintyAFST/simulatedData/"
+successmetricsfolder <- "DarkUncertaintyAFST/successMetrics/"
 
 ############################################################################
 ### Set parameters based on data
@@ -36,15 +37,15 @@ mu <- 0 # centered
       # mean(measurements) # observed mean over multiple days from BACON2 ratio measurements
 
 N_set <- c(N,N+20,100) # number of days; vary N to reflect realistic and ideal data sizes # TODO: j=1,...,9,25?
-xi_set <- c(3,10) # between-day variability # TODO: use values we expect to see from the xi reported in BACON2
-                                            # and one way bigger than what we see, one close to 0, one scale of YbSr
+xi_set <- c(1,3,10) # between-day variability # expect to see ~3 from the xi reported in BACON2 (YbSr MP method)
+                                              # also do one much larger than expected and one close to 0 
 allparams <- expand.grid(N_set=N_set, xi_set=xi_set) # want every combo of N and xi
 
 lb <- min(uncertainties)
 ub <- max(uncertainties)
 
-n_iter <- 100 #00 ### make bigger
-baseSeed <- 1000 ### make bigger if increase n_iter
+n_iter <- 10000
+baseSeed <- 100000
 
 howDatSim <- "RandomEffects"
 
@@ -90,8 +91,7 @@ for (p in 1:dim(allparams)[1]) {
   
     for (i in 1:n_iter) {
       simDatSet[[i]] <- simulateDataRandEff(N=allparams$N_set[p], mu=mu, xi=allparams$xi_set[p],
-                                             lb=lb, ub=ub, seed=baseSeed*p+i) 
-                                    # TODO: double check seeds don't repeat with higher n_iter!!!!!!!!!!!
+                                             lb=lb, ub=ub, seed=baseSeed*p+i)
       simDatSet[[i]]$iter <- i
     }
   
@@ -103,7 +103,7 @@ for (p in 1:dim(allparams)[1]) {
 # for (i in 1:length(simDat)) {
 #   write.csv(simDat[[i]], paste0(path, simdatfolder,
 #                                 "simData",howDatSim,"_",names(simDat)[i],"_",n_iter,"iter_",
-#                                 format(Sys.Date(), "%Y%m%d"),".csv"))
+#                                 format(Sys.Date(), "%Y%m%d"),".csv"), row.names=FALSE)
 # }
 
 
@@ -202,7 +202,6 @@ names(dat) <- c("Day", "x", "u", "N", "mu", "xi", "lb","ub","seed", "iter") # fi
 ### Analyze simulated data using random effects model
 ############################################################################
 
-
 # one iteration
 it <- 1 # choose which iteration
 dat_1iter <- dat[dat$iter==it,]
@@ -218,7 +217,7 @@ confint(outN13xi3_1iter)$random["tau",]
 
 # multiple iterations
 
-showPlot <- TRUE # plot the estimates and CIs?
+showPlot <- FALSE # plot the estimates and CIs?
 
 successMetrics <- list()
 
@@ -318,17 +317,25 @@ for (j in 1:length(names(simDat))) {
 
 successMetrics <- bind_rows(successMetrics)
 
+# save to csv
+# write.csv(successMetrics, 
+#           paste0(path, successmetricsfolder, 
+#                  "successMetrics",howDatSim,"_",n_iter,"iter_", 
+#                  format(Sys.Date(), "%Y%m%d"),".csv"), row.names=FALSE)
+
 
 # plot success metrics
 
 figfolder <- "DarkUncertaintyAFST/figures/"
 
 # mu bias
-pdf(paste0(path, figfolder, "REsim_DL_mubias_100iter.pdf"), width=8, height=6)
+pdf(paste0(path, figfolder, "REsim_DL_mubias_", n_iter, "iter.pdf"), width=8, height=6)
 
 ggplot(successMetrics, aes(x=N, y=mu.bias, color=as.factor(true.xi))) +
   geom_point(size=1) +
   geom_line() +
+  geom_hline(yintercept=0) +
+  ylim(c(-0.25, 0.05)) +
   theme_bw() +
   labs(color="true xi") +
   ggtitle("DL est mu bias")
@@ -336,12 +343,13 @@ ggplot(successMetrics, aes(x=N, y=mu.bias, color=as.factor(true.xi))) +
 dev.off()
 
 # mu coverage probability
-pdf(paste0(path, figfolder, "REsim_DL_mucp_100iter.pdf"), width=8, height=6)
+pdf(paste0(path, figfolder, "REsim_DL_mucp_", n_iter, "iter.pdf"), width=8, height=6)
 
 ggplot(successMetrics, aes(x=N, y=mu.covprob, color=as.factor(true.xi))) +
   geom_point(size=1) +
   geom_line() +
   geom_hline(yintercept=0.95) +
+  ylim(c(0.925, 0.955)) +
   theme_bw() +
   labs(color="true xi") +
   ggtitle("DL est mu coverage probability")
@@ -349,11 +357,13 @@ ggplot(successMetrics, aes(x=N, y=mu.covprob, color=as.factor(true.xi))) +
 dev.off()
 
 # xi bias
-pdf(paste0(path, figfolder, "REsim_DL_xibias_100iter.pdf"), width=8, height=6)
+pdf(paste0(path, figfolder, "REsim_DL_xibias_", n_iter, "iter.pdf"), width=8, height=6)
 
 ggplot(successMetrics, aes(x=N, y=xi.bias, color=as.factor(true.xi))) +
   geom_point(size=1) +
   geom_line() +
+  geom_hline(yintercept=0) +
+  ylim(c(-0.25, 0.05)) +
   theme_bw() +
   labs(color="true xi") +
   ggtitle("DL est xi bias")
@@ -361,12 +371,13 @@ ggplot(successMetrics, aes(x=N, y=xi.bias, color=as.factor(true.xi))) +
 dev.off()
 
 # xi coverage probability
-pdf(paste0(path, figfolder, "REsim_DL_xicp_100iter.pdf"), width=8, height=6)
+pdf(paste0(path, figfolder, "REsim_DL_xicp_", n_iter, "iter.pdf"), width=8, height=6)
 
 ggplot(successMetrics, aes(x=N, y=xi.covprob, color=as.factor(true.xi))) +
   geom_point(size=1) +
   geom_line() +
   geom_hline(yintercept=0.95) +
+  ylim(c(0.925, 0.955)) +
   theme_bw() +
   labs(color="true xi") +
   ggtitle("DL est xi coverage probability")
