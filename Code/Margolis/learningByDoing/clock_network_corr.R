@@ -64,6 +64,39 @@ u_scaled_mpfr <- c(
 Y_stan <- as.numeric(Y_mpfr)
 u_scaled_stan <- as.numeric(u_scaled_mpfr)
 
+
+## Quick plot
+
+
+measurement_df <- data.frame(
+  measurement = c("Absolute Hg (q7)","Absolute Yb (q24)", "Absolute Sr (q47)", "Ratio Hg / Yb (q79)", "Ratio Yb / Sr (q81)", "Ratio Hg / Sr (q59)"),
+  Y_Offset_Scaled = Y_stan,
+  U_Unc_Scaled = u_scaled_stan
+)
+
+ggplot(measurement_df,aes(measurement,Y_Offset_Scaled))+
+  geom_point(size = 2) +
+  geom_errorbar(aes(ymin = Y_Offset_Scaled - U_Unc_Scaled, 
+                    ymax = Y_Offset_Scaled + U_Unc_Scaled), 
+                width = 0.4) +
+  
+  # The vline was removed since the facet now handles the separation
+  
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1),
+    legend.position = "right",
+    strip.text = element_text(face = "bold", size = 11)
+  ) +
+  labs(
+    x = "Measurement ID (Q_ID)",
+    y = "Scaled Offset (Y x 1e15)",
+    color = "Transition"
+  ) 
+##
+
+
+
 # 8. Construct Covariance Matrix (V) using the numeric values
 V_stan <- diag(u_scaled_stan^2)
 
@@ -93,7 +126,7 @@ fit <- stan(
   data = stan_data, 
   iter = 20000, 
   warmup = 15000, 
-  control = list(adapt_delta = 0.99, max_treedepth = 15),
+  # control = list(adapt_delta = 0.99, max_treedepth = 15),
   chains = 4, 
   cores = 4,
   seed = 42

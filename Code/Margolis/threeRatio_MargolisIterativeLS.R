@@ -1,7 +1,7 @@
 ###### might need to try something like this
-# library(Rmpfr)
-# # Set precision to 128 bits (roughly 38 decimal digits)
-# prec <- 128
+library(Rmpfr)
+# Set precision to 128 bits (roughly 38 decimal digits)
+prec <- 128
 # 
 # # Define your frequency ratios as mpfr objects
 # # Use character strings to prevent R from truncating them before conversion
@@ -15,38 +15,43 @@
 options(digits = 22)
 # 1. Define the measurements (q) and their covariance matrix (V)
 # We assume the measurements are independent for simplicity, so V is diagonal.
-q <- c(
+q <- mpfr(c(
   1128575290808154.62, # 1. Absolute Hg (q7)
   518295836590863.59,  # 2. Absolute Yb (q24)
   429228004229872.92,  # 3. Absolute Sr (q47)
   2.17747319413456507,   # 4. Ratio Hg / Yb (q79)
   1.20750703934333841,   # 5. Ratio Yb / Sr (q81)
   2.62931420989890960    # 6. Ratio Hg / Sr (q59)
-)
+), precBits = prec)
+
 
 q=q/c(9192631770, 9192631770, 9192631770, 1, 1, 1) # dividing by Cs
 
 # Their absolute uncertainties (U)
 # Corrected absolute uncertainties (U)
-u_raw <- c(
-  0.41,       # 1. Hg absolute unc
-  0.31,       # 2. Yb absolute unc
-  0.12,       # 3. Sr absolute unc
-  1.92e-16,   # 4. Hg/Yb unc 
-  3.40e-16,   # 5. Yb/Sr unc 
-  2.20e-16    # 6. Hg/Sr unc 
-)
+u_raw <- mpfr(c(
+  "0.41",       # 1. Hg absolute unc
+  "0.31",       # 2. Yb absolute unc
+  "0.12",       # 3. Sr absolute unc
+  "1.92e-16",   # 4. Hg/Yb unc 
+  "3.40e-16",   # 5. Yb/Sr unc 
+  "2.20e-16"    # 6. Hg/Sr unc 
+), precBits = prec)
 
 u <- c(u_raw[1:3]/9192631770, #dividing by Cs
        u_raw[4]*q[4], u_raw[5]*q[5], u_raw[6]*q[6]) #convert relative uncertainties 
+
+q <- as.numeric(q)
+u <- as.numeric(u)
+
 
 # 2. Covariance Matrix V (Assuming zero correlation for this example)
 V <- diag(u^2)
 
 # 3. Starting Values (Initial estimates for z1, z2, z3)
 # z1 = Hg/Yb, z2 = Yb/Sr, z3 = Sr/Cs
-s <- c(q[4]+.001, q[5]+.001, q[3]+.001) #starting a bit off to see it change in the iterations
-# s <- c(q[4], q[5], q[3]) 
+# s <- c(q[4]+.001, q[5]+.001, q[3]+.001) #starting a bit off to see it change in the iterations
+s <- c(q[4], q[5], q[3])
 
 # 4. Iterative Least-Squares Adjustment
 for (iteration in 1:5) {
@@ -96,6 +101,20 @@ optimized_Hg <- s[1] * optimized_Yb
 
 cat("\n--- Optimized Absolute Frequencies (Hz) ---\n")
 cat(sprintf("Hg: %.4f\nYb: %.4f\nSr: %.4f\n", optimized_Hg, optimized_Yb, optimized_Sr))
+
+
+# s <- c(q[4], q[5], q[3]) 
+# Hg: 1128575290808154.2500
+# Yb: 518295836590863.6250
+# Sr: 429228004229872.9375
+
+### NOTE also sensitive to starting values!!
+# s <- c(q[4]+.001, q[5]+.001, q[3]+.001) #starting a bit off to see it change in the iterations
+
+# Hg: 1128575290808154.5000
+# Yb: 518295836590863.7500
+# Sr: 429228004229872.9375
+
 
 
 # 
