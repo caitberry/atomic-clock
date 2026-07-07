@@ -56,6 +56,11 @@ combined_df <- bind_rows(
 p_combined_tidy <- ggplot(combined_df, aes(x = x_val, y = y_val, color = source)) +
   geom_point(size = 1) +
   geom_errorbar(aes(ymin = y_val - uncertainty, ymax = y_val + uncertainty), width = 0) +
+  scale_color_manual(values = c(
+    "BACON2"        = "black",
+    "Simulated MB"  = "deepskyblue3",
+    "Simulated REM" = "tomato"
+  )) +
   theme_bw() +
   labs(
     title = "Combined Data Sets",
