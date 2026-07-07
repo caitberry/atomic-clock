@@ -67,6 +67,12 @@ st-interp/NIST_TN/main.toc
 # produced result files
 Results/*.Rds
 Results/ClockComp2025/*.Rds
+Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/Posteriors/
+Code/ComparisonAnalysis2025/SpectralFitting/BayesianFit/Plots/
+Code/ComparisonAnalysis2025/DarkUncertaintyMethods/CIouts/
+
+# Amanda's rds files for stan
+Code/ComparisonAnalysis2025/BayesianClockComparison/*.rds
 
 # Amanda's temp test code
 Code/TEST*

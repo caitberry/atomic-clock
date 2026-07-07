@@ -42,7 +42,7 @@ model {
   sigma_dark ~ normal(0, 1); 
 
   // 4. Likelihood using the dynamically decomposed matrix
-  Y ~ multi_normal_cholesky(mu, cholesky_decompose(V_total));
-  // Y ~ multi_student_t_cholesky(3, mu, cholesky_decompose(V_total)); 
+  // Y ~ multi_normal_cholesky(mu, cholesky_decompose(V_total));
+  Y ~ multi_student_t_cholesky(3, mu, cholesky_decompose(V_total));
   
 }
