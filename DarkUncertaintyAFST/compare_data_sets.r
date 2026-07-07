@@ -1,56 +1,67 @@
+## code to create plots of simulated MB and REM data (for various c and xi values)
+## and compare to BACON data
+
+rm(list=ls())
+library(readr)
+library(data.table)
+library(tidyverse)
+library(gridExtra)
+
+path = "/Users/smt3/Documents/GitHub/atomic-clock/"
+simdatfolder = "DarkUncertaintyAFST/simulatedData/" #added to gitignore
+figfolder = "DarkUncertaintyAFST/figures/" #added to gitignore
+
+##BACON data
+ratiolab = "YbSr"
+ratiodf = read_csv(paste0(path, "Data/ClockComparison2025/BayesianAnalysisData/ErYb_",ratiolab,"_data.csv"))
+ratiodf$offset_centered = ratiodf$offset - mean(ratiodf$offset)
+bacon_measurements = ratiodf$offset
+bacon_uncertainties = ratiodf$statistical_unc
+summary(ratiodf)
+
+set.seed(101)
+mu = 0
+k_cov_factor = 1.96 #1.96 for 95% intervals
+N = length(bacon_measurements)
+uncertainties = runif(N, min(bacon_uncertainties), max(bacon_uncertainties))
+
+##---MB simulated data--------------------------
+birg_constant = 2
+
+measurements_MB = sapply(uncertainties, function(sd_term){rnorm(1, mean=mu, sd = sd_term*birg_constant)} )
+sim_dat_MB = data.frame(day = 1:N, x = measurements_MB, u = uncertainties)
+summary(sim_dat_MB)
+
+##---REM simulated data-------------------------
+xi_true = 3
+
+lambda = rnorm(N, 0, xi_true)
+epsilon = rnorm(N, 0, uncertainties)
+
+measurements_REM = mu + lambda + epsilon
+sim_dat_REM = data.frame(day=1:N, x=measurements_REM, u=uncertainties)
+summary(sim_dat_REM)
 
 ##---Plots--------------------------------------
-# plot real BACON2 data
-ggplot(ratiodf, aes(x=as.character(date), y=offset)) +
-  geom_point(size=1) +
-  geom_errorbar(aes(ymin=offset-statistical_unc, ymax=offset+statistical_unc), width=0) +
-  ylim(c(-110,-90)) +
+
+combined_df <- bind_rows(
+  ratiodf %>% 
+    transmute(x_val = as.character(date), y_val = offset_centered, uncertainty = statistical_unc, source = "BACON2"),
+  sim_dat_MB %>% 
+    transmute(x_val = as.character(ratiodf$date), y_val = x, uncertainty = u, source = "Simulated MB"),
+  sim_dat_REM %>% 
+    transmute(x_val = as.character(ratiodf$date), y_val = x, uncertainty = u, source = "Simulated REM")
+)
+
+p_combined_tidy <- ggplot(combined_df, aes(x = x_val, y = y_val, color = source)) +
+  geom_point(size = 1) +
+  geom_errorbar(aes(ymin = y_val - uncertainty, ymax = y_val + uncertainty), width = 0) +
   theme_bw() +
-  ggtitle("BACON2 data")
+  labs(
+    title = "Combined Data Sets",
+    x = "Day / Date",
+    y = expression(x[i] %+-% u(x[i])),
+    color = "Data Source"
+  )
 
-# plot simulated data set
-# plot includes mu_hat with uncertainty bars showing k*u, where k=1 and true mu (red)
-p1 <- ggplot(sim_dat, aes(x=day, y=x)) +
-  geom_point(size=1) +
-  geom_errorbar(aes(ymin=x-u, ymax=x+u), width=0) +
-  geom_hline(aes(yintercept = mu, color = "true mu", linetype = "true mu")) + 
-  geom_hline(aes(yintercept = mu_hat_b, color = "weighted mean", linetype = "weighted mean")) + 
-  geom_hline(aes(yintercept = mu_hat_b + u_mu_hat_b, color = "unadjusted Birge bounds", linetype = "unadjusted Birge bounds")) + 
-  geom_hline(aes(yintercept = mu_hat_b - u_mu_hat_b, color = "unadjusted Birge bounds", linetype = "unadjusted Birge bounds")) +
-  geom_hline(aes(yintercept = mu_hat_b + u_mu_hat_b_corrected, color = "adjusted Birge bounds", linetype = "adjusted Birge bounds")) + 
-  geom_hline(aes(yintercept = mu_hat_b - u_mu_hat_b_corrected, color = "adjusted Birge bounds", linetype = "adjusted Birge bounds")) + 
-  # ylim(c(-6,6)) +
-  # ylim(c(-110,-90)) + # if use mu=mean(BACON2 data)
-  scale_color_manual(name = "Legend",
-              breaks = c("true mu", 
-               "weighted mean", 
-               "unadjusted Birge bounds", 
-               "adjusted Birge bounds"),
-              values = c("true mu" = "red", 
-                "weighted mean" = "purple", 
-                "unadjusted Birge bounds" = "purple", 
-                "adjusted Birge bounds" = "purple"),
-              labels = c("true mu" = expression(mu), 
-               "weighted mean" = expression(hat(mu)[WM]),
-               "unadjusted Birge bounds" = "unadjusted Birge bounds",
-               "adjusted Birge bounds" = "adjusted Birge bounds")) +
-  scale_linetype_manual(name = "Legend",
-              breaks = c("true mu", 
-               "weighted mean", 
-               "unadjusted Birge bounds", 
-               "adjusted Birge bounds"),
-              values = c("true mu" = 1, 
-                "weighted mean" = 1, 
-                "unadjusted Birge bounds" = 2, 
-                "adjusted Birge bounds" = 3),
-              labels = c("true mu" = expression(mu), 
-               "weighted mean" = expression(hat(mu)[WM]),
-               "unadjusted Birge bounds" = "unadjusted Birge bounds",
-               "adjusted Birge bounds" = "adjusted Birge bounds")) +
-  theme_bw() +
-  ylab(expression(x[i] %+-% u(x[i]))) + xlab("Day") + 
-  ggtitle(paste("Simulated data, N =", N, ", c =", birg_constant))
-
-#ggsave("DarkUncertaintyAFST/mul_birge_plot.png", plot = p1, width = 6, height = 4, units = "in", dpi = 300)
-
-
+print(p_combined_tidy)

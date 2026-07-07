@@ -7,6 +7,7 @@ library(readr)
 library(data.table)
 library(tidyverse)
 library(tidyr)
+library(gridExtra)
 
 N_new = c(5, 13, 33, 100)
 k_cov_factor = 1.96 #1.96 for 95% intervals
@@ -18,6 +19,10 @@ simdatfolder = "DarkUncertaintyAFST/simulatedData/" #added to gitignore
 figfolder = "DarkUncertaintyAFST/figures/" #added to gitignore
 
 ##--- MB Analysis Functions -------------------
+std_u <- function(uncertainties){
+    return(sum(1/(uncertainties^2))^(-1/2))
+}
+
 
 weighted_mean <- function(measurements, uncertainties){
     u_all = std_u(uncertainties)
@@ -56,7 +61,10 @@ counter = 1
 
 for (n in N_new){
   for (xi in true_xi){
-    rem_data = read_csv(paste0(path, simdatfolder, rem_data_names, "N", n, "xi", xi, "_10000iter_20260326.csv"))
+    folder_dir   = paste0(path, simdatfolder)
+    file_pattern = paste0("^", rem_data_names, "N", n, "xi", xi, ".*\\.csv$")
+    file_path = list.files(path = folder_dir, pattern = file_pattern, full.names = TRUE)
+    rem_data = read_csv(file_path[1])
     rem_mu = rem_data$mu[1]
 
     ## Break data into a list of matricies with n rows
@@ -134,34 +142,82 @@ for (n in N_new){
 }
 
 # --- Plots -------------------------------------
+# MB data on left, REM data on right
+# mu coverage top, mu bias bottom
+# colors for true c and true xi 
+# dashed/solid lines for adjusted/unadjusted MB (ie analysis method)
 # coverage prob (y-axis)
 # bias (y axis)
 # N = c(5, 13, 33, 100) (x-axis)
 
-# plot for mu bias 
-#pdf(paste0(path, figfolder, "MBsim_MB_mubias_1E4iter.pdf"), width=8, height=6)
+## Create data frames of info
+mb_data_df = data.frame(N = 0, c = 0, cov_un = 0, cov_adj = 0, bias = 0)
+rem_data_df = data.frame(N = 0, xi = 0, cov_un = 0, cov_adj = 0, bias = 0)
 
-ggplot(data.frame(res_all), aes(x=N, y=bias, color=as.factor(true_c))) +
-  geom_point(size=1) +
-  geom_line() +
-  theme_bw() +
-  labs(color="true c") +
-  ggtitle("MB est mu bias")
+for (i in 1:12) {
+    mb_data_df[i, ] = c(mb_data_mb_analysis[[i]]$N,
+                        mb_data_mb_analysis[[i]]$c,
+                        mb_data_mb_analysis[[i]]$cov_un,
+                        mb_data_mb_analysis[[i]]$cov,
+                        mb_data_mb_analysis[[i]]$bias_both
+                        )
+    rem_data_df[i, ] = c(rem_data_mb_analysis[[i]]$N,
+                        rem_data_mb_analysis[[i]]$xi,
+                        rem_data_mb_analysis[[i]]$cov_un,
+                        rem_data_mb_analysis[[i]]$cov,
+                        rem_data_mb_analysis[[i]]$bias_both
+                        )
 
-#dev.off()
+}
 
+## Convert data frames to long format
+mb_all_long <- data.frame(mb_data_df) %>%
+  pivot_longer(
+    cols = c(cov_un, cov_adj),
+    names_to = "Method",
+    values_to = "cov_prob"
+  )
+rem_all_long <- data.frame(rem_data_df) %>%
+  pivot_longer(
+    cols = c(cov_un, cov_adj),
+    names_to = "Method",
+    values_to = "cov_prob"
+  )
 
-# plot for mu coverage
-#pdf(paste0(path, figfolder, "MBsim_MB_mucov_1E4iter.pdf"), width=8, height=6)
+## Generate and save plots
 
-ggplot(res_all_long, aes(x=N, y=cov_prob, color=as.factor(true_c), linetype=as.factor(method))) +
+mb_cov <- ggplot(mb_all_long, aes(x=N, y=cov_prob, color=as.factor(c), linetype=as.factor(Method))) +
   geom_point(size=1) +
   geom_line() +
   geom_hline(yintercept=0.95) +
   theme_bw() +
-  labs(color="true c", linetype="method") +
-  ggtitle("MB est mu coverage probability")
+  labs(color="True c", linetype="Method") +
+  ggtitle("MB data, MB est mu coverage probability")
 
+mb_bias <- ggplot(data.frame(mb_all_long), aes(x=N, y=bias, color=as.factor(c))) +
+  geom_point(size=1) +
+  geom_line() +
+  theme_bw() +
+  labs(color="True c") +
+  ggtitle("MB data, MB est mu bias")
+
+rem_cov <- ggplot(rem_all_long, aes(x=N, y=cov_prob, color=as.factor(xi), linetype=as.factor(Method))) +
+  geom_point(size=1) +
+  geom_line() +
+  geom_hline(yintercept=0.95) +
+  theme_bw() +
+  labs(color="True c", linetype="Method") +
+  ggtitle("REM data, MB est mu coverage probability")
+
+rem_bias <- ggplot(data.frame(rem_all_long), aes(x=N, y=bias, color=as.factor(xi))) +
+  geom_point(size=1) +
+  geom_line() +
+  theme_bw() +
+  labs(color="True xi") +
+  ggtitle("REM data, MB est mu bias")
+
+
+
+####pdf(paste0(path, figfolder, "MBsim_MB_mucov_1E4iter.pdf"), width=8, height=6)
+grid.arrange(mb_cov, rem_cov, mb_bias, rem_bias, nrow=2)
 #dev.off()
-
-
