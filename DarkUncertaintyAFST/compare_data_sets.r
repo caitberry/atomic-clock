@@ -109,8 +109,10 @@ p3 <- ggplot(df3, aes(x = x_val, y = y_val)) +
   )
 
 
-grid.arrange(p1, p2, p3, nrow = 1)
+bacon_comparison <- grid.arrange(p1, p2, p3, nrow = 1)
+ggsave(paste0("DarkUncertaintyAFST/figures/sim_data_comparison_N13.png"), bacon_comparison, device = "png")
 
+##Note: currently not plotting N13 for c_val of 1.5 or 2.5 or xi of 1 or 10
 
 ##---Other N Simulated Data--------------------------
 
