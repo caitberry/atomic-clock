@@ -116,8 +116,8 @@ ggsave(paste0("DarkUncertaintyAFST/figures/sim_data_comparison_N13.png"), bacon_
 
 ##---Other N Simulated Data--------------------------
 
-N_new = c(5, 33, 100)
-c_vals = c(1.5, 2, 2.5)
+N_new = c(5, 13, 33, 100)
+c_vals = c(1.5, 2.5, 10)
 xi_vals = c(1, 3, 10)
 
 MB_data = REM_data = list()
@@ -163,21 +163,48 @@ for(N in N_new){
 
 p_sim_MB = p_sim_REM = list()
 
-for(i in 1:9){
+for(i in 1:length(MB_data)){
+  #set y-axis limits 
+  if (MB_data[[i]]$c[1] < 2.5) {
+    my_y_lim <- c(-5, 5)
+  } 
+  if ((MB_data[[i]]$c[1] > 2) & (REM_data[[i]]$xi[1] < 3.5)){
+    my_y_lim <- c(-10, 10)
+  } 
+  if (MB_data[[i]]$c[1] > 3) {
+    my_y_lim <- c(-40, 40)
+  }
   p_sim_MB[[i]] <- ggplot(MB_data[[i]], aes(x = x_val, y = y_val)) +
     geom_point(size = 1) +
     geom_errorbar(aes(ymin = y_val - uncertainty, ymax = y_val + uncertainty), width = 0) +
     theme_bw() +
+#    ylim(my_y_lim) + 
+    ylim(-20,20) + 
     labs(
       title = paste0("MB Data; N = ", MB_data[[i]]$N[1], "; c = ", MB_data[[i]]$c[1]),
       x = "Day / Date",
       y = expression(x[i] %+-% u(x[i]))
     )
+}
+
+for(i in 1:length(REM_data)){
+  #set y-axis limits 
+  if (REM_data[[i]]$xi[1] < 3) {
+    my_y_lim <- c(-5, 5)
+  } 
+  if ((REM_data[[i]]$xi[1] > 1) & (REM_data[[i]]$xi[1] < 10)){
+    my_y_lim <- c(-10, 10)
+  } 
+  if (REM_data[[i]]$xi[1] > 3) {
+    my_y_lim <- c(-40, 40)
+  }
 
   p_sim_REM[[i]] <- ggplot(REM_data[[i]], aes(x = x_val, y = y_val)) +
     geom_point(size = 1) +
     geom_errorbar(aes(ymin = y_val - uncertainty, ymax = y_val + uncertainty), width = 0) +
     theme_bw() +
+#    ylim(my_y_lim) +
+    ylim(-20, 20) + 
     labs(
       title = paste0("REM Data; N = ", REM_data[[i]]$N[1], "; xi = ", REM_data[[i]]$xi[1]),
       x = "Day / Date",
@@ -186,8 +213,12 @@ for(i in 1:9){
 }
 
 
-for (i in c(1,4,7)){
+for (i in c(1,4,7,10)){
   combined_plot <- arrangeGrob(p_sim_MB[[i]], p_sim_MB[[i+1]], p_sim_MB[[i+2]],
                     p_sim_REM[[i]], p_sim_REM[[i+1]], p_sim_REM[[i+2]], nrow = 2)
   ggsave(paste0("DarkUncertaintyAFST/figures/sim_data_comparison_N", REM_data[[i]]$N[1], ".png"), combined_plot, device = "png")
 }
+
+i=10
+grid.arrange(p_sim_MB[[i]], p_sim_MB[[i+1]], p_sim_MB[[i+2]],# p_sim_MB[[i+3]], 
+            p_sim_REM[[i]], p_sim_REM[[i+1]], p_sim_REM[[i+2]], nrow = 2)
