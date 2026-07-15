@@ -173,7 +173,7 @@ N_new = c(5, 13, 33, 100)
 
 
 ##---MB Data--------------------------------------------------
-true_c = c(1.5, 2, 2.5)
+true_c = c(1.5, 2.5, 5)
 mb_data_names = "simDataMulBirge_"
 mb_mu = 0
 
@@ -189,11 +189,11 @@ for (n in N_new){
     coverage = 0
     coverage_corrected = 0
     mu_hat = NULL
-    runs = length(mb_data) %% n
+    runs = nrow(mb_data) / n
 
     for (i in seq_along(runs)){
       tmp = mb_data[i,]
-      tmp_mu_hat = (tmp$ub/tmp$lb)/2
+      tmp_mu_hat = (tmp$ub+tmp$lb)/2
       ##double check: lb and ub already account for k? 
       if((tmp$lb <= mb_mu) & (tmp$ub >= mb_mu)){ coverage = coverage + 1}
       if((tmp$lb_corrected <= mb_mu) & (tmp$ub_corrected >= mb_mu)){ coverage_corrected = coverage_corrected + 1}
@@ -328,7 +328,7 @@ rem_cov <- ggplot(rem_all_long, aes(x=N, y=cov_prob, color=as.factor(xi), linety
   geom_line() +
   geom_hline(yintercept=0.95) +
   theme_bw() +
-  labs(color="True c", linetype="Method") +
+  labs(color="True xi", linetype="Method") +
   ggtitle("REM data, MB est mu coverage probability")
 
 rem_bias <- ggplot(data.frame(rem_all_long), aes(x=N, y=bias, color=as.factor(xi))) +
