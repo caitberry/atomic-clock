@@ -38,7 +38,7 @@ k_cov_factor = 1.96 #1.96 for 95% intervals
 # --- Write CSV files containing MB simulated data 
 
 N_new = c(5, 13, 33, 100)
-true_c = c(1.5, 2, 2.5)
+true_c = c(1.5, 2.5, 5)
 mu = 0
 N_cov = 1E4
 
@@ -91,102 +91,3 @@ for(n in N_new){
 }
 
 
-##---Single simulation----------------------------------
-N = length(bacon_measurements) # 100
-birg_constant = 2 
-mu = 0
-
-## Simulated data (Vectorized)
-uncertainties = runif(N, min(bacon_uncertainties), max(bacon_uncertainties)) 
-measurements = rnorm(N, mean = mu, sd = uncertainties * birg_constant)
-sim_dat = data.frame(day = 1:N, x = measurements, u = uncertainties)
-summary(sim_dat)
-
-# FIX: Define the plotting variables that were missing in the original code
-mu_hat_b = weighted_mean(sim_dat$x, sim_dat$u)
-u_mu_hat_b = u_MB(sim_dat$x, sim_dat$u)
-u_mu_hat_b_corrected = u_MB(sim_dat$x, sim_dat$u, correction = TRUE)
-
-
-##---Plots--------------------------------------
-# plot real BACON2 data
-ggplot(ratiodf, aes(x=as.character(date), y=offset)) +
-  geom_point(size=1) +
-  geom_errorbar(aes(ymin=offset-statistical_unc, ymax=offset+statistical_unc), width=0) +
-  ylim(c(-110,-90)) +
-  theme_bw() +
-  ggtitle("BACON2 data")
-
-# plot simulated data set
-# plot includes mu_hat with uncertainty bars showing k*u, where k=1 and true mu (red)
-p1 <- ggplot(sim_dat, aes(x=day, y=x)) +
-  geom_point(size=1) +
-  geom_errorbar(aes(ymin=x-u, ymax=x+u), width=0) +
-  geom_hline(aes(yintercept = mu, color = "true mu", linetype = "true mu")) + 
-  geom_hline(aes(yintercept = mu_hat_b, color = "weighted mean", linetype = "weighted mean")) + 
-  geom_hline(aes(yintercept = mu_hat_b + u_mu_hat_b, color = "unadjusted Birge bounds", linetype = "unadjusted Birge bounds")) + 
-  geom_hline(aes(yintercept = mu_hat_b - u_mu_hat_b, color = "unadjusted Birge bounds", linetype = "unadjusted Birge bounds")) +
-  geom_hline(aes(yintercept = mu_hat_b + u_mu_hat_b_corrected, color = "adjusted Birge bounds", linetype = "adjusted Birge bounds")) + 
-  geom_hline(aes(yintercept = mu_hat_b - u_mu_hat_b_corrected, color = "adjusted Birge bounds", linetype = "adjusted Birge bounds")) + 
-  # ylim(c(-6,6)) +
-  # ylim(c(-110,-90)) + # if use mu=mean(BACON2 data)
-  scale_color_manual(name = "Legend",
-              breaks = c("true mu", 
-               "weighted mean", 
-               "unadjusted Birge bounds", 
-               "adjusted Birge bounds"),
-              values = c("true mu" = "red", 
-                "weighted mean" = "purple", 
-                "unadjusted Birge bounds" = "purple", 
-                "adjusted Birge bounds" = "purple"),
-              labels = c("true mu" = expression(mu), 
-               "weighted mean" = expression(hat(mu)[WM]),
-               "unadjusted Birge bounds" = "unadjusted Birge bounds",
-               "adjusted Birge bounds" = "adjusted Birge bounds")) +
-  scale_linetype_manual(name = "Legend",
-              breaks = c("true mu", 
-               "weighted mean", 
-               "unadjusted Birge bounds", 
-               "adjusted Birge bounds"),
-              values = c("true mu" = 1, 
-                "weighted mean" = 1, 
-                "unadjusted Birge bounds" = 2, 
-                "adjusted Birge bounds" = 3),
-              labels = c("true mu" = expression(mu), 
-               "weighted mean" = expression(hat(mu)[WM]),
-               "unadjusted Birge bounds" = "unadjusted Birge bounds",
-               "adjusted Birge bounds" = "adjusted Birge bounds")) +
-  theme_bw() +
-  ylab(expression(x[i] %+-% u(x[i]))) + xlab("Day") + 
-  ggtitle(paste("Simulated data, N =", N, ", c =", birg_constant))
-
-ggsave("DarkUncertaintyAFST/mul_birge_plot.png", plot = p1, width = 6, height = 4, units = "in", dpi = 300)
-
-
-##---Investigate coverage------------------------------
-N_cov = 1E4
-
-uncertainties_cov = runif(N*N_cov, min(bacon_uncertainties), max(bacon_uncertainties))
-measurements_cov = rnorm(N * N_cov, mean = mu, sd = uncertainties_cov * 2)
-
-dt_single = data.table(
-  run_id = rep(1:N_cov, each = N),
-  day = rep(1:N, N_cov),
-  u = uncertainties_cov,
-  x = measurements_cov
-)
-
-birge_res_single = dt_single[, birge_wrapper(as.matrix(.SD)), by = run_id, .SDcols = c("x", "u")]
-
-# Vectorized summary stats
-single_stats = birge_res_single[, .(
-  cov_unadj = mean((mean_birge - k_cov_factor * u_birge <= mu) & 
-                     (mean_birge + k_cov_factor * u_birge >= mu)),
-  cov_adj = mean((mean_birge - k_cov_factor * u_birge_corrected <= mu) & 
-                   (mean_birge + k_cov_factor * u_birge_corrected >= mu)),
-  mean_mu_hat = mean(mean_birge),
-  mean_u_unadj = mean(u_birge),
-  mean_u_adj = mean(u_birge_corrected)
-)]
-
-print(single_stats)
