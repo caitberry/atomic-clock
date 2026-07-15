@@ -10,15 +10,38 @@
 ### 
 ############################################################################
 
+rm(list=ls())
+library(data.table)
+library(tidyverse)
+library(gridExtra)
+
+path = "/Users/smt3/Documents/GitHub/atomic-clock/"
+simdatfolder = "DarkUncertaintyAFST/simulatedData/" #added to gitignore
+figfolder = "DarkUncertaintyAFST/figures/" #added to gitignore
+
+##Supporter functions
+source(paste0(path, "DarkUncertaintyAFST/", "MB_functions.R"))
+
+##BACON data
+ratiolab = "YbSr"
+ratiodf = read_csv(paste0(path, "Data/ClockComparison2025/BayesianAnalysisData/ErYb_",ratiolab,"_data.csv"))
+bacon_measurements = ratiodf$offset
+bacon_uncertainties = ratiodf$statistical_unc
+
+N_cov = 1E4
+k_cov_factor = 1.96 
+N = length(bacon_uncertainties)
+
 ##---------------------------------------------------------------
 ##---Analyse MB Data for N=13 for table
 ##---------------------------------------------------------------N = length(bacon_measurements)
 birg_constant = 2
-mu = 0
+mu_MB = 0
+
 
 ## Simulated data (Vectorized)
 uncertainties = runif(N, min(bacon_uncertainties), max(bacon_uncertainties)) 
-measurements = rnorm(N, mean = mu, sd = uncertainties * birg_constant)
+measurements = rnorm(N, mean = mu_MB, sd = uncertainties * birg_constant)
 sim_dat = data.frame(day = 1:N, x = measurements, u = uncertainties)
 summary(sim_dat)
 
@@ -40,7 +63,7 @@ ggplot(ratiodf, aes(x=as.character(date), y=offset)) +
 p1 <- ggplot(sim_dat, aes(x=day, y=x)) +
   geom_point(size=1) +
   geom_errorbar(aes(ymin=x-u, ymax=x+u), width=0) +
-  geom_hline(aes(yintercept = mu, color = "true mu", linetype = "true mu")) + 
+  geom_hline(aes(yintercept = mu_MB, color = "true mu", linetype = "true mu")) + 
   geom_hline(aes(yintercept = mu_hat_b, color = "weighted mean", linetype = "weighted mean")) + 
   geom_hline(aes(yintercept = mu_hat_b + u_mu_hat_b, color = "unadjusted Birge bounds", linetype = "unadjusted Birge bounds")) + 
   geom_hline(aes(yintercept = mu_hat_b - u_mu_hat_b, color = "unadjusted Birge bounds", linetype = "unadjusted Birge bounds")) +
@@ -80,10 +103,8 @@ p1 <- ggplot(sim_dat, aes(x=day, y=x)) +
 
 
 ##coverage and bias
-N_cov = 1E4
-
 uncertainties_cov = runif(N*N_cov, min(bacon_uncertainties), max(bacon_uncertainties))
-measurements_cov = rnorm(N * N_cov, mean = mu, sd = uncertainties_cov * 2)
+measurements_cov = rnorm(N * N_cov, mean = mu_MB, sd = uncertainties_cov * 2)
 
 dt_single = data.table(
   run_id = rep(1:N_cov, each = N),
@@ -95,10 +116,10 @@ dt_single = data.table(
 birge_res_single = dt_single[, birge_wrapper(as.matrix(.SD)), by = run_id, .SDcols = c("x", "u")]
 
 single_stats = birge_res_single[, .(
-  cov_unadj = mean((mean_birge - k_cov_factor * u_birge <= mu) & 
-                     (mean_birge + k_cov_factor * u_birge >= mu)),
-  cov_adj = mean((mean_birge - k_cov_factor * u_birge_corrected <= mu) & 
-                   (mean_birge + k_cov_factor * u_birge_corrected >= mu)),
+  cov_unadj = mean((mean_birge - k_cov_factor * u_birge <= mu_MB) & 
+                     (mean_birge + k_cov_factor * u_birge >= mu_MB)),
+  cov_adj = mean((mean_birge - k_cov_factor * u_birge_corrected <= mu_MB) & 
+                   (mean_birge + k_cov_factor * u_birge_corrected >= mu_MB)),
   mean_mu_hat = mean(mean_birge),
   mean_u_unadj = mean(u_birge),
   mean_u_adj = mean(u_birge_corrected)
@@ -110,7 +131,7 @@ print(single_stats)
 ##---Analyse REM Data for N=13 for table
 ##---------------------------------------------------------------
 rem_data = read_csv(paste0(path, "DarkUncertaintyAFST/simulatedData/simDataRandomEffects_N13xi3_10000iter_20260326.csv"))
-rem_mu = rem_data$mu[1]
+mu_REM = rem_data$mu[1]
 
 ## Break data into a list of matricies with 13 rows
 chunk_size = rem_data$N[1]
@@ -118,7 +139,6 @@ rem_data_list = split(rem_data, (seq_len(nrow(rem_data)) - 1) %/% chunk_size)
 rem_mtx_list = lapply(rem_data_list, as.matrix)
 rem_birge_res = lapply(rem_mtx_list, birge_wrapper) ##Note input must be a matrix
 
-k_cov_factor = 1.96 #1.96 for 95% intervals
 coverage = 0
 coverage_corrected = 0
 mu_hat_un = NULL
@@ -127,8 +147,8 @@ u_mu_hat_un = NULL
 u_mu_hat_adj = NULL
 for (i in seq_along(rem_data_list)){
   tmp = rem_birge_res[[i]]
-  if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= rem_mu)){ coverage = coverage + 1}
-  if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= rem_mu)){ coverage_corrected = coverage_corrected + 1}
+  if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= mu_REM) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= mu_REM)){ coverage = coverage + 1}
+  if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= mu_REM) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= mu_REM)){ coverage_corrected = coverage_corrected + 1}
 
   mu_hat_un = c(mu_hat_un, tmp$mean_birge)
   mu_hat_adj = c(mu_hat_adj, tmp$mean_birge)
@@ -147,28 +167,15 @@ mean(u_mu_hat_adj)
 # --- Read CSV files and produce Bias/Coverage Plots
 # --- for MB analysis of MB data and REM data
 # ---------------------------------------------------------
-rm(list=ls())
-library(data.table)
-library(tidyverse)
-library(gridExtra)
-
 N_new = c(5, 13, 33, 100)
-k_cov_factor = 1.96 #1.96 for 95% intervals
 #mu = 0
 #N_cov = 1E4 
 
-path = "/Users/smt3/Documents/GitHub/atomic-clock/"
-simdatfolder = "DarkUncertaintyAFST/simulatedData/" #added to gitignore
-figfolder = "DarkUncertaintyAFST/figures/" #added to gitignore
-
-##Supporter functions
-source(paste0(path, "DarkUncertaintyAFST/", "MB_functions.R"))
 
 ##---MB Data--------------------------------------------------
 true_c = c(1.5, 2, 2.5)
 mb_data_names = "simDataMulBirge_"
 mb_mu = 0
-
 
 mb_data_mb_analysis = replicate(length(N_new)*length(true_c),
                         list(N = NULL, c = NULL, cov_un = NULL, cov = NULL, bias_both = NULL),
@@ -219,7 +226,7 @@ for (n in N_new){
     file_pattern = paste0("^", rem_data_names, "N", n, "xi", xi, ".*\\.csv$")
     file_path = list.files(path = folder_dir, pattern = file_pattern, full.names = TRUE)
     rem_data = read_csv(file_path[1])
-    rem_mu = rem_data$mu[1]
+    mu_REM = rem_data$mu[1]
 
     ## Break data into a list of matricies with n rows
     chunk_size = rem_data$N[1]
@@ -235,8 +242,8 @@ for (n in N_new){
     u_mu_hat_adj = NULL
     for (i in seq_along(rem_data_list)){
       tmp = rem_birge_res[[i]]
-      if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= rem_mu)){ coverage = coverage + 1}
-      if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= rem_mu) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= rem_mu)){ coverage_corrected = coverage_corrected + 1}
+      if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= mu_REM) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= mu_REM)){ coverage = coverage + 1}
+      if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= mu_REM) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= mu_REM)){ coverage_corrected = coverage_corrected + 1}
 
       mu_hat_un = c(mu_hat_un, tmp$mean_birge)
       mu_hat_adj = c(mu_hat_adj, tmp$mean_birge)
