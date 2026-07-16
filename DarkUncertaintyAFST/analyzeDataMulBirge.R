@@ -174,7 +174,7 @@ N_new = c(5, 13, 33, 100)
 
 
 ##---MB Data--------------------------------------------------
-true_c = c(1.5, 2.5, 5)
+true_c = c(1.5, 2.5, 5) ##Note: these must match with simulated data 
 mb_data_names = "simDataMulBirge_"
 mb_mu = 0
 
@@ -200,15 +200,15 @@ for (n in N_new){
       N = n,
       c = c,
       cov_un = coverage / nrow(mb_data_summary),
-      cov = coverage_corrected / nrow(mb_data_summary),
-      bias_both = mean(mu_hat)
+      cov_adj = coverage_corrected / nrow(mb_data_summary),
+      bias = mean(mu_hat)
     )
     counter = counter + 1
   }
 }
 
 ##---REM Data----------------------------------
-true_xi = c(1, 3, 10)
+true_xi = c(1, 3, 10) ##Note: these must match with simulated data
 rem_data_names = "simDataRandomEffects_"
 
 rem_data_mb_analysis = replicate(length(N_new)*length(true_xi),
@@ -223,7 +223,7 @@ for (n in N_new){
     file_path = list.files(path = folder_dir, pattern = file_pattern, full.names = TRUE)
     
     # Load directly as data.table
-    rem_dt = as.is.data.table(fread(file_path[1]))
+    rem_dt = fread(file_path[1])
     mu_REM = rem_dt$mu[1]
     chunk_size = rem_dt$N[1]
 
@@ -254,8 +254,8 @@ for (n in N_new){
       N = n,
       xi = xi,
       cov_un = cov_un,
-      cov = cov_adj,
-      bias_both = mean_bias
+      cov_adj = cov_adj,
+      bias = mean_bias
     )
 
     counter = counter + 1
@@ -346,8 +346,6 @@ rem_bias <- ggplot(rem_data_df, aes(x=N, y=bias, color=as.factor(xi))) +
 
 
 
-####pdf(paste0(path, figfolder, "MBsim_MB_mucov_1E4iter.pdf"), width=8, height=6)
+#pdf(paste0(path, figfolder, "sim_MB_mu_cov_bias_1E4iter.pdf"), width=8, height=6)
 grid.arrange(mb_cov, rem_cov, mb_bias, rem_bias, nrow=2)
 #dev.off()
-
-
