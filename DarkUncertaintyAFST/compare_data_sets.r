@@ -115,10 +115,10 @@ ggsave(paste0("DarkUncertaintyAFST/figures/sim_data_comparison_N13.png"), bacon_
 ##Note: currently not plotting N13 for c_val of 1.5 or 2.5 or xi of 1 or 10
 
 ##---Other N Simulated Data--------------------------
-
+mu = 0
 N_new = c(5, 13, 33, 100)
-c_vals = c(1.5, 2.5, 10)
-xi_vals = c(1, 3, 10)
+c_vals = c(1.5, 2, 3)
+xi_vals = c(1, 2, 3)
 
 MB_data = REM_data = list()
 i_MB = i_REM = 1 
@@ -159,7 +159,8 @@ for(N in N_new){
     i_REM = i_REM + 1
   }
 }
-
+# length(REM_data)
+# length(MB_data)
 
 p_sim_MB = p_sim_REM = list()
 

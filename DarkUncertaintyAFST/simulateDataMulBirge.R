@@ -35,10 +35,10 @@ k_cov_factor = 1.96 #1.96 for 95% intervals
 
 
 
-# --- Write CSV files containing MB simulated data 
+# --- Write CSV files containing MB simulated data
 
 N_new = c(5, 13, 33, 100)
-true_c = c(1.5, 2.5, 5)
+true_c = c(1.5, 2, 3)
 mu = 0
 N_cov = 1E4
 

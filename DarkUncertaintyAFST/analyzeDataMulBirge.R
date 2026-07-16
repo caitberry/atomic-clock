@@ -174,7 +174,7 @@ N_new = c(5, 13, 33, 100)
 
 
 ##---MB Data--------------------------------------------------
-true_c = c(1.5, 2.5, 5) ##Note: these must match with simulated data 
+true_c = c(1.5, 2, 3) ##Note: these must match with simulated data 
 mb_data_names = "simDataMulBirge_"
 mb_mu = 0
 
@@ -208,7 +208,7 @@ for (n in N_new){
 }
 
 ##---REM Data----------------------------------
-true_xi = c(1, 3, 10) ##Note: these must match with simulated data
+true_xi = c(1, 2, 3) ##Note: these must match with simulated data
 rem_data_names = "simDataRandomEffects_"
 
 rem_data_mb_analysis = replicate(length(N_new)*length(true_xi),
