@@ -130,6 +130,7 @@ print(single_stats)
 ##---------------------------------------------------------------
 ##---Analyse REM Data for N=13 for table
 ##---------------------------------------------------------------
+## TODO: make more efficient using data.table as below 
 rem_data = read_csv(paste0(path, "DarkUncertaintyAFST/simulatedData/simDataRandomEffects_N13xi3_10000iter_20260326.csv"))
 mu_REM = rem_data$mu[1]
 
@@ -186,27 +187,22 @@ for (n in N_new){
   for (c in true_c){
     mb_data = read_csv(paste0(path, simdatfolder, mb_data_names, "N", n, "c", c, "_10000iter_20260528.csv"))
     
-    coverage = 0
-    coverage_corrected = 0
-    mu_hat = NULL
-    runs = nrow(mb_data) / n
+    # Extract only one row per simulation run (since day goes 1 to n)
+    mb_data_summary <- mb_data %>% filter(day == 1)
 
-    for (i in seq_along(runs)){
-      tmp = mb_data[i,]
-      tmp_mu_hat = (tmp$ub+tmp$lb)/2
-      ##double check: lb and ub already account for k? 
-      if((tmp$lb <= mb_mu) & (tmp$ub >= mb_mu)){ coverage = coverage + 1}
-      if((tmp$lb_corrected <= mb_mu) & (tmp$ub_corrected >= mb_mu)){ coverage_corrected = coverage_corrected + 1}
-
-      mu_hat = c(mu_hat, tmp_mu_hat)
-    }
-
-    mb_data_mb_analysis[[counter]]$N = n
-    mb_data_mb_analysis[[counter]]$c = c
-    mb_data_mb_analysis[[counter]]$cov_un = coverage/runs
-    mb_data_mb_analysis[[counter]]$cov = coverage_corrected/runs
-    mb_data_mb_analysis[[counter]]$bias_both = mean(mu_hat)
-
+    # Vectorized coverage and bias calculation (No loop required!)
+    coverage = sum(mb_data_summary$lb <= mb_mu & mb_data_summary$ub >= mb_mu)
+    coverage_corrected = sum(mb_data_summary$lb_corrected <= mb_mu & mb_data_summary$ub_corrected >= mb_mu)
+    mu_hat = (mb_data_summary$lb + mb_data_summary$ub) / 2
+    
+    # Store results
+    mb_data_mb_analysis[[counter]] = list(
+      N = n,
+      c = c,
+      cov_un = coverage / nrow(mb_data_summary),
+      cov = coverage_corrected / nrow(mb_data_summary),
+      bias_both = mean(mu_hat)
+    )
     counter = counter + 1
   }
 }
@@ -225,40 +221,45 @@ for (n in N_new){
     folder_dir   = paste0(path, simdatfolder)
     file_pattern = paste0("^", rem_data_names, "N", n, "xi", xi, ".*\\.csv$")
     file_path = list.files(path = folder_dir, pattern = file_pattern, full.names = TRUE)
-    rem_data = read_csv(file_path[1])
-    mu_REM = rem_data$mu[1]
+    
+    # Load directly as data.table
+    rem_dt = as.is.data.table(fread(file_path[1]))
+    mu_REM = rem_dt$mu[1]
+    chunk_size = rem_dt$N[1]
 
-    ## Break data into a list of matricies with n rows
-    chunk_size = rem_data$N[1]
-    rem_data_list = split(rem_data, (seq_len(nrow(rem_data)) - 1) %/% chunk_size)
-    rem_mtx_list = lapply(rem_data_list, as.matrix)
-    rem_birge_res = lapply(rem_mtx_list, birge_wrapper) ##Note input must be a matrix
+    # Old ineffecient code:
+    # rem_data_list = split(rem_data, (seq_len(nrow(rem_data)) - 1) %/% chunk_size)
+    # rem_mtx_list = lapply(rem_data_list, as.matrix)
+    # rem_birge_res = lapply(rem_mtx_list, birge_wrapper) ##Note input must be a matrix
 
-    coverage = 0
-    coverage_corrected = 0
-    mu_hat_un = NULL
-    mu_hat_adj = NULL
-    u_mu_hat_un = NULL 
-    u_mu_hat_adj = NULL
-    for (i in seq_along(rem_data_list)){
-      tmp = rem_birge_res[[i]]
-      if((tmp$mean_birge - k_cov_factor*tmp$u_birge <= mu_REM) & (tmp$mean_birge + k_cov_factor*tmp$u_birge >= mu_REM)){ coverage = coverage + 1}
-      if((tmp$mean_birge - k_cov_factor*tmp$u_birge_corrected <= mu_REM) & (tmp$mean_birge + k_cov_factor*tmp$u_birge_corrected >= mu_REM)){ coverage_corrected = coverage_corrected + 1}
+    # New efficient code:
+    # 1. Instantly assign run IDs
+    # creates one new column (run_id) which is filled by calculating a group number for every individual row in the data table 
+    # .N is total number of rows in the table 
+    # - 1 to shift to 0-indexed sequence for %/% which is integer division (rounds down)
+    # + 1 to shift back to 1-index
+    rem_dt[, run_id := (seq_len(.N) - 1) %/% chunk_size + 1]
+    
+    # 2. Vectorized calculation of Birge parameters by group
+    rem_birge_res = rem_dt[, birge_wrapper(as.matrix(.SD)), by = run_id, .SDcols = c("x", "u")]
 
-      mu_hat_un = c(mu_hat_un, tmp$mean_birge)
-      mu_hat_adj = c(mu_hat_adj, tmp$mean_birge)
+    # 3. Vectorized coverage and bias 
+    cov_un = rem_birge_res[, mean((mean_birge - k_cov_factor * u_birge <= mu_REM) & 
+                                  (mean_birge + k_cov_factor * u_birge >= mu_REM))]
+    cov_adj = rem_birge_res[, mean((mean_birge - k_cov_factor * u_birge_corrected <= mu_REM) & 
+                                   (mean_birge + k_cov_factor * u_birge_corrected >= mu_REM))]
+    mean_bias = mean(rem_birge_res$mean_birge)
 
-      u_mu_hat_un = c(u_mu_hat_un, tmp$u_birge)
-      u_mu_hat_adj = c(u_mu_hat_adj, tmp$u_birge_corrected)
-    }
-
-    rem_data_mb_analysis[[counter]]$N = n
-    rem_data_mb_analysis[[counter]]$xi = xi
-    rem_data_mb_analysis[[counter]]$cov_un = coverage/length(rem_data_list)
-    rem_data_mb_analysis[[counter]]$cov = coverage_corrected/length(rem_data_list)
-    rem_data_mb_analysis[[counter]]$bias_both = mean(mu_hat_un)
+    rem_data_mb_analysis[[counter]] = list(
+      N = n,
+      xi = xi,
+      cov_un = cov_un,
+      cov = cov_adj,
+      bias_both = mean_bias
+    )
 
     counter = counter + 1
+ 
   }
 }
 
@@ -273,41 +274,46 @@ for (n in N_new){
 # N = c(5, 13, 33, 100) (x-axis)
 
 ## Create data frames of info
-mb_data_df = data.frame(N = 0, c = 0, cov_un = 0, cov_adj = 0, bias = 0)
-rem_data_df = data.frame(N = 0, xi = 0, cov_un = 0, cov_adj = 0, bias = 0)
 
-for (i in 1:12) {
-    mb_data_df[i, ] = c(mb_data_mb_analysis[[i]]$N,
-                        mb_data_mb_analysis[[i]]$c,
-                        mb_data_mb_analysis[[i]]$cov_un,
-                        mb_data_mb_analysis[[i]]$cov,
-                        mb_data_mb_analysis[[i]]$bias_both
-                        )
-    rem_data_df[i, ] = c(rem_data_mb_analysis[[i]]$N,
-                        rem_data_mb_analysis[[i]]$xi,
-                        rem_data_mb_analysis[[i]]$cov_un,
-                        rem_data_mb_analysis[[i]]$cov,
-                        rem_data_mb_analysis[[i]]$bias_both
-                        )
+## Old code
+# mb_data_df = data.frame(N = 0, c = 0, cov_un = 0, cov_adj = 0, bias = 0)
+# rem_data_df = data.frame(N = 0, xi = 0, cov_un = 0, cov_adj = 0, bias = 0)
 
-}
+# for (i in 1:12) {
+#     mb_data_df[i, ] = c(mb_data_mb_analysis[[i]]$N,
+#                         mb_data_mb_analysis[[i]]$c,
+#                         mb_data_mb_analysis[[i]]$cov_un,
+#                         mb_data_mb_analysis[[i]]$cov,
+#                         mb_data_mb_analysis[[i]]$bias_both
+#                         )
+#     rem_data_df[i, ] = c(rem_data_mb_analysis[[i]]$N,
+#                         rem_data_mb_analysis[[i]]$xi,
+#                         rem_data_mb_analysis[[i]]$cov_un,
+#                         rem_data_mb_analysis[[i]]$cov,
+#                         rem_data_mb_analysis[[i]]$bias_both
+#                         )
+# }
+
+## New code using data.table
+mb_data_df  <- data.table::rbindlist(mb_data_mb_analysis)
+rem_data_df <- data.table::rbindlist(rem_data_mb_analysis)
 
 ## Convert data frames to long format
-mb_all_long <- data.frame(mb_data_df) %>%
+mb_all_long <- mb_data_df %>%
   pivot_longer(
     cols = c(cov_un, cov_adj),
     names_to = "Method",
     values_to = "cov_prob"
   )
-rem_all_long <- data.frame(rem_data_df) %>%
+rem_all_long <- rem_data_df %>%
   pivot_longer(
     cols = c(cov_un, cov_adj),
     names_to = "Method",
     values_to = "cov_prob"
   )
+
 
 ## Generate and save plots
-
 mb_cov <- ggplot(mb_all_long, aes(x=N, y=cov_prob, color=as.factor(c), linetype=as.factor(Method))) +
   geom_point(size=1) +
   geom_line() +
@@ -316,7 +322,7 @@ mb_cov <- ggplot(mb_all_long, aes(x=N, y=cov_prob, color=as.factor(c), linetype=
   labs(color="True c", linetype="Method") +
   ggtitle("MB data, MB est mu coverage probability")
 
-mb_bias <- ggplot(data.frame(mb_all_long), aes(x=N, y=bias, color=as.factor(c))) +
+mb_bias <- ggplot(mb_data_df, aes(x=N, y=bias, color=as.factor(c))) +
   geom_point(size=1) +
   geom_line() +
   theme_bw() +
@@ -331,7 +337,7 @@ rem_cov <- ggplot(rem_all_long, aes(x=N, y=cov_prob, color=as.factor(xi), linety
   labs(color="True xi", linetype="Method") +
   ggtitle("REM data, MB est mu coverage probability")
 
-rem_bias <- ggplot(data.frame(rem_all_long), aes(x=N, y=bias, color=as.factor(xi))) +
+rem_bias <- ggplot(rem_data_df, aes(x=N, y=bias, color=as.factor(xi))) +
   geom_point(size=1) +
   geom_line() +
   theme_bw() +
